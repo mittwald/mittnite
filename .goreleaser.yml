@@ -1,0 +1,59 @@
+project_name: mittnite
+before:
+  hooks:
+    - go mod download
+    - go test ./...
+builds:
+- env:
+  - CGO_ENABLED=0
+  binary: mittnite
+  ldflags:
+  - -s -w -X "main.Version={{ .Version }}" -X "main.Commit={{ .Commit }}" -X "main.BuiltAt={{ .Date }}"
+  goos:
+  - darwin
+  - linux
+  goarch:
+  - amd64
+archive:
+  replacements:
+    darwin: macos
+    linux: linux
+    windows: windows
+    386: i386
+    amd64: x86_64
+nfpm:
+  vendor: Mittwald CM Service
+  homepage: https://github.com/mittwald/mittnite
+  maintainer: Martin Helmich <m.helmich@mittwald.de>
+  description: Smart and small init system for containers
+  license: Proprietary
+  formats:
+    - deb
+    - rpm
+  bindir: /usr/bin
+  empty_folders:
+    - /etc/mittnite.d
+release:
+  disable: true
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'
+dockers:
+    -
+      image_templates:
+        - quay.io/mittwald/mittnite:latest
+        - quay.io/mittwald/mittnite:stable
+        - quay.io/mittwald/mittnite:{{ .Tag }}
+        - quay.io/mittwald/mittnite:{{ .Tag }}-alpine
+      binaries:
+        - mittnite
+      goos: linux
+      goarch: amd64
+      goarm: ''

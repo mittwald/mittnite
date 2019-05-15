@@ -1,0 +1,1 @@
+Hallo {{ .Params.foo }}!
