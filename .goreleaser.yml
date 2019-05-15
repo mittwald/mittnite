@@ -33,8 +33,6 @@ nfpm:
   bindir: /usr/bin
   empty_folders:
     - /etc/mittnite.d
-release:
-  disable: true
 checksum:
   name_template: 'checksums.txt'
 snapshot:
