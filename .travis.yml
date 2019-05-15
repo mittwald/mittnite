@@ -16,7 +16,7 @@ addons:
     packages:
       - curl
       - bash
-      - rpmbuild
+      - rpm
 
 env:
   global:
