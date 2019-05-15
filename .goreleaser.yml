@@ -50,6 +50,7 @@ dockers:
       image_templates:
         - quay.io/mittwald/mittnite:latest
         - quay.io/mittwald/mittnite:stable
+        - quay.io/mittwald/mittnite:stable-alpine
         - quay.io/mittwald/mittnite:{{ .Tag }}
         - quay.io/mittwald/mittnite:{{ .Tag }}-alpine
       binaries:
