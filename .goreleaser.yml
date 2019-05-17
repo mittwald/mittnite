@@ -46,11 +46,15 @@ changelog:
 dockers:
     -
       image_templates:
-        - quay.io/mittwald/mittnite:latest
-        - quay.io/mittwald/mittnite:stable
-        - quay.io/mittwald/mittnite:stable-alpine
+        - quay.io/mittwald/mittnite:v{{ .Major }}
+        - quay.io/mittwald/mittnite:v{{ .Major }}.{{ .Minor }}
         - quay.io/mittwald/mittnite:{{ .Tag }}
+        - quay.io/mittwald/mittnite:stable
+        - quay.io/mittwald/mittnite:latest
+        - quay.io/mittwald/mittnite:v{{ .Major }}-alpine
+        - quay.io/mittwald/mittnite:v{{ .Major }}.{{ .Minor }}-alpine
         - quay.io/mittwald/mittnite:{{ .Tag }}-alpine
+        - quay.io/mittwald/mittnite:stable-alpine
       binaries:
         - mittnite
       goos: linux
