@@ -50,6 +50,7 @@ func (m *mongoDBProbe) Exec() error {
 	defer cancel()
 
 	err = client.Connect(ctx)
+	defer client.Disconnect(ctx)
 	if err != nil {
 		return err
 	}
