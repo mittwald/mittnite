@@ -10,22 +10,35 @@ import (
 )
 
 type httpGetProbe struct {
-	url string
+	url     string
+	timeout string
 }
 
 func NewHttpProbe(cfg *config.HttpGetConfig) *httpGetProbe {
-	cfg.Url = resolveEnv(cfg.Url)
+	cfg.URL = resolveEnv(cfg.URL)
+	cfg.Timeout = resolveEnv(cfg.Timeout)
 
 	connCfg := httpGetProbe{
-		url: cfg.Url,
+		url:     cfg.URL,
+		timeout: cfg.Timeout,
 	}
 
 	return &connCfg
 }
 
 func (h *httpGetProbe) Exec() error {
+	var timeout = time.Second * 5
+	if h.timeout != "" {
+		duration, err := time.ParseDuration(h.timeout)
+		if err == nil {
+			timeout = duration
+		} else {
+			return errors.New(fmt.Sprintf("invalid timeout duration: %s", err))
+		}
+	}
+
 	var client = &http.Client{
-		Timeout: time.Second * 5,
+		Timeout: timeout,
 	}
 	res, err := client.Get(h.url)
 	if err != nil {

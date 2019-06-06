@@ -13,3 +13,11 @@ job webserver {
     signal = 12 # USR2
   }
 }
+
+probe http {
+  wait = true
+  http {
+    url = "http://google.de"
+    timeout = "3s"
+  }
+}

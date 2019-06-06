@@ -27,7 +27,8 @@ type RedisConfig struct {
 }
 
 type HttpGetConfig struct {
-	Url string
+	URL     string `hcl:"url"`
+	Timeout string
 }
 
 type ProbeConfig struct {
@@ -38,7 +39,7 @@ type ProbeConfig struct {
 	Redis      *RedisConfig
 	MongoDB    *MongoDBConfig
 	Amqp       *AmqpConfig
-	Http       *HttpGetConfig
+	HTTP       *HttpGetConfig
 }
 
 type WatchConfig struct {
