@@ -93,6 +93,7 @@ func main() {
 		err := probe.RunProbeServer(probeHandler, probeSignals)
 		if err != nil {
 			log.Printf("probe server stopped with error: %s", err)
+			panic(err)
 		} else {
 			log.Print("probe server stopped without error")
 		}
@@ -106,6 +107,7 @@ func main() {
 	err = proc.RunServices(&ignitionConfig, procSignals)
 	if err != nil {
 		log.Printf("service runner stopped with error: %s", err)
+		panic(err)
 	} else {
 		log.Print("service runner stopped without error")
 	}

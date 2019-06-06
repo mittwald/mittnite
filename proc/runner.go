@@ -1,6 +1,7 @@
 package proc
 
 import (
+	"fmt"
 	"github.com/mittwald/mittnite/config"
 	"log"
 	"os"
@@ -11,6 +12,8 @@ import (
 )
 
 func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
+	errs := make(chan error)
+
 	signalsOut := make([]chan os.Signal, len(cfg.Jobs))
 	for i := range cfg.Jobs {
 		signalsOut[i] = make(chan os.Signal)
@@ -35,8 +38,6 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 	wg := sync.WaitGroup{}
 
 	for i := range cfg.Jobs {
-		wg.Add(1)
-
 		var cmd *exec.Cmd
 
 		go func(job *config.JobConfig, signals <-chan os.Signal) {
@@ -71,7 +72,10 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 			}(i, &cfg.Jobs[i].Watches[i])
 		}
 
-		go func(job config.JobConfig, s chan<- os.Signal) {
+		wg.Add(1)
+		go func(job config.JobConfig, errs chan<- error) {
+			defer wg.Done()
+
 			maxAttempts := job.MaxAttempts
 			failedAttempts := 0
 
@@ -95,7 +99,7 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 
 					if failedAttempts >= maxAttempts {
 						log.Printf("reached max retries for job %s", job.Name)
-						s <- syscall.SIGINT //notify other (already running) jobs to shut down
+						errs <- fmt.Errorf("reached max retries for job %s", job.Name)
 						break
 					}
 				}
@@ -103,10 +107,23 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 
 			log.Printf("ending job %s", job.Name)
 
-			wg.Done()
-		}(cfg.Jobs[i], signalsOut[i])
+		}(cfg.Jobs[i], errs)
 	}
 
-	wg.Wait()
+	allDone := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(allDone)
+	}()
+
+	// wait for them all to finish, or one to fail
+	select {
+	case <-allDone:
+	case err := <-errs:
+		log.Println("job return error, shutting down other services")
+		signals <- syscall.SIGINT //notify other (already running) jobs to shut down
+		return err
+	}
+
 	return nil
 }
