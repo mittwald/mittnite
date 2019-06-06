@@ -17,7 +17,7 @@ job webserver {
 probe http {
   wait = true
   http {
-    url = "http://google.de"
+    host = "google.de"
     timeout = "3s"
   }
 }

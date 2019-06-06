@@ -27,7 +27,10 @@ type RedisConfig struct {
 }
 
 type HttpGetConfig struct {
-	URL     string `hcl:"url"`
+	Scheme  string
+	Host    string
+	Port    string
+	Path    string
 	Timeout string
 }
 
