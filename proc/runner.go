@@ -71,7 +71,7 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 			}(i, &cfg.Jobs[i].Watches[i])
 		}
 
-		go func(job config.JobConfig, s <-chan os.Signal) {
+		go func(job config.JobConfig, s chan<- os.Signal) {
 			maxAttempts := job.MaxAttempts
 			failedAttempts := 0
 
@@ -95,6 +95,7 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 
 					if failedAttempts >= maxAttempts {
 						log.Printf("reached max retries for job %s", job.Name)
+						s <- syscall.SIGINT //notify other (already running) jobs to shut down
 						break
 					}
 				}

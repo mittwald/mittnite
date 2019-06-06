@@ -146,6 +146,8 @@ func buildProbesFromConfig(cfg *config.IgnitionConfig) map[string]Probe {
 			result[cfg.Probes[i].Name] = NewMongoDBProbe(cfg.Probes[i].MongoDB)
 		} else if cfg.Probes[i].Amqp != nil {
 			result[cfg.Probes[i].Name] = NewAmqpProbe(cfg.Probes[i].Amqp)
+		} else if cfg.Probes[i].Http != nil {
+			result[cfg.Probes[i].Name] = NewHttpProbe(cfg.Probes[i].Http)
 		}
 	}
 	return result

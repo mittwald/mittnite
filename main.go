@@ -14,7 +14,6 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
-	"sync"
 )
 
 type InitFlags struct {
@@ -90,25 +89,24 @@ func main() {
 
 	probeHandler, _ := probe.NewProbeHandler(&ignitionConfig)
 
-	wg := sync.WaitGroup{}
-	wg.Add(2)
-
 	go func() {
-		defer wg.Done()
 		err := probe.RunProbeServer(probeHandler, probeSignals)
-		log.Printf("probe server stopped: %s", err)
-	}()
-
-	go func() {
-		defer wg.Done()
-		err := probeHandler.Wait(readinessSignals)
 		if err != nil {
-			panic(err)
+			log.Printf("probe server stopped with error: %s", err)
+		} else {
+			log.Print("probe server stopped without error")
 		}
-
-		err = proc.RunServices(&ignitionConfig, procSignals)
-		log.Printf("service runner stopped: %s", err)
 	}()
 
-	wg.Wait()
+	err = probeHandler.Wait(readinessSignals)
+	if err != nil {
+		panic(err)
+	}
+
+	err = proc.RunServices(&ignitionConfig, procSignals)
+	if err != nil {
+		log.Printf("service runner stopped with error: %s", err)
+	} else {
+		log.Print("service runner stopped without error")
+	}
 }

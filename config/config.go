@@ -26,6 +26,10 @@ type RedisConfig struct {
 	Password string
 }
 
+type HttpGetConfig struct {
+	Url string
+}
+
 type ProbeConfig struct {
 	Name       string `hcl:",key"`
 	Wait       bool
@@ -34,6 +38,7 @@ type ProbeConfig struct {
 	Redis      *RedisConfig
 	MongoDB    *MongoDBConfig
 	Amqp       *AmqpConfig
+	Http       *HttpGetConfig
 }
 
 type WatchConfig struct {
