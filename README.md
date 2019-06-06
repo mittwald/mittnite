@@ -7,7 +7,7 @@ It offers the following features:
 - Render configuration files from templates using Go's [`text/template`](https://golang.org/pkg/text/template/) engine.
 - Start processes and manage their lifecycle
 - Watch configuration files and send configurable signals to processes on change
-- Wait until required services are up before starting before starting processes (currently supporting filesystem mounts, MySQL and Redis)
+- Wait until required services are up before starting before starting processes (currently supporting filesystem mounts, HTTP services, MySQL, Redis, AMQP and MongoDB)
 
 ## Starting
 
