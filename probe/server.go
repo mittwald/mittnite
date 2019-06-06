@@ -1,6 +1,7 @@
 package probe
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -91,7 +92,7 @@ func (s *ProbeHandler) HandleStatus(res http.ResponseWriter, req *http.Request) 
 		res.WriteHeader(503)
 	}
 
-	json.NewEncoder(res).Encode(&response)
+	_ = json.NewEncoder(res).Encode(&response)
 }
 
 func NewProbeHandler(cfg *config.IgnitionConfig) (*ProbeHandler, error) {
@@ -115,7 +116,7 @@ func RunProbeServer(ph *ProbeHandler, signals chan os.Signal) error {
 		for s := range signals {
 			if s == syscall.SIGINT || s == syscall.SIGTERM {
 				log.Printf("shutting down monitoring server after receiving %s", s.String())
-				server.Shutdown(nil)
+				_ = server.Shutdown(context.Background())
 			}
 		}
 	}()

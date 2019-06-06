@@ -1,7 +1,6 @@
 package probe
 
 import (
-	"errors"
 	"fmt"
 	"github.com/mittwald/mittnite/config"
 	"log"
@@ -33,7 +32,7 @@ func (h *httpGetProbe) Exec() error {
 		if err == nil {
 			timeout = duration
 		} else {
-			return errors.New(fmt.Sprintf("invalid timeout duration: %s", err))
+			return fmt.Errorf("invalid timeout duration: %s", err)
 		}
 	}
 
@@ -50,5 +49,5 @@ func (h *httpGetProbe) Exec() error {
 		return nil
 	}
 
-	return errors.New(fmt.Sprintf("http service returned status code %d", res.StatusCode))
+	return fmt.Errorf("http service returned status code %d", res.StatusCode)
 }

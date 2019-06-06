@@ -43,7 +43,7 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 			for sig := range signals {
 				if cmd != nil && cmd.Process != nil {
 					log.Printf("passing signal %s to job %s", sig.String(), job.Name)
-					cmd.Process.Signal(sig)
+					_ = cmd.Process.Signal(sig)
 				}
 			}
 		}(&cfg.Jobs[i], signalsOut[i])
@@ -64,7 +64,7 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 					stat, err = os.Stat(w.Filename)
 					if err == nil && mtime != stat.ModTime() && cmd != nil && cmd.Process != nil {
 						log.Printf("file %s changed, signalling process %s", w.Filename, cfg.Jobs[j].Name)
-						cmd.Process.Signal(syscall.Signal(w.Signal))
+						_ = cmd.Process.Signal(syscall.Signal(w.Signal))
 						mtime = stat.ModTime()
 					}
 				}
@@ -86,9 +86,9 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 				cmd.Stdout = os.Stdout
 				cmd.Stderr = os.Stderr
 
-				err := cmd.Start()
+				_ = cmd.Start()
 
-				err = cmd.Wait()
+				err := cmd.Wait()
 				if err != nil {
 					log.Printf("job %s exited with error: %s", job.Name, err)
 					failedAttempts++

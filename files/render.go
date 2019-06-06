@@ -43,12 +43,11 @@ func RenderConfigurationFile(cfg *config.FileConfig) error {
 			return err
 		}
 
-
 		folderPath, err := filepath.Abs(filepath.Dir(cfg.Target))
 		if err != nil {
 			return err
 		}
-		err = os.MkdirAll(folderPath, os.ModePerm);
+		err = os.MkdirAll(folderPath, os.ModePerm)
 		if err != nil {
 			return err
 		}
@@ -61,7 +60,7 @@ func RenderConfigurationFile(cfg *config.FileConfig) error {
 		defer out.Close()
 
 		data := templateData{
-			Env:    make(map[string]string, 0),
+			Env:    make(map[string]string),
 			Params: cfg.Parameters,
 		}
 
