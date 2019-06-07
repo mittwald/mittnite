@@ -5,6 +5,7 @@ import (
 	"github.com/mittwald/mittnite/config"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -52,20 +53,25 @@ func (h *httpGetProbe) Exec() error {
 		}
 	}
 
-	url := fmt.Sprintf("%s://%s%s", h.scheme, h.host, h.path)
+	u := url.URL{
+		Scheme: h.scheme,
+		Host:   h.host,
+		Path:   h.path,
+	}
+	urlStr := u.String()
 
 	var client = &http.Client{
 		Timeout: timeout,
 	}
-	res, err := client.Get(url)
+	res, err := client.Get(urlStr)
 	if err != nil {
 		return err
 	}
 
 	if res.StatusCode >= 200 && res.StatusCode < 400 {
-		log.Printf("http service '%s' is alive", url)
+		log.Printf("http service '%s' is alive", urlStr)
 		return nil
 	}
 
-	return fmt.Errorf("http service '%s' returned status code %d", url, res.StatusCode)
+	return fmt.Errorf("http service '%s' returned status code %d", urlStr, res.StatusCode)
 }
