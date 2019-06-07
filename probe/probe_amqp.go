@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/mittwald/mittnite/config"
 	"github.com/streadway/amqp"
+	"log"
 	"net/url"
 )
 
@@ -54,7 +55,7 @@ func (a *amqpProbe) Exec() error {
 	}
 	defer conn.Close()
 
-	fmt.Println("amqp is alive")
+	log.Println("amqp is alive")
 
 	return nil
 }

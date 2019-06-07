@@ -2,9 +2,9 @@ package probe
 
 import (
 	"database/sql"
-	"fmt"
 	"github.com/go-sql-driver/mysql"
 	"github.com/mittwald/mittnite/config"
+	"log"
 )
 
 type mySQLProbe struct {
@@ -36,7 +36,7 @@ func (m *mySQLProbe) Exec() error {
 		return err
 	}
 
-	fmt.Println("connected")
+	log.Println("connected")
 
 	defer db.Close()
 	r, err := db.Query("SELECT 1")
@@ -44,7 +44,7 @@ func (m *mySQLProbe) Exec() error {
 		return err
 	}
 
-	fmt.Println("selected successfully")
+	log.Println("selected successfully")
 
 	r.Close()
 

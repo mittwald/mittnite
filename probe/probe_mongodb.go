@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"log"
 	"net/url"
 	"time"
 )
@@ -60,7 +61,7 @@ func (m *mongoDBProbe) Exec() error {
 		return err
 	}
 
-	fmt.Println("mongodb is alive")
+	log.Println("mongodb is alive")
 
 	return nil
 }
