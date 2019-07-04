@@ -121,7 +121,12 @@ func RunProbeServer(ph *ProbeHandler, signals chan os.Signal) error {
 		}
 	}()
 
-	return server.ListenAndServe()
+	err := server.ListenAndServe()
+	if err != http.ErrServerClosed {
+		return err
+	}
+
+	return nil
 }
 
 func filterWaitProbes(cfg *config.IgnitionConfig, probes map[string]Probe) map[string]Probe {
