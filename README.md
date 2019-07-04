@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/mittwald/mittnite.svg?branch=master)](https://travis-ci.com/mittwald/mittnite)
+
 # Mittnite - Smart init system for containers
 
 Mittnite is a small, but smart init system designed for usage as `ENTRYPOINT` in container images.
