@@ -37,7 +37,7 @@ func main() {
 
 	initFlags.ConfigDir = strings.TrimRight(initFlags.ConfigDir, "/")
 
-	matches, err := filepath.Glob(initFlags.ConfigDir + "/*.hcl")
+	matches, err := filepath.Glob(initFlags.ConfigDir + "/*/*.hcl")
 	if err != nil {
 		panic(err)
 	}
