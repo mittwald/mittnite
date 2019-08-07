@@ -5,6 +5,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/mittwald/mittnite/config"
 	"log"
+	"strconv"
 )
 
 type mySQLProbe struct {
@@ -12,16 +13,16 @@ type mySQLProbe struct {
 }
 
 func NewMySQLProbe(cfg *config.MySQLConfig) *mySQLProbe {
-	cfg.User = resolveEnv(cfg.User)
+	cfg.Credentials.User = resolveEnv(cfg.Credentials.User)
 	cfg.Database = resolveEnv(cfg.Database)
-	cfg.Password = resolveEnv(cfg.Password)
-	cfg.Host = resolveEnv(cfg.Host)
+	cfg.Credentials.Password = resolveEnv(cfg.Credentials.Password)
+	cfg.Host.Url = resolveEnv(cfg.Host.Url)
 
 	connCfg := mysql.Config{
-		User:   cfg.User,
-		Passwd: cfg.Password,
+		User:   cfg.Credentials.User,
+		Passwd: cfg.Credentials.Password,
 		Net:    "tcp",
-		Addr:   cfg.Host + ":3306",
+		Addr:   cfg.Host.Url + ":" + strconv.Itoa(cfg.Host.Port),
 		DBName: cfg.Database,
 	}
 

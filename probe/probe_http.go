@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -18,8 +19,8 @@ type httpGetProbe struct {
 
 func NewHttpProbe(cfg *config.HttpGetConfig) *httpGetProbe {
 	cfg.Scheme = resolveEnv(cfg.Scheme)
-	cfg.Host = resolveEnv(cfg.Host)
-	cfg.Port = resolveEnv(cfg.Port)
+	cfg.Host.Url = resolveEnv(cfg.Host.Url)
+	// cfg.Host.Port = resolveEnv(cfg.Host.Port)
 	cfg.Path = resolveEnv(cfg.Path)
 	cfg.Timeout = resolveEnv(cfg.Timeout)
 
@@ -27,9 +28,9 @@ func NewHttpProbe(cfg *config.HttpGetConfig) *httpGetProbe {
 		cfg.Scheme = "http"
 	}
 
-	host := cfg.Host
-	if cfg.Port != "" {
-		host += ":" + cfg.Port
+	host := cfg.Host.Url
+	if cfg.Host.Port != 0 {
+		host += ":" + strconv.Itoa(cfg.Host.Port)
 	}
 
 	connCfg := httpGetProbe{

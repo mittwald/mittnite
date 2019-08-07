@@ -1,6 +1,9 @@
 probe redis {
   wait = true
   redis {
-    host = "localhost"
+    host = {
+      url = "localhost"
+      port = 6379
+    }
   }
 }

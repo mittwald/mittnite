@@ -37,7 +37,16 @@ func main() {
 
 	initFlags.ConfigDir = strings.TrimRight(initFlags.ConfigDir, "/")
 
-	matches, err := filepath.Glob(initFlags.ConfigDir + "/*/*.hcl")
+	var matches []string
+
+	err := filepath.Walk(initFlags.ConfigDir, func(path string, info os.FileInfo, err error) error {
+
+		spl := strings.Split(info.Name(), ".")
+		if spl[len(spl)-1] == "hcl" {
+			matches = append(matches, path)
+		}
+		return nil
+	})
 	if err != nil {
 		panic(err)
 	}

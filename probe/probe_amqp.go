@@ -6,6 +6,7 @@ import (
 	"github.com/streadway/amqp"
 	"log"
 	"net/url"
+	"strconv"
 )
 
 const (
@@ -17,22 +18,24 @@ type amqpProbe struct {
 	password    string
 	hostname    string
 	virtualHost string
+	port        int
 }
 
 func NewAmqpProbe(cfg *config.AmqpConfig) *amqpProbe {
-	cfg.User = resolveEnv(cfg.User)
-	cfg.Password = resolveEnv(cfg.Password)
-	cfg.Hostname = resolveEnv(cfg.Hostname)
+	cfg.Credentials.User = resolveEnv(cfg.Credentials.User)
+	cfg.Credentials.Password = resolveEnv(cfg.Credentials.Password)
+	cfg.Host.Url = resolveEnv(cfg.Host.Url)
 	cfg.VirtualHost = resolveEnv(cfg.VirtualHost)
 	if cfg.VirtualHost == "" {
 		cfg.VirtualHost = defaultVirtualHost
 	}
 
 	connCfg := amqpProbe{
-		user:        cfg.User,
-		password:    cfg.Password,
-		hostname:    cfg.Hostname,
+		user:        cfg.Credentials.User,
+		password:    cfg.Credentials.Password,
+		hostname:    cfg.Host.Url,
 		virtualHost: cfg.VirtualHost,
+		port:        cfg.Host.Port,
 	}
 
 	return &connCfg
@@ -41,7 +44,7 @@ func NewAmqpProbe(cfg *config.AmqpConfig) *amqpProbe {
 func (a *amqpProbe) Exec() error {
 	u := url.URL{
 		Scheme: "amqp",
-		Host:   fmt.Sprintf("%s:%d", a.hostname, 5672),
+		Host:   fmt.Sprintf("%s:%d", a.hostname, strconv.Itoa(a.port)),
 		Path:   a.virtualHost,
 	}
 

@@ -1,35 +1,41 @@
 package config
 
-type MySQLConfig struct {
+type Credentials struct {
 	User     string
 	Password string
-	Host     string
-	Database string
+}
+
+type Host struct {
+	Url  string
+	Port int
+}
+
+type MySQLConfig struct {
+	Credentials Credentials
+	Host        Host
+	Database    string
 }
 
 type AmqpConfig struct {
-	User        string
-	Password    string
-	Hostname    string
+	Credentials Credentials
+	Host        Host
 	VirtualHost string
 }
 
 type MongoDBConfig struct {
-	User     string
-	Password string
-	Host     string
-	Database string
+	Credentials Credentials
+	Host        Host
+	Database    string
 }
 
 type RedisConfig struct {
-	Host     string
+	Host     Host
 	Password string
 }
 
 type HttpGetConfig struct {
 	Scheme  string
-	Host    string
-	Port    string
+	Host    Host
 	Path    string
 	Timeout string
 }
