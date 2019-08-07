@@ -23,7 +23,7 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 
 	go func() {
 		for sig := range signals {
-			log.Info("jobrunner: received signal %s", sig.String())
+			log.Infof("jobrunner: received signal %s", sig.String())
 			if sig == syscall.SIGINT || sig == syscall.SIGTERM {
 				log.Info("stopping service runner")
 				stop = true
@@ -43,7 +43,7 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 		go func(job *config.JobConfig, signals <-chan os.Signal) {
 			for sig := range signals {
 				if cmd != nil && cmd.Process != nil {
-					log.Info("passing signal %s to job %s", sig.String(), job.Name)
+					log.Infof("passing signal %s to job %s", sig.String(), job.Name)
 					_ = cmd.Process.Signal(sig)
 				}
 			}
@@ -55,7 +55,7 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 				stat, err := os.Stat(w.Filename)
 
 				if err == nil {
-					log.Info("file %s's last modification was %s", w.Filename, stat.ModTime().String())
+					log.Infof("file %s's last modification was %s", w.Filename, stat.ModTime().String())
 					mtime = stat.ModTime()
 				}
 
@@ -105,7 +105,7 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 				}
 			}
 
-			log.Info("ending job %s", job.Name)
+			log.Infof("ending job %s", job.Name)
 
 		}(cfg.Jobs[i], errs)
 	}

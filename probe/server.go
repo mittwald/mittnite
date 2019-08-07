@@ -114,7 +114,7 @@ func RunProbeServer(ph *ProbeHandler, signals chan os.Signal) error {
 	go func() {
 		for s := range signals {
 			if s == syscall.SIGINT || s == syscall.SIGTERM {
-				log.Printf("shutting down monitoring server after receiving %s", s.String())
+				log.Fatalf("shutting down monitoring server after receiving %s", s.String())
 				_ = server.Shutdown(context.Background())
 			}
 		}

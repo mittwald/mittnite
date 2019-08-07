@@ -31,7 +31,7 @@ func RenderConfigurationFiles(configs []config.FileConfig) error {
 
 func RenderConfigurationFile(cfg *config.FileConfig) error {
 	if cfg.Template != "" {
-		log.Info("creating configuration file %s from template %s", cfg.Target, cfg.Template)
+		log.Infof("creating configuration file %s from template %s", cfg.Target, cfg.Template)
 
 		tplContents, err := ioutil.ReadFile(cfg.Template)
 		if err != nil {

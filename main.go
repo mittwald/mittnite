@@ -38,8 +38,8 @@ func main() {
 	flag.StringVar(&initFlags.ConfigDir, "config-dir", "/etc/mittnite.d", "Directory from which to read configuration files")
 	flag.Parse()
 
-	log.Printf("mittnite process manager, version %s (commit %s), built at %s", Version, Commit, BuiltAt)
-	log.Printf("looking for configuration files in %s", initFlags.ConfigDir)
+	log.Infof("mittnite process manager, version %s (commit %s), built at %s", Version, Commit, BuiltAt)
+	log.Infof("looking for configuration files in %s", initFlags.ConfigDir)
 
 	initFlags.ConfigDir = strings.TrimRight(initFlags.ConfigDir, "/")
 
@@ -64,7 +64,7 @@ func main() {
 	ignitionConfig := config.IgnitionConfig{}
 
 	for _, m := range matches {
-		log.Printf("found config file: %s", m)
+		log.Infof("found config file: %s", m)
 
 		contents, err := ioutil.ReadFile(m)
 		if err != nil {
@@ -94,7 +94,7 @@ func main() {
 
 	go func() {
 		for s := range signals {
-			log.Printf("received event %s", s.String())
+			log.Infof("received event %s", s.String())
 
 			readinessSignals <- s
 			probeSignals <- s
@@ -107,10 +107,10 @@ func main() {
 	go func() {
 		err := probe.RunProbeServer(probeHandler, probeSignals)
 		if err != nil {
-			log.Printf("probe server stopped with error: %s", err)
+			log.Infof("probe server stopped with error: %s", err)
 			panic(err)
 		} else {
-			log.Print("probe server stopped without error")
+			log.Info("probe server stopped without error")
 		}
 	}()
 
