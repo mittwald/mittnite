@@ -64,7 +64,7 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 				for range timer.C {
 					stat, err = os.Stat(w.Filename)
 					if err == nil && mtime != stat.ModTime() && cmd != nil && cmd.Process != nil {
-						log.Info("file %s changed, signalling process %s", w.Filename, cfg.Jobs[j].Name)
+						log.Infof("file %s changed, signalling process %s", w.Filename, cfg.Jobs[j].Name)
 						_ = cmd.Process.Signal(syscall.Signal(w.Signal))
 						mtime = stat.ModTime()
 					}
@@ -94,11 +94,11 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 
 				err := cmd.Wait()
 				if err != nil {
-					log.Error("job %s exited with error: %s", job.Name, err)
+					log.Errorf("job %s exited with error: %s", job.Name, err)
 					failedAttempts++
 
 					if failedAttempts >= maxAttempts {
-						log.Error("reached max retries for job %s", job.Name)
+						log.Errorf("reached max retries for job %s", job.Name)
 						errs <- fmt.Errorf("reached max retries for job %s", job.Name)
 						break
 					}

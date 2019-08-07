@@ -6,7 +6,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"net/url"
-	"strconv"
 )
 
 const (
@@ -44,7 +43,7 @@ func NewAmqpProbe(cfg *config.AmqpConfig) *amqpProbe {
 func (a *amqpProbe) Exec() error {
 	u := url.URL{
 		Scheme: "amqp",
-		Host:   fmt.Sprintf("%s:%d", a.hostname, strconv.Itoa(a.port)),
+		Host:   fmt.Sprintf("%s:%d", a.hostname, a.port),
 		Path:   a.virtualHost,
 	}
 

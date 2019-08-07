@@ -33,7 +33,7 @@ func (s *ProbeHandler) Wait(interrupt chan os.Signal) error {
 			for i := range s.waitProbes {
 				err := s.waitProbes[i].Exec()
 				if err != nil {
-					log.Warn("probe %s is not yet ready: %s", i, err)
+					log.Warnf("probe %s is not yet ready: %s", i, err)
 					ready = false
 				}
 			}
