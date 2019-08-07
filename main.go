@@ -8,8 +8,8 @@ import (
 	"github.com/mittwald/mittnite/files"
 	"github.com/mittwald/mittnite/probe"
 	"github.com/mittwald/mittnite/proc"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -27,6 +27,12 @@ var (
 )
 
 func main() {
+
+	Formatter := new(log.TextFormatter)
+	Formatter.TimestampFormat = "02-01-2006 15:04:05"
+	Formatter.FullTimestamp = true
+	log.SetFormatter(Formatter)
+
 	initFlags := InitFlags{}
 
 	flag.StringVar(&initFlags.ConfigDir, "config-dir", "/etc/mittnite.d", "Directory from which to read configuration files")

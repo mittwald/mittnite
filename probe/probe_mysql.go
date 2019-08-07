@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"github.com/go-sql-driver/mysql"
 	"github.com/mittwald/mittnite/config"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"strconv"
 )
 
@@ -37,7 +37,7 @@ func (m *mySQLProbe) Exec() error {
 		return err
 	}
 
-	log.Println("connected")
+	log.Info("connected")
 
 	defer db.Close()
 	r, err := db.Query("SELECT 1")
@@ -45,7 +45,7 @@ func (m *mySQLProbe) Exec() error {
 		return err
 	}
 
-	log.Println("selected successfully")
+	log.Info("selected successfully")
 
 	r.Close()
 

@@ -4,10 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/mittwald/mittnite/config"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"syscall"
@@ -22,7 +21,7 @@ type ProbeHandler struct {
 }
 
 func (s *ProbeHandler) Wait(interrupt chan os.Signal) error {
-	log.Println("waiting for probe readiness")
+	log.Info("waiting for probe readiness")
 
 	timer := time.NewTicker(1 * time.Second)
 
@@ -34,7 +33,7 @@ func (s *ProbeHandler) Wait(interrupt chan os.Signal) error {
 			for i := range s.waitProbes {
 				err := s.waitProbes[i].Exec()
 				if err != nil {
-					log.Printf("probe %s is not yet ready: %s", i, err)
+					log.Warn("probe %s is not yet ready: %s", i, err)
 					ready = false
 				}
 			}
@@ -81,7 +80,7 @@ func (s *ProbeHandler) HandleStatus(res http.ResponseWriter, req *http.Request) 
 			success = success && result.OK
 		case <-timeout.C:
 			success = false
-			fmt.Println("probe timed out")
+			log.Error("probe timed out")
 			break
 		}
 	}

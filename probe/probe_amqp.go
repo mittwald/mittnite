@@ -3,8 +3,8 @@ package probe
 import (
 	"fmt"
 	"github.com/mittwald/mittnite/config"
+	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
-	"log"
 	"net/url"
 	"strconv"
 )
@@ -58,7 +58,7 @@ func (a *amqpProbe) Exec() error {
 	}
 	defer conn.Close()
 
-	log.Println("amqp is alive")
+	log.Info("amqp is alive")
 
 	return nil
 }

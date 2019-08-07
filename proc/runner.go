@@ -3,7 +3,7 @@ package proc
 import (
 	"fmt"
 	"github.com/mittwald/mittnite/config"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"sync"
@@ -23,9 +23,9 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 
 	go func() {
 		for sig := range signals {
-			log.Printf("jobrunner: received signal %s", sig.String())
+			log.Info("jobrunner: received signal %s", sig.String())
 			if sig == syscall.SIGINT || sig == syscall.SIGTERM {
-				log.Printf("stopping service runner")
+				log.Info("stopping service runner")
 				stop = true
 			}
 
@@ -43,7 +43,7 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 		go func(job *config.JobConfig, signals <-chan os.Signal) {
 			for sig := range signals {
 				if cmd != nil && cmd.Process != nil {
-					log.Printf("passing signal %s to job %s", sig.String(), job.Name)
+					log.Info("passing signal %s to job %s", sig.String(), job.Name)
 					_ = cmd.Process.Signal(sig)
 				}
 			}
@@ -55,7 +55,7 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 				stat, err := os.Stat(w.Filename)
 
 				if err == nil {
-					log.Printf("file %s's last modification was %s", w.Filename, stat.ModTime().String())
+					log.Info("file %s's last modification was %s", w.Filename, stat.ModTime().String())
 					mtime = stat.ModTime()
 				}
 
@@ -64,7 +64,7 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 				for range timer.C {
 					stat, err = os.Stat(w.Filename)
 					if err == nil && mtime != stat.ModTime() && cmd != nil && cmd.Process != nil {
-						log.Printf("file %s changed, signalling process %s", w.Filename, cfg.Jobs[j].Name)
+						log.Info("file %s changed, signalling process %s", w.Filename, cfg.Jobs[j].Name)
 						_ = cmd.Process.Signal(syscall.Signal(w.Signal))
 						mtime = stat.ModTime()
 					}
@@ -84,7 +84,7 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 			}
 
 			for !stop {
-				log.Printf("starting job %s", job.Name)
+				log.Infof("starting job %s", job.Name)
 
 				cmd = exec.Command(job.Command, job.Args...)
 				cmd.Stdout = os.Stdout
@@ -94,18 +94,18 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 
 				err := cmd.Wait()
 				if err != nil {
-					log.Printf("job %s exited with error: %s", job.Name, err)
+					log.Error("job %s exited with error: %s", job.Name, err)
 					failedAttempts++
 
 					if failedAttempts >= maxAttempts {
-						log.Printf("reached max retries for job %s", job.Name)
+						log.Error("reached max retries for job %s", job.Name)
 						errs <- fmt.Errorf("reached max retries for job %s", job.Name)
 						break
 					}
 				}
 			}
 
-			log.Printf("ending job %s", job.Name)
+			log.Info("ending job %s", job.Name)
 
 		}(cfg.Jobs[i], errs)
 	}
@@ -120,8 +120,8 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 	select {
 	case <-allDone:
 	case err := <-errs:
-		log.Println("job return error, shutting down other services")
-		signals <- syscall.SIGINT //notify other (already running) jobs to shut down
+		log.Error("job return error, shutting down other services")
+		signals <- syscall.SIGINT // notify other (already running) jobs to shut down
 		return err
 	}
 

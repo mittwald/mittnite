@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/mittwald/mittnite/config"
+	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"log"
 	"net/url"
 	"time"
 )
@@ -63,7 +63,7 @@ func (m *mongoDBProbe) Exec() error {
 		return err
 	}
 
-	log.Println("mongodb is alive")
+	log.Info("mongodb is alive")
 
 	return nil
 }

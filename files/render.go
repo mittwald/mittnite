@@ -3,8 +3,8 @@ package files
 import (
 	"fmt"
 	"github.com/mittwald/mittnite/config"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,7 +17,7 @@ type templateData struct {
 }
 
 func RenderConfigurationFiles(configs []config.FileConfig) error {
-	log.Printf("generating configuration files")
+	log.Info("generating configuration files")
 
 	for i := range configs {
 		err := RenderConfigurationFile(&configs[i])
@@ -31,7 +31,7 @@ func RenderConfigurationFiles(configs []config.FileConfig) error {
 
 func RenderConfigurationFile(cfg *config.FileConfig) error {
 	if cfg.Template != "" {
-		log.Printf("creating configuration file %s from template %s", cfg.Target, cfg.Template)
+		log.Info("creating configuration file %s from template %s", cfg.Target, cfg.Template)
 
 		tplContents, err := ioutil.ReadFile(cfg.Template)
 		if err != nil {

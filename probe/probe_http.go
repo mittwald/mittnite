@@ -3,7 +3,7 @@ package probe
 import (
 	"fmt"
 	"github.com/mittwald/mittnite/config"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -70,7 +70,7 @@ func (h *httpGetProbe) Exec() error {
 	}
 
 	if res.StatusCode >= 200 && res.StatusCode < 400 {
-		log.Printf("http service '%s' is alive", urlStr)
+		log.Info("http service '%s' is alive", urlStr)
 		return nil
 	}
 
