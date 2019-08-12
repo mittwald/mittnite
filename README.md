@@ -16,7 +16,7 @@ It offers the following features:
 Start as follows:
 
 ```
-$ mittnite -config-dir /etc/mittnite.d
+$ mittnite config-dir /etc/mittnite.d
 ```
 
 Or use it in a container image:
