@@ -1,9 +1,9 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"github.com/hashicorp/hcl"
+	"github.com/mittwald/mittnite/cmd"
 	"github.com/mittwald/mittnite/config"
 	"github.com/mittwald/mittnite/files"
 	"github.com/mittwald/mittnite/probe"
@@ -16,27 +16,28 @@ import (
 	"strings"
 )
 
-type InitFlags struct {
-	ConfigDir string
-}
-
 var (
 	Version string
 	Commit  string
 	BuiltAt string
 )
 
-func main() {
-
+func Init() cmd.InitFlags {
+	flags := cmd.InitFlags{ConfigDir: "/etc/mittnite.d"}
 	Formatter := new(log.TextFormatter)
 	Formatter.TimestampFormat = "02-01-2006 15:04:05"
 	Formatter.FullTimestamp = true
 	log.SetFormatter(Formatter)
 
-	initFlags := InitFlags{}
+	cmd.AddCommands(&flags)
 
-	flag.StringVar(&initFlags.ConfigDir, "config-dir", "/etc/mittnite.d", "Directory from which to read configuration files")
-	flag.Parse()
+	return flags
+
+}
+
+func main() {
+
+	initFlags := Init()
 
 	log.Infof("mittnite process manager, version %s (commit %s), built at %s", Version, Commit, BuiltAt)
 	log.Infof("looking for configuration files in %s", initFlags.ConfigDir)
@@ -46,7 +47,6 @@ func main() {
 	var matches []string
 
 	err := filepath.Walk(initFlags.ConfigDir, func(path string, info os.FileInfo, err error) error {
-
 		spl := strings.Split(info.Name(), ".")
 		if spl[len(spl)-1] == "hcl" {
 			matches = append(matches, path)
