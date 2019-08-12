@@ -1,9 +1,9 @@
 package probe
 
 import (
+	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/mittwald/mittnite/config"
-	"strconv"
 )
 
 type redisProbe struct {
@@ -12,12 +12,12 @@ type redisProbe struct {
 }
 
 func NewRedisProbe(cfg *config.RedisConfig) *redisProbe {
-	cfg.Host.Url = resolveEnv(cfg.Host.Url)
+	cfg.URL = resolveEnv(cfg.URL)
 	cfg.Password = resolveEnv(cfg.Password)
-	// cfg.Port = resolveEnv(cfg.Port)
+	cfg.Port = resolveEnv(cfg.Port)
 
 	return &redisProbe{
-		addr:     cfg.Host.Url + ":" + strconv.Itoa(cfg.Host.Port),
+		addr:     fmt.Sprintf("%s:%s", cfg.URL, cfg.Port),
 		password: cfg.Password,
 	}
 }

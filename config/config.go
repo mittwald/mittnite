@@ -6,36 +6,36 @@ type Credentials struct {
 }
 
 type Host struct {
-	Url  string
-	Port int
+	URL  string
+	Port string
 }
 
 type MySQLConfig struct {
-	Credentials Credentials
-	Host        Host
+	Credentials
+	Host
 	Database    string
 }
 
 type AmqpConfig struct {
-	Credentials Credentials
-	Host        Host
+	Credentials
+	Host
 	VirtualHost string
 }
 
 type MongoDBConfig struct {
-	Credentials Credentials
-	Host        Host
+	Credentials
+	Host
 	Database    string
 }
 
 type RedisConfig struct {
-	Host     Host
+	Host
 	Password string
 }
 
 type HttpGetConfig struct {
 	Scheme  string
-	Host    Host
+	Host
 	Path    string
 	Timeout string
 }

@@ -6,7 +6,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 )
 
@@ -19,8 +18,8 @@ type httpGetProbe struct {
 
 func NewHttpProbe(cfg *config.HttpGetConfig) *httpGetProbe {
 	cfg.Scheme = resolveEnv(cfg.Scheme)
-	cfg.Host.Url = resolveEnv(cfg.Host.Url)
-	// cfg.Host.Port = resolveEnv(cfg.Host.Port)
+	cfg.URL = resolveEnv(cfg.URL)
+	cfg.Port = resolveEnv(cfg.Port)
 	cfg.Path = resolveEnv(cfg.Path)
 	cfg.Timeout = resolveEnv(cfg.Timeout)
 
@@ -28,9 +27,9 @@ func NewHttpProbe(cfg *config.HttpGetConfig) *httpGetProbe {
 		cfg.Scheme = "http"
 	}
 
-	host := cfg.Host.Url
-	if cfg.Host.Port != 0 {
-		host += ":" + strconv.Itoa(cfg.Host.Port)
+	host := cfg.Host.URL
+	if cfg.Host.Port != "" {
+		host += fmt.Sprintf("%s:%s", cfg.URL, cfg.Port)
 	}
 
 	connCfg := httpGetProbe{

@@ -17,24 +17,25 @@ type amqpProbe struct {
 	password    string
 	hostname    string
 	virtualHost string
-	port        int
+	port        string
 }
 
 func NewAmqpProbe(cfg *config.AmqpConfig) *amqpProbe {
-	cfg.Credentials.User = resolveEnv(cfg.Credentials.User)
-	cfg.Credentials.Password = resolveEnv(cfg.Credentials.Password)
-	cfg.Host.Url = resolveEnv(cfg.Host.Url)
+	cfg.User = resolveEnv(cfg.User)
+	cfg.Password = resolveEnv(cfg.Password)
+	cfg.URL = resolveEnv(cfg.URL)
+	cfg.Port = resolveEnv(cfg.Port)
 	cfg.VirtualHost = resolveEnv(cfg.VirtualHost)
 	if cfg.VirtualHost == "" {
 		cfg.VirtualHost = defaultVirtualHost
 	}
 
 	connCfg := amqpProbe{
-		user:        cfg.Credentials.User,
-		password:    cfg.Credentials.Password,
-		hostname:    cfg.Host.Url,
+		user:        cfg.User,
+		password:    cfg.Password,
+		hostname:    cfg.URL,
 		virtualHost: cfg.VirtualHost,
-		port:        cfg.Host.Port,
+		port:        cfg.Port,
 	}
 
 	return &connCfg
@@ -43,7 +44,7 @@ func NewAmqpProbe(cfg *config.AmqpConfig) *amqpProbe {
 func (a *amqpProbe) Exec() error {
 	u := url.URL{
 		Scheme: "amqp",
-		Host:   fmt.Sprintf("%s:%d", a.hostname, a.port),
+		Host:   fmt.Sprintf("%s:%s", a.hostname, a.port),
 		Path:   a.virtualHost,
 	}
 

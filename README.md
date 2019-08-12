@@ -16,7 +16,7 @@ It offers the following features:
 Start as follows:
 
 ```
-$ mittnite config-dir /etc/mittnite.d
+$ mittnite --config-dir /etc/mittnite.d
 ```
 
 Or use it in a container image:
@@ -28,7 +28,7 @@ COPY fpm.hcl /etc/mittnite.d/fpm.hcl
 CMD ["-config-dir", "/etc/mittnite.d"]
 ```
 
-The directory specified with `config-dir` can contain any number of `.hcl` configuration files; all files in that directory are loaded by Mittnite on startup and can contain any of the configuration directives described in the following section:
+The directory specified with `--config-dir` can contain any number of `.hcl` configuration files; all files in that directory are loaded by Mittnite on startup and can contain any of the configuration directives described in the following section:
 
 ## Configuration directives
 

@@ -17,21 +17,21 @@ type mongoDBProbe struct {
 	password string
 	hostname string
 	database string
-	port     int
+	port     string
 }
 
 func NewMongoDBProbe(cfg *config.MongoDBConfig) *mongoDBProbe {
-	cfg.Credentials.User = resolveEnv(cfg.Credentials.User)
-	cfg.Credentials.Password = resolveEnv(cfg.Credentials.Password)
-	cfg.Host.Url = resolveEnv(cfg.Host.Url)
+	cfg.User = resolveEnv(cfg.User)
+	cfg.Password = resolveEnv(cfg.Password)
+	cfg.URL = resolveEnv(cfg.URL)
 	cfg.Database = resolveEnv(cfg.Database)
 
 	connCfg := mongoDBProbe{
-		user:     cfg.Credentials.User,
-		password: cfg.Credentials.Password,
-		hostname: cfg.Host.Url,
+		user:     cfg.User,
+		password: cfg.Password,
+		hostname: cfg.URL,
 		database: cfg.Database,
-		port:     cfg.Host.Port,
+		port:     cfg.Port,
 	}
 
 	return &connCfg
@@ -40,7 +40,7 @@ func NewMongoDBProbe(cfg *config.MongoDBConfig) *mongoDBProbe {
 func (m *mongoDBProbe) Exec() error {
 	u := url.URL{
 		Scheme: "mongodb",
-		Host:   fmt.Sprintf("%s:%d", m.hostname, m.port),
+		Host:   fmt.Sprintf("%s:%s", m.hostname, m.port),
 		Path:   m.database,
 	}
 

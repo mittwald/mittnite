@@ -3,30 +3,25 @@ package cmd
 import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"os"
 )
 
-type InitFlags struct {
-	ConfigDir string
+var configDir string
+
+func init() {
+	rootCmd.PersistentFlags().StringVarP(&configDir, "config-dir", "c", "/etc/mittnite.d", "")
 }
 
-var RootCmd = &cobra.Command{
-	Use:   "mittnite",
-	Short: "mittnite",
+var rootCmd = &cobra.Command{
+	Use:   "up",
+	Short: "Mittnite - Smart init system for containers",
+	Long:  "Mittnite is a small, but smart init system designed for usage as `ENTRYPOINT` in container images.",
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Printf("starting with default config dir '/etc/mittnite.d'")
+		up.Run(cmd, args)
 	},
 }
 
-var Init *InitFlags
-
-func AddCommands(flags *InitFlags) {
-
-	Init = flags
-	RootCmd.AddCommand(configDirCmd)
-
-	if err := RootCmd.Execute(); err != nil {
-		log.Error(err)
-		os.Exit(1)
+func Execute() {
+	if err := rootCmd.Execute(); err != nil {
+		log.Fatal(err)
 	}
 }
