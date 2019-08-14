@@ -3,6 +3,7 @@ package probe
 import (
 	"context"
 	"fmt"
+	"github.com/mittwald/mittnite/internal/helper"
 	"github.com/mittwald/mittnite/internal/types"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -21,15 +22,15 @@ type mongoDBProbe struct {
 }
 
 func NewMongoDBProbe(cfg *types.MongoDBConfig) *mongoDBProbe {
-	cfg.User = resolveEnv(cfg.User)
-	cfg.Password = resolveEnv(cfg.Password)
-	cfg.URL = resolveEnv(cfg.URL)
-	cfg.Database = resolveEnv(cfg.Database)
+	cfg.User = helper.ResolveEnv(cfg.User)
+	cfg.Password = helper.ResolveEnv(cfg.Password)
+	cfg.Hostname = helper.ResolveEnv(cfg.Hostname)
+	cfg.Database = helper.ResolveEnv(cfg.Database)
 
 	connCfg := mongoDBProbe{
 		user:     cfg.User,
 		password: cfg.Password,
-		hostname: cfg.URL,
+		hostname: cfg.Hostname,
 		database: cfg.Database,
 		port:     cfg.Port,
 	}

@@ -2,6 +2,7 @@ package probe
 
 import (
 	"fmt"
+	"github.com/mittwald/mittnite/internal/helper"
 	"github.com/mittwald/mittnite/internal/types"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -17,19 +18,19 @@ type httpGetProbe struct {
 }
 
 func NewHttpProbe(cfg *types.HttpGetConfig) *httpGetProbe {
-	cfg.Scheme = resolveEnv(cfg.Scheme)
-	cfg.URL = resolveEnv(cfg.URL)
-	cfg.Port = resolveEnv(cfg.Port)
-	cfg.Path = resolveEnv(cfg.Path)
-	cfg.Timeout = resolveEnv(cfg.Timeout)
+	cfg.Scheme = helper.ResolveEnv(cfg.Scheme)
+	cfg.Hostname = helper.ResolveEnv(cfg.Hostname)
+	cfg.Port = helper.ResolveEnv(cfg.Port)
+	cfg.Path = helper.ResolveEnv(cfg.Path)
+	cfg.Timeout = helper.ResolveEnv(cfg.Timeout)
 
 	if cfg.Scheme == "" {
 		cfg.Scheme = "http"
 	}
 
-	host := cfg.Host.URL
+	host := cfg.Host.Hostname
 	if cfg.Host.Port != "" {
-		host += fmt.Sprintf("%s:%s", cfg.URL, cfg.Port)
+		host += fmt.Sprintf("%s:%s", cfg.Hostname, cfg.Port)
 	}
 
 	connCfg := httpGetProbe{

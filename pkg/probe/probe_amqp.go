@@ -2,6 +2,7 @@ package probe
 
 import (
 	"fmt"
+	"github.com/mittwald/mittnite/internal/helper"
 	"github.com/mittwald/mittnite/internal/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
@@ -21,11 +22,11 @@ type amqpProbe struct {
 }
 
 func NewAmqpProbe(cfg *types.AmqpConfig) *amqpProbe {
-	cfg.User = resolveEnv(cfg.User)
-	cfg.Password = resolveEnv(cfg.Password)
-	cfg.URL = resolveEnv(cfg.URL)
-	cfg.Port = resolveEnv(cfg.Port)
-	cfg.VirtualHost = resolveEnv(cfg.VirtualHost)
+	cfg.User = helper.ResolveEnv(cfg.User)
+	cfg.Password = helper.ResolveEnv(cfg.Password)
+	cfg.Hostname = helper.ResolveEnv(cfg.Hostname)
+	cfg.Port = helper.ResolveEnv(cfg.Port)
+	cfg.VirtualHost = helper.ResolveEnv(cfg.VirtualHost)
 	if cfg.VirtualHost == "" {
 		cfg.VirtualHost = defaultVirtualHost
 	}
@@ -33,7 +34,7 @@ func NewAmqpProbe(cfg *types.AmqpConfig) *amqpProbe {
 	connCfg := amqpProbe{
 		user:        cfg.User,
 		password:    cfg.Password,
-		hostname:    cfg.URL,
+		hostname:    cfg.Hostname,
 		virtualHost: cfg.VirtualHost,
 		port:        cfg.Port,
 	}

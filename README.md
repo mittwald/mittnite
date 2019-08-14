@@ -16,7 +16,7 @@ It offers the following features:
 Start as follows:
 
 ```
-$ mittnite --config-dir /etc/mittnite.d
+$ mittnite up --config-dir /etc/mittnite.d
 ```
 
 Or use it in a container image:
@@ -25,10 +25,10 @@ Or use it in a container image:
 FROM quay.io/mittwald/mittnite:stable
 COPY nginx.hcl /etc/mittnite.d/webserver.hcl
 COPY fpm.hcl /etc/mittnite.d/fpm.hcl
-CMD ["-.config-dir", "/etc/mittnite.d"]
+CMD ["up", "--config-dir", "/etc/mittnite.d"]
 ```
 
-The directory specified with `--config-dir` can contain any number of `.hcl` configuration files; all files in that directory are loaded by Mittnite on startup and can contain any of the configuration directives described in the following section:
+The directory specified with `--config-dir` or the shorthand `-c` can contain any number of `.hcl` configuration files; all files in that directory are loaded by Mittnite on startup and can contain any of the configuration directives described in the following section:
 
 ## Configuration directives
 

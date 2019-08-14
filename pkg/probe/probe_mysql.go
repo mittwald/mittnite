@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/go-sql-driver/mysql"
+	"github.com/mittwald/mittnite/internal/helper"
 	"github.com/mittwald/mittnite/internal/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -13,11 +14,11 @@ type mySQLProbe struct {
 }
 
 func NewMySQLProbe(cfg *types.MySQLConfig) *mySQLProbe {
-	cfg.User = resolveEnv(cfg.User)
-	cfg.Database = resolveEnv(cfg.Database)
-	cfg.Password = resolveEnv(cfg.Password)
-	cfg.URL = resolveEnv(cfg.URL)
-	cfg.Port = resolveEnv(cfg.Port)
+	cfg.User = helper.ResolveEnv(cfg.User)
+	cfg.Database = helper.ResolveEnv(cfg.Database)
+	cfg.Password = helper.ResolveEnv(cfg.Password)
+	cfg.Hostname = helper.ResolveEnv(cfg.Hostname)
+	cfg.Port = helper.ResolveEnv(cfg.Port)
 
 	connCfg := mysql.Config{
 		User:   cfg.User,

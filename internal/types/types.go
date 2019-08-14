@@ -6,8 +6,8 @@ type Credentials struct {
 }
 
 type Host struct {
-	URL  string
-	Port string
+	Hostname string
+	Port     string
 }
 
 type MySQLConfig struct {
