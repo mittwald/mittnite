@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/go-sql-driver/mysql"
-	"github.com/mittwald/mittnite/config"
+	"github.com/mittwald/mittnite/internal/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -12,7 +12,7 @@ type mySQLProbe struct {
 	dsn string
 }
 
-func NewMySQLProbe(cfg *config.MySQLConfig) *mySQLProbe {
+func NewMySQLProbe(cfg *types.MySQLConfig) *mySQLProbe {
 	cfg.User = resolveEnv(cfg.User)
 	cfg.Database = resolveEnv(cfg.Database)
 	cfg.Password = resolveEnv(cfg.Password)

@@ -3,7 +3,7 @@ package probe
 import (
 	"context"
 	"fmt"
-	"github.com/mittwald/mittnite/config"
+	"github.com/mittwald/mittnite/internal/types"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -20,7 +20,7 @@ type mongoDBProbe struct {
 	port     string
 }
 
-func NewMongoDBProbe(cfg *config.MongoDBConfig) *mongoDBProbe {
+func NewMongoDBProbe(cfg *types.MongoDBConfig) *mongoDBProbe {
 	cfg.User = resolveEnv(cfg.User)
 	cfg.Password = resolveEnv(cfg.Password)
 	cfg.URL = resolveEnv(cfg.URL)

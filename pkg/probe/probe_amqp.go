@@ -2,7 +2,7 @@ package probe
 
 import (
 	"fmt"
-	"github.com/mittwald/mittnite/config"
+	"github.com/mittwald/mittnite/internal/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"net/url"
@@ -20,7 +20,7 @@ type amqpProbe struct {
 	port        string
 }
 
-func NewAmqpProbe(cfg *config.AmqpConfig) *amqpProbe {
+func NewAmqpProbe(cfg *types.AmqpConfig) *amqpProbe {
 	cfg.User = resolveEnv(cfg.User)
 	cfg.Password = resolveEnv(cfg.Password)
 	cfg.URL = resolveEnv(cfg.URL)

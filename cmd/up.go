@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 	"github.com/hashicorp/hcl"
-	"github.com/mittwald/mittnite/config"
-	"github.com/mittwald/mittnite/files"
-	"github.com/mittwald/mittnite/probe"
-	"github.com/mittwald/mittnite/proc"
+	"github.com/mittwald/mittnite/internal/types"
+	"github.com/mittwald/mittnite/pkg/files"
+	"github.com/mittwald/mittnite/pkg/probe"
+	"github.com/mittwald/mittnite/pkg/proc"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"io/ioutil"
@@ -54,7 +54,7 @@ var up = &cobra.Command{
 			log.Fatalf("could not find any configuration files in %s", configDir)
 		}
 
-		ignitionConfig := config.IgnitionConfig{}
+		ignitionConfig := types.IgnitionConfig{}
 
 		for _, m := range matches {
 			log.Infof("found config file: %s", m)

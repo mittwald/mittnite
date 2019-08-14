@@ -2,7 +2,7 @@ package probe
 
 import (
 	"fmt"
-	"github.com/mittwald/mittnite/config"
+	"github.com/mittwald/mittnite/internal/types"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
@@ -16,7 +16,7 @@ type httpGetProbe struct {
 	timeout string
 }
 
-func NewHttpProbe(cfg *config.HttpGetConfig) *httpGetProbe {
+func NewHttpProbe(cfg *types.HttpGetConfig) *httpGetProbe {
 	cfg.Scheme = resolveEnv(cfg.Scheme)
 	cfg.URL = resolveEnv(cfg.URL)
 	cfg.Port = resolveEnv(cfg.Port)
