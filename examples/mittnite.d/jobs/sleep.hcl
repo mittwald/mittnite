@@ -1,4 +1,5 @@
 job sleep {
   command = "/bin/sleep"
-  args = ["600s"]
+  args = ["500s"]
+  canFail = true
 }

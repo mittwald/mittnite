@@ -98,7 +98,7 @@ var up = &cobra.Command{
 		go func() {
 			err := probe.RunProbeServer(probeHandler, probeSignals)
 			if err != nil {
-				log.Infof("probe server stopped with error: %s", err)
+				log.Fatalf("probe server stopped with error: %s", err)
 				panic(err)
 			} else {
 				log.Info("probe server stopped without error")
@@ -112,8 +112,7 @@ var up = &cobra.Command{
 
 		err = proc.RunServices(&ignitionConfig, procSignals)
 		if err != nil {
-			log.Printf("service runner stopped with error: %s", err)
-			panic(err)
+			log.Fatalf("service runner stopped with error: %s", err)
 		} else {
 			log.Print("service runner stopped without error")
 		}

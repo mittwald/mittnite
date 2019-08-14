@@ -94,13 +94,22 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 
 				err := cmd.Wait()
 				if err != nil {
-					log.Errorf("job %s exited with error: %s", job.Name, err)
+					if job.CanFail {
+						log.Warnf("Failable job %s exited with error: %s", job.Name, err)
+					} else {
+						log.Errorf("job %s exited with error: %s", job.Name, err)
+					}
 					failedAttempts++
 
 					if failedAttempts >= maxAttempts {
-						log.Errorf("reached max retries for job %s", job.Name)
-						errs <- fmt.Errorf("reached max retries for job %s", job.Name)
-						break
+						if job.CanFail {
+							log.Warnf("reached max retries for job %s", job.Name)
+							stop = true
+						} else {
+							log.Errorf("reached max retries for job %s", job.Name)
+							errs <- fmt.Errorf("reached max retries for job %s", job.Name)
+							break
+						}
 					}
 				}
 			}

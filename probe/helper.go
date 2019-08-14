@@ -1,13 +1,19 @@
 package probe
 
 import (
-	"os"
-	"strings"
+	"fmt"
+	"github.com/spf13/viper"
 )
 
 func resolveEnv(in string) string {
-	if strings.HasPrefix(in, "ENV:") {
-		return os.Getenv(in[4:])
+	// if strings.HasPrefix(in, "ENV:") {
+	// 	return os.Getenv(in[4:])
+	// }
+	// return in
+	env := viper.Get(in)
+
+	if env == nil {
+		return in
 	}
-	return in
+	return fmt.Sprintf("%s", env)
 }

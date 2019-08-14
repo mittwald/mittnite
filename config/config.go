@@ -13,7 +13,7 @@ type Host struct {
 type MySQLConfig struct {
 	Credentials
 	Host
-	Database    string
+	Database string
 }
 
 type AmqpConfig struct {
@@ -25,7 +25,7 @@ type AmqpConfig struct {
 type MongoDBConfig struct {
 	Credentials
 	Host
-	Database    string
+	Database string
 }
 
 type RedisConfig struct {
@@ -34,7 +34,7 @@ type RedisConfig struct {
 }
 
 type HttpGetConfig struct {
-	Scheme  string
+	Scheme string
 	Host
 	Path    string
 	Timeout string
@@ -62,6 +62,7 @@ type JobConfig struct {
 	Args        []string      `hcl:"args"`
 	Watches     []WatchConfig `hcl:"watch"`
 	MaxAttempts int           `hcl:"max_attempts"`
+	CanFail     bool          `hcl:"canFail"`
 }
 
 type FileConfig struct {

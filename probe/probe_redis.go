@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/mittwald/mittnite/config"
+	log "github.com/sirupsen/logrus"
 )
 
 type redisProbe struct {
@@ -29,5 +30,9 @@ func (r *redisProbe) Exec() error {
 	})
 
 	_, err := client.Ping().Result()
-	return err
+	if err != nil {
+		return err
+	}
+	log.Info("redis is alive")
+	return nil
 }
