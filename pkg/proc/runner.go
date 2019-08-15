@@ -2,8 +2,8 @@ package proc
 
 import (
 	"fmt"
-	"github.com/mittwald/mittnite/config"
-	"log"
+	"github.com/mittwald/mittnite/internal/types"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"sync"
@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
+func RunServices(cfg *types.IgnitionConfig, signals chan os.Signal) error {
 	errs := make(chan error)
 
 	signalsOut := make([]chan os.Signal, len(cfg.Jobs))
@@ -23,9 +23,9 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 
 	go func() {
 		for sig := range signals {
-			log.Printf("jobrunner: received signal %s", sig.String())
+			log.Infof("jobrunner: received signal %s", sig.String())
 			if sig == syscall.SIGINT || sig == syscall.SIGTERM {
-				log.Printf("stopping service runner")
+				log.Info("stopping service runner")
 				stop = true
 			}
 
@@ -40,22 +40,22 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 	for i := range cfg.Jobs {
 		var cmd *exec.Cmd
 
-		go func(job *config.JobConfig, signals <-chan os.Signal) {
+		go func(job *types.JobConfig, signals <-chan os.Signal) {
 			for sig := range signals {
 				if cmd != nil && cmd.Process != nil {
-					log.Printf("passing signal %s to job %s", sig.String(), job.Name)
+					log.Infof("passing signal %s to job %s", sig.String(), job.Name)
 					_ = cmd.Process.Signal(sig)
 				}
 			}
 		}(&cfg.Jobs[i], signalsOut[i])
 
 		for i := range cfg.Jobs[i].Watches {
-			go func(j int, w *config.WatchConfig) {
+			go func(j int, w *types.WatchConfig) {
 				var mtime time.Time
 				stat, err := os.Stat(w.Filename)
 
 				if err == nil {
-					log.Printf("file %s's last modification was %s", w.Filename, stat.ModTime().String())
+					log.Infof("file %s's last modification was %s", w.Filename, stat.ModTime().String())
 					mtime = stat.ModTime()
 				}
 
@@ -64,7 +64,7 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 				for range timer.C {
 					stat, err = os.Stat(w.Filename)
 					if err == nil && mtime != stat.ModTime() && cmd != nil && cmd.Process != nil {
-						log.Printf("file %s changed, signalling process %s", w.Filename, cfg.Jobs[j].Name)
+						log.Infof("file %s changed, signalling process %s", w.Filename, cfg.Jobs[j].Name)
 						_ = cmd.Process.Signal(syscall.Signal(w.Signal))
 						mtime = stat.ModTime()
 					}
@@ -73,7 +73,7 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 		}
 
 		wg.Add(1)
-		go func(job config.JobConfig, errs chan<- error) {
+		go func(job types.JobConfig, errs chan<- error) {
 			defer wg.Done()
 
 			maxAttempts := job.MaxAttempts
@@ -84,7 +84,7 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 			}
 
 			for !stop {
-				log.Printf("starting job %s", job.Name)
+				log.Infof("starting job %s", job.Name)
 
 				cmd = exec.Command(job.Command, job.Args...)
 				cmd.Stdout = os.Stdout
@@ -94,18 +94,27 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 
 				err := cmd.Wait()
 				if err != nil {
-					log.Printf("job %s exited with error: %s", job.Name, err)
+					if job.CanFail {
+						log.Warnf("Failable job %s exited with error: %s", job.Name, err)
+					} else {
+						log.Errorf("job %s exited with error: %s", job.Name, err)
+					}
 					failedAttempts++
 
 					if failedAttempts >= maxAttempts {
-						log.Printf("reached max retries for job %s", job.Name)
-						errs <- fmt.Errorf("reached max retries for job %s", job.Name)
-						break
+						if job.CanFail {
+							log.Warnf("reached max retries for job %s", job.Name)
+							stop = true
+						} else {
+							log.Errorf("reached max retries for job %s", job.Name)
+							errs <- fmt.Errorf("reached max retries for job %s", job.Name)
+							break
+						}
 					}
 				}
 			}
 
-			log.Printf("ending job %s", job.Name)
+			log.Infof("ending job %s", job.Name)
 
 		}(cfg.Jobs[i], errs)
 	}
@@ -120,8 +129,8 @@ func RunServices(cfg *config.IgnitionConfig, signals chan os.Signal) error {
 	select {
 	case <-allDone:
 	case err := <-errs:
-		log.Println("job return error, shutting down other services")
-		signals <- syscall.SIGINT //notify other (already running) jobs to shut down
+		log.Error("job return error, shutting down other services")
+		signals <- syscall.SIGINT // notify other (already running) jobs to shut down
 		return err
 	}
 

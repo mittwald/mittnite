@@ -1,35 +1,41 @@
-package config
+package types
 
-type MySQLConfig struct {
+type Credentials struct {
 	User     string
 	Password string
-	Host     string
+}
+
+type Host struct {
+	Hostname string
+	Port     string
+}
+
+type MySQLConfig struct {
+	Credentials
+	Host
 	Database string
 }
 
 type AmqpConfig struct {
-	User        string
-	Password    string
-	Hostname    string
+	Credentials
+	Host
 	VirtualHost string
 }
 
 type MongoDBConfig struct {
-	User     string
-	Password string
-	Host     string
+	Credentials
+	Host
 	Database string
 }
 
 type RedisConfig struct {
-	Host     string
+	Host
 	Password string
 }
 
 type HttpGetConfig struct {
-	Scheme  string
-	Host    string
-	Port    string
+	Scheme string
+	Host
 	Path    string
 	Timeout string
 }
@@ -56,6 +62,7 @@ type JobConfig struct {
 	Args        []string      `hcl:"args"`
 	Watches     []WatchConfig `hcl:"watch"`
 	MaxAttempts int           `hcl:"max_attempts"`
+	CanFail     bool          `hcl:"canFail"`
 }
 
 type FileConfig struct {

@@ -4,10 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/mittwald/mittnite/config"
-	"log"
+	"github.com/mittwald/mittnite/internal/types"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"syscall"
@@ -15,14 +14,13 @@ import (
 )
 
 type ProbeHandler struct {
-	cfg *config.IgnitionConfig
-
+	cfg *types.IgnitionConfig
 	probes     map[string]Probe
 	waitProbes map[string]Probe
 }
 
 func (s *ProbeHandler) Wait(interrupt chan os.Signal) error {
-	log.Println("waiting for probe readiness")
+	log.Info("waiting for probe readiness")
 
 	timer := time.NewTicker(1 * time.Second)
 
@@ -34,7 +32,7 @@ func (s *ProbeHandler) Wait(interrupt chan os.Signal) error {
 			for i := range s.waitProbes {
 				err := s.waitProbes[i].Exec()
 				if err != nil {
-					log.Printf("probe %s is not yet ready: %s", i, err)
+					log.Warnf("probe %s is not yet ready: %s", i, err)
 					ready = false
 				}
 			}
@@ -81,7 +79,7 @@ func (s *ProbeHandler) HandleStatus(res http.ResponseWriter, req *http.Request) 
 			success = success && result.OK
 		case <-timeout.C:
 			success = false
-			fmt.Println("probe timed out")
+			log.Error("probe timed out")
 			break
 		}
 	}
@@ -95,7 +93,7 @@ func (s *ProbeHandler) HandleStatus(res http.ResponseWriter, req *http.Request) 
 	_ = json.NewEncoder(res).Encode(&response)
 }
 
-func NewProbeHandler(cfg *config.IgnitionConfig) (*ProbeHandler, error) {
+func NewProbeHandler(cfg *types.IgnitionConfig) (*ProbeHandler, error) {
 	probes := buildProbesFromConfig(cfg)
 	waitProbes := filterWaitProbes(cfg, probes)
 
@@ -115,7 +113,7 @@ func RunProbeServer(ph *ProbeHandler, signals chan os.Signal) error {
 	go func() {
 		for s := range signals {
 			if s == syscall.SIGINT || s == syscall.SIGTERM {
-				log.Printf("shutting down monitoring server after receiving %s", s.String())
+				log.Fatalf("shutting down monitoring server after receiving %s", s.String())
 				_ = server.Shutdown(context.Background())
 			}
 		}
@@ -129,7 +127,7 @@ func RunProbeServer(ph *ProbeHandler, signals chan os.Signal) error {
 	return nil
 }
 
-func filterWaitProbes(cfg *config.IgnitionConfig, probes map[string]Probe) map[string]Probe {
+func filterWaitProbes(cfg *types.IgnitionConfig, probes map[string]Probe) map[string]Probe {
 	result := make(map[string]Probe)
 	for i := range cfg.Probes {
 		if cfg.Probes[i].Wait {
@@ -139,7 +137,7 @@ func filterWaitProbes(cfg *config.IgnitionConfig, probes map[string]Probe) map[s
 	return result
 }
 
-func buildProbesFromConfig(cfg *config.IgnitionConfig) map[string]Probe {
+func buildProbesFromConfig(cfg *types.IgnitionConfig) map[string]Probe {
 	result := make(map[string]Probe)
 	for i := range cfg.Probes {
 		if cfg.Probes[i].Filesystem != "" {

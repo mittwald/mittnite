@@ -3,11 +3,12 @@ package probe
 import (
 	"context"
 	"fmt"
-	"github.com/mittwald/mittnite/config"
+	"github.com/mittwald/mittnite/internal/helper"
+	"github.com/mittwald/mittnite/internal/types"
+	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"log"
 	"net/url"
 	"time"
 )
@@ -17,19 +18,21 @@ type mongoDBProbe struct {
 	password string
 	hostname string
 	database string
+	port     string
 }
 
-func NewMongoDBProbe(cfg *config.MongoDBConfig) *mongoDBProbe {
-	cfg.User = resolveEnv(cfg.User)
-	cfg.Password = resolveEnv(cfg.Password)
-	cfg.Host = resolveEnv(cfg.Host)
-	cfg.Database = resolveEnv(cfg.Database)
+func NewMongoDBProbe(cfg *types.MongoDBConfig) *mongoDBProbe {
+	cfg.User = helper.ResolveEnv(cfg.User)
+	cfg.Password = helper.ResolveEnv(cfg.Password)
+	cfg.Hostname = helper.ResolveEnv(cfg.Hostname)
+	cfg.Database = helper.ResolveEnv(cfg.Database)
 
 	connCfg := mongoDBProbe{
 		user:     cfg.User,
 		password: cfg.Password,
-		hostname: cfg.Host,
+		hostname: cfg.Hostname,
 		database: cfg.Database,
+		port:     cfg.Port,
 	}
 
 	return &connCfg
@@ -38,7 +41,7 @@ func NewMongoDBProbe(cfg *config.MongoDBConfig) *mongoDBProbe {
 func (m *mongoDBProbe) Exec() error {
 	u := url.URL{
 		Scheme: "mongodb",
-		Host:   fmt.Sprintf("%s:%d", m.hostname, 27017),
+		Host:   fmt.Sprintf("%s:%s", m.hostname, m.port),
 		Path:   m.database,
 	}
 
@@ -61,7 +64,7 @@ func (m *mongoDBProbe) Exec() error {
 		return err
 	}
 
-	log.Println("mongodb is alive")
+	log.Info("mongodb is alive")
 
 	return nil
 }

@@ -2,9 +2,10 @@ package probe
 
 import (
 	"fmt"
-	"github.com/mittwald/mittnite/config"
+	"github.com/mittwald/mittnite/internal/helper"
+	"github.com/mittwald/mittnite/internal/types"
+	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
-	"log"
 	"net/url"
 )
 
@@ -17,13 +18,15 @@ type amqpProbe struct {
 	password    string
 	hostname    string
 	virtualHost string
+	port        string
 }
 
-func NewAmqpProbe(cfg *config.AmqpConfig) *amqpProbe {
-	cfg.User = resolveEnv(cfg.User)
-	cfg.Password = resolveEnv(cfg.Password)
-	cfg.Hostname = resolveEnv(cfg.Hostname)
-	cfg.VirtualHost = resolveEnv(cfg.VirtualHost)
+func NewAmqpProbe(cfg *types.AmqpConfig) *amqpProbe {
+	cfg.User = helper.ResolveEnv(cfg.User)
+	cfg.Password = helper.ResolveEnv(cfg.Password)
+	cfg.Hostname = helper.ResolveEnv(cfg.Hostname)
+	cfg.Port = helper.ResolveEnv(cfg.Port)
+	cfg.VirtualHost = helper.ResolveEnv(cfg.VirtualHost)
 	if cfg.VirtualHost == "" {
 		cfg.VirtualHost = defaultVirtualHost
 	}
@@ -33,6 +36,7 @@ func NewAmqpProbe(cfg *config.AmqpConfig) *amqpProbe {
 		password:    cfg.Password,
 		hostname:    cfg.Hostname,
 		virtualHost: cfg.VirtualHost,
+		port:        cfg.Port,
 	}
 
 	return &connCfg
@@ -41,7 +45,7 @@ func NewAmqpProbe(cfg *config.AmqpConfig) *amqpProbe {
 func (a *amqpProbe) Exec() error {
 	u := url.URL{
 		Scheme: "amqp",
-		Host:   fmt.Sprintf("%s:%d", a.hostname, 5672),
+		Host:   fmt.Sprintf("%s:%s", a.hostname, a.port),
 		Path:   a.virtualHost,
 	}
 
@@ -55,7 +59,7 @@ func (a *amqpProbe) Exec() error {
 	}
 	defer conn.Close()
 
-	log.Println("amqp is alive")
+	log.Info("amqp is alive")
 
 	return nil
 }

@@ -2,8 +2,9 @@ package probe
 
 import (
 	"fmt"
-	"github.com/mittwald/mittnite/config"
-	"log"
+	"github.com/mittwald/mittnite/internal/helper"
+	"github.com/mittwald/mittnite/internal/types"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
 	"time"
@@ -16,20 +17,20 @@ type httpGetProbe struct {
 	timeout string
 }
 
-func NewHttpProbe(cfg *config.HttpGetConfig) *httpGetProbe {
-	cfg.Scheme = resolveEnv(cfg.Scheme)
-	cfg.Host = resolveEnv(cfg.Host)
-	cfg.Port = resolveEnv(cfg.Port)
-	cfg.Path = resolveEnv(cfg.Path)
-	cfg.Timeout = resolveEnv(cfg.Timeout)
+func NewHttpProbe(cfg *types.HttpGetConfig) *httpGetProbe {
+	cfg.Scheme = helper.ResolveEnv(cfg.Scheme)
+	cfg.Hostname = helper.ResolveEnv(cfg.Hostname)
+	cfg.Port = helper.ResolveEnv(cfg.Port)
+	cfg.Path = helper.ResolveEnv(cfg.Path)
+	cfg.Timeout = helper.ResolveEnv(cfg.Timeout)
 
 	if cfg.Scheme == "" {
 		cfg.Scheme = "http"
 	}
 
-	host := cfg.Host
-	if cfg.Port != "" {
-		host += ":" + cfg.Port
+	host := cfg.Host.Hostname
+	if cfg.Host.Port != "" {
+		host += fmt.Sprintf("%s:%s", cfg.Hostname, cfg.Port)
 	}
 
 	connCfg := httpGetProbe{
@@ -69,7 +70,7 @@ func (h *httpGetProbe) Exec() error {
 	}
 
 	if res.StatusCode >= 200 && res.StatusCode < 400 {
-		log.Printf("http service '%s' is alive", urlStr)
+		log.Infof("http service '%s' is alive", urlStr)
 		return nil
 	}
 
