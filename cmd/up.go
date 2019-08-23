@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/hashicorp/hcl"
-	"github.com/mittwald/mittnite/internal/types"
+	"github.com/mittwald/mittnite/internal/config"
 	"github.com/mittwald/mittnite/pkg/files"
 	"github.com/mittwald/mittnite/pkg/probe"
 	"github.com/mittwald/mittnite/pkg/proc"
@@ -16,12 +16,6 @@ import (
 	"strings"
 )
 
-var (
-	Version string
-	Commit  string
-	BuiltAt string
-)
-
 func init() {
 	rootCmd.AddCommand(up)
 }
@@ -29,8 +23,6 @@ func init() {
 var up = &cobra.Command{
 	Use: "up",
 	Run: func(cmd *cobra.Command, args []string) {
-
-		log.Infof("mittnite process manager, version %s (commit %s), built at %s", Version, Commit, BuiltAt)
 		log.Infof("looking for configuration files in %s", configDir)
 
 		configDir = strings.TrimRight(configDir, "/")
@@ -54,7 +46,7 @@ var up = &cobra.Command{
 			log.Fatalf("could not find any configuration files in %s", configDir)
 		}
 
-		ignitionConfig := types.IgnitionConfig{}
+		ignitionConfig := config.Ignition{}
 
 		for _, m := range matches {
 			log.Infof("found config file: %s", m)

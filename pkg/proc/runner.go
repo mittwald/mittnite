@@ -2,7 +2,7 @@ package proc
 
 import (
 	"fmt"
-	"github.com/mittwald/mittnite/internal/types"
+	"github.com/mittwald/mittnite/internal/config"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func RunServices(cfg *types.IgnitionConfig, signals chan os.Signal) error {
+func RunServices(cfg *config.Ignition, signals chan os.Signal) error {
 	errs := make(chan error)
 
 	signalsOut := make([]chan os.Signal, len(cfg.Jobs))
@@ -40,7 +40,7 @@ func RunServices(cfg *types.IgnitionConfig, signals chan os.Signal) error {
 	for i := range cfg.Jobs {
 		var cmd *exec.Cmd
 
-		go func(job *types.JobConfig, signals <-chan os.Signal) {
+		go func(job *config.JobConfig, signals <-chan os.Signal) {
 			for sig := range signals {
 				if cmd != nil && cmd.Process != nil {
 					log.Infof("passing signal %s to job %s", sig.String(), job.Name)
@@ -50,7 +50,7 @@ func RunServices(cfg *types.IgnitionConfig, signals chan os.Signal) error {
 		}(&cfg.Jobs[i], signalsOut[i])
 
 		for i := range cfg.Jobs[i].Watches {
-			go func(j int, w *types.WatchConfig) {
+			go func(j int, w *config.Watch) {
 				var mtime time.Time
 				stat, err := os.Stat(w.Filename)
 
@@ -73,7 +73,7 @@ func RunServices(cfg *types.IgnitionConfig, signals chan os.Signal) error {
 		}
 
 		wg.Add(1)
-		go func(job types.JobConfig, errs chan<- error) {
+		go func(job config.JobConfig, errs chan<- error) {
 			defer wg.Done()
 
 			maxAttempts := job.MaxAttempts

@@ -3,8 +3,8 @@ package probe
 import (
 	"fmt"
 	"github.com/go-redis/redis"
+	"github.com/mittwald/mittnite/internal/config"
 	"github.com/mittwald/mittnite/internal/helper"
-	"github.com/mittwald/mittnite/internal/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -13,7 +13,7 @@ type redisProbe struct {
 	password string
 }
 
-func NewRedisProbe(cfg *types.RedisConfig) *redisProbe {
+func NewRedisProbe(cfg *config.Redis) *redisProbe {
 	cfg.Hostname = helper.ResolveEnv(cfg.Hostname)
 	cfg.Password = helper.ResolveEnv(cfg.Password)
 	cfg.Port = helper.ResolveEnv(cfg.Port)

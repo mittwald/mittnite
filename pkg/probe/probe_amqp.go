@@ -2,8 +2,8 @@ package probe
 
 import (
 	"fmt"
+	"github.com/mittwald/mittnite/internal/config"
 	"github.com/mittwald/mittnite/internal/helper"
-	"github.com/mittwald/mittnite/internal/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 	"net/url"
@@ -21,7 +21,7 @@ type amqpProbe struct {
 	port        string
 }
 
-func NewAmqpProbe(cfg *types.AmqpConfig) *amqpProbe {
+func NewAmqpProbe(cfg *config.Amqp) *amqpProbe {
 	cfg.User = helper.ResolveEnv(cfg.User)
 	cfg.Password = helper.ResolveEnv(cfg.Password)
 	cfg.Hostname = helper.ResolveEnv(cfg.Hostname)
