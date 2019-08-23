@@ -4,6 +4,8 @@ import (
 	"github.com/mittwald/mittnite/internal/config"
 	"github.com/mittwald/mittnite/pkg/files"
 	"github.com/spf13/cobra"
+	"os"
+	"os/exec"
 )
 
 func init() {
@@ -27,6 +29,16 @@ var renderFiles = &cobra.Command{
 		err = files.RenderFiles(ignitionConfig.Files)
 		if err != nil {
 			panic(err)
+		}
+
+		if len(args) > 0 {
+			cmd := exec.Command(args[0], args[1:]...)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			err = cmd.Run()
+			if err != nil {
+				panic(err)
+			}
 		}
 	},
 }
