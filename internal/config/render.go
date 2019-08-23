@@ -1,8 +1,7 @@
-package files
+package config
 
 import (
 	"fmt"
-	"github.com/mittwald/mittnite/internal/config"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
@@ -16,7 +15,7 @@ type templateData struct {
 	Params map[string]interface{}
 }
 
-func RenderConfigurationFiles(configs []config.File) error {
+func RenderConfigurationFiles(configs []File) error {
 	log.Info("generating configuration files")
 
 	for i := range configs {
@@ -29,7 +28,7 @@ func RenderConfigurationFiles(configs []config.File) error {
 	return nil
 }
 
-func RenderConfigurationFile(cfg *config.File) error {
+func RenderConfigurationFile(cfg *File) error {
 	if cfg.Template != "" {
 		log.Infof("creating configuration file %s from template %s", cfg.Target, cfg.Template)
 

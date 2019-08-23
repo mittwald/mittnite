@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/hashicorp/hcl"
 	"github.com/mittwald/mittnite/internal/config"
-	"github.com/mittwald/mittnite/pkg/files"
 	"github.com/mittwald/mittnite/pkg/probe"
 	"github.com/mittwald/mittnite/pkg/proc"
 	log "github.com/sirupsen/logrus"
@@ -63,7 +62,7 @@ var up = &cobra.Command{
 			}
 		}
 
-		err = files.RenderConfigurationFiles(ignitionConfig.Files)
+		err = config.RenderConfigurationFiles(ignitionConfig.Files)
 		if err != nil {
 			panic(err)
 		}

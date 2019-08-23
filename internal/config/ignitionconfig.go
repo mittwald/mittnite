@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"github.com/hashicorp/hcl"
-	"github.com/mittwald/mittnite/pkg/files"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"strings"
@@ -32,7 +31,7 @@ func (ignitionConfig *Ignition) GenerateFromConfigDir(configDir string) error {
 		}
 	}
 
-	err = files.RenderConfigurationFiles(ignitionConfig.Files)
+	err = RenderConfigurationFiles(ignitionConfig.Files)
 	if err != nil {
 		return err
 	}

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/mittwald/mittnite/internal/config"
-	"github.com/mittwald/mittnite/pkg/files"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -27,7 +26,7 @@ var renderFiles = &cobra.Command{
 			panic(err)
 		}
 
-		err = files.RenderConfigurationFiles(ignitionConfig.Files)
+		err = config.RenderConfigurationFiles(ignitionConfig.Files)
 		if err != nil {
 			panic(err)
 		}
