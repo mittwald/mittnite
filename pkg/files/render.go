@@ -57,7 +57,7 @@ func renderFile(cfg *config.File) error {
 			return err
 		}
 
-		defer out.Close()
+		defer func() { _ = out.Close() }()
 
 		data := templateData{
 			Env:    make(map[string]string),
