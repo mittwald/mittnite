@@ -12,7 +12,7 @@ func init() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "up",
+	Use:   "mittnite",
 	Short: "Mittnite - Smart init system for containers",
 	Long:  "Mittnite is a small, but smart init system designed for usage as `ENTRYPOINT` in container images",
 	Run: func(cmd *cobra.Command, args []string) {
