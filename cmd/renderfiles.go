@@ -14,8 +14,6 @@ func init() {
 var renderFiles = &cobra.Command{
 	Use: "renderfiles",
 	Run: func(cmd *cobra.Command, args []string) {
-
-		log.Infof("mittnite process manager, version %s (commit %s), built at %s", Version, Commit, BuiltAt)
 		log.Infof("looking for configuration files in %s", configDir)
 
 		ignitionConfig := &config.Ignition{
