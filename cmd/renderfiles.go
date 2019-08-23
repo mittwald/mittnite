@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/mittwald/mittnite/internal/config"
-	log "github.com/sirupsen/logrus"
+	"github.com/mittwald/mittnite/pkg/files"
 	"github.com/spf13/cobra"
 )
 
@@ -13,8 +13,6 @@ func init() {
 var renderFiles = &cobra.Command{
 	Use: "renderfiles",
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Infof("looking for configuration files in %s", configDir)
-
 		ignitionConfig := &config.Ignition{
 			Probes: nil,
 			Files:  nil,
@@ -26,7 +24,7 @@ var renderFiles = &cobra.Command{
 			panic(err)
 		}
 
-		err = config.RenderConfigurationFiles(ignitionConfig.Files)
+		err = files.RenderFiles(ignitionConfig.Files)
 		if err != nil {
 			panic(err)
 		}

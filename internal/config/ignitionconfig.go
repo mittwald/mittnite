@@ -9,9 +9,11 @@ import (
 )
 
 func (ignitionConfig *Ignition) GenerateFromConfigDir(configDir string) error {
+	log.Infof("looking for configuration files in %s", configDir)
+
 	configDir = strings.TrimRight(configDir, "/")
 
-	matches, err := findFilesInPath(configDir)
+	matches, err := findInPath(configDir)
 	if err != nil {
 		return err
 	}
@@ -29,11 +31,6 @@ func (ignitionConfig *Ignition) GenerateFromConfigDir(configDir string) error {
 			err = fmt.Errorf("could not parse configuration file %s: %s", m, err.Error())
 			return err
 		}
-	}
-
-	err = RenderConfigurationFiles(ignitionConfig.Files)
-	if err != nil {
-		return err
 	}
 
 	return nil

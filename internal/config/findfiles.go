@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func findFilesInPath(configDir string) ([]string, error) {
+func findInPath(configDir string) ([]string, error) {
 	var matches []string
 
 	err := filepath.Walk(configDir, func(path string, info os.FileInfo, err error) error {
