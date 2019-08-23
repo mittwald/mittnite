@@ -17,8 +17,8 @@ func init() {
 
 var version = &cobra.Command{
 	Use:   "version",
-	Short: "Print the version number of mittnite",
-	Long:  `All software has versions. This is mittnite's`,
+	Short: "Show extended information about the current version of mittnite",
+	Long:  "All software has versions. This is mittnite's",
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Infof("Mittnite process manager, version %s (commit %s), built at %s", Version, Commit, BuiltAt)
 	},

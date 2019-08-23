@@ -8,7 +8,7 @@ builds:
   - CGO_ENABLED=0
   binary: mittnite
   ldflags:
-  - -s -w -X "cmd.Version={{ .Version }}" -X "cmd.Commit={{ .Commit }}" -X "cmd.BuiltAt={{ .Date }}"
+  - -s -w -X cmd.Version={{ .Version }} -X cmd.Commit={{ .Commit }} -X cmd.BuiltAt={{ .Date }}
   goos:
   - darwin
   - linux
