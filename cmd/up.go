@@ -57,7 +57,6 @@ var up = &cobra.Command{
 			err := probe.RunProbeServer(probeHandler, probeSignals)
 			if err != nil {
 				log.Fatalf("probe server stopped with error: %s", err)
-				panic(err)
 			} else {
 				log.Info("probe server stopped without error")
 			}
@@ -65,7 +64,7 @@ var up = &cobra.Command{
 
 		err = probeHandler.Wait(readinessSignals)
 		if err != nil {
-			panic(err)
+			log.Fatalf("error while waiting for readiness signals: '%+v'", err)
 		}
 
 		err = proc.RunServices(ignitionConfig, procSignals)
