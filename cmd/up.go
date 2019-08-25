@@ -64,7 +64,7 @@ var up = &cobra.Command{
 
 		err = probeHandler.Wait(readinessSignals)
 		if err != nil {
-			log.Fatalf("error while waiting for readiness signals: '%+v'", err)
+			log.Fatalf("probe handler failed while waiting for readiness signals: '%+v'", err)
 		}
 
 		err = proc.RunServices(ignitionConfig, procSignals)
