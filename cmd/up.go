@@ -26,12 +26,12 @@ var up = &cobra.Command{
 
 		err := ignitionConfig.GenerateFromConfigDir(configDir)
 		if err != nil {
-			panic(err)
+			log.Fatalf("failed while trying to generate ignition config from dir '%+v', err: '%+v'", configDir, err)
 		}
 
 		err = files.RenderFiles(ignitionConfig.Files)
 		if err != nil {
-			panic(err)
+			log.Fatalf("failed while rendering files from ignition config, err: '%+v'", err)
 		}
 
 		signals := make(chan os.Signal)

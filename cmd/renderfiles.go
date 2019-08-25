@@ -24,12 +24,12 @@ var renderFiles = &cobra.Command{
 
 		err := ignitionConfig.GenerateFromConfigDir(configDir)
 		if err != nil {
-			panic(err)
+			log.Fatalf("failed while trying to generate ignition config from dir '%+v', err: '%+v'", configDir, err)
 		}
 
 		err = files.RenderFiles(ignitionConfig.Files)
 		if err != nil {
-			panic(err)
+			log.Fatalf("failed while rendering files from ignition config, err: '%+v'", err)
 		}
 
 		if len(args) > 0 {
@@ -39,7 +39,7 @@ var renderFiles = &cobra.Command{
 			cmd.Stderr = os.Stderr
 			err = cmd.Run()
 			if err != nil {
-				panic(err)
+				log.Fatalf("failed to execute additional args '%+v', err: '%+v'", args, err)
 			}
 		}
 	},
