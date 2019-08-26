@@ -2,8 +2,8 @@ package probe
 
 import (
 	"fmt"
+	"github.com/mittwald/mittnite/internal/config"
 	"github.com/mittwald/mittnite/internal/helper"
-	"github.com/mittwald/mittnite/internal/types"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
@@ -17,7 +17,7 @@ type httpGetProbe struct {
 	timeout string
 }
 
-func NewHttpProbe(cfg *types.HttpGetConfig) *httpGetProbe {
+func NewHttpProbe(cfg *config.HttpGet) *httpGetProbe {
 	cfg.Scheme = helper.ResolveEnv(cfg.Scheme)
 	cfg.Hostname = helper.ResolveEnv(cfg.Hostname)
 	cfg.Port = helper.ResolveEnv(cfg.Port)
