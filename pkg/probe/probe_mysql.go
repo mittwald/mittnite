@@ -24,7 +24,7 @@ func NewMySQLProbe(cfg *config.MySQL) *mySQLProbe {
 		User:   cfg.User,
 		Passwd: cfg.Password,
 		Net:    "tcp",
-		Addr:   fmt.Sprintf("%s:%s", cfg.Host, cfg.Port),
+		Addr:   fmt.Sprintf("%s:%s", cfg.Hostname, cfg.Port),
 		DBName: cfg.Database,
 	}
 
