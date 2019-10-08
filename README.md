@@ -11,6 +11,25 @@ It offers the following features:
 - Watch configuration files and send configurable signals to processes on change
 - Wait until required services are up before starting processes (currently supporting filesystem mounts, HTTP services, MySQL, Redis, AMQP and MongoDB)
 
+- [Mittnite - Smart init system for containers](#mittnite---smart-init-system-for-containers)
+  * [Getting started](#getting-started)
+    + [CLI usage](#cli-usage)
+      - [Basic](#basic)
+      - [Render templates and execute custom command](#render-templates-and-execute-custom-command)
+    + [Docker](#docker)
+      - [Build your (go) application on top of the `mittnite` docker-image](#build-your--go--application-on-top-of-the--mittnite--docker-image)
+      - [Download `mittnite` in your own custom `Dockerfile`](#download--mittnite--in-your-own-custom--dockerfile-)
+  * [Configuration](#configuration)
+    + [Directives](#directives)
+      - [Job](#job)
+    + [File](#file)
+    + [Probe](#probe)
+    + [HCL examples](#hcl-examples)
+      - [Start a process](#start-a-process)
+      - [Render a file on startup](#render-a-file-on-startup)
+      - [Wait until a Redis connection is possible](#wait-until-a-redis-connection-is-possible)
+    + [More examples](#more-examples)
+
 ## Getting started
 
 ### CLI usage
