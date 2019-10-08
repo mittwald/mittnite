@@ -11,44 +11,165 @@ It offers the following features:
 - Watch configuration files and send configurable signals to processes on change
 - Wait until required services are up before starting processes (currently supporting filesystem mounts, HTTP services, MySQL, Redis, AMQP and MongoDB)
 
-## Starting
+## Getting started
 
-Start as follows:
+### CLI usage
 
+#### Basic
+```bash
+$ mittnite --help
+
+Mittnite is a small, but smart init system designed for usage as `ENTRYPOINT` in container images
+
+Usage:
+  mittnite [flags]
+  mittnite [command]
+
+Available Commands:
+  help        Help about any command
+  renderfiles
+  up
+  version     Show extended information about the current version of mittnite
+
+Flags:
+  -c, --config-dir string   set directory to where your .hcl-configs are located (default "/etc/mittnite.d")
+  -h, --help                help for mittnite
+
+Use "mittnite [command] --help" for more information about a command.
 ```
-$ mittnite up --config-dir /etc/mittnite.d
+
+#### Render templates and execute custom command
+This will render all template files and execute the `sleep 10` afterwards.
+```bash
+$ mittnite renderfiles sleep 10
 ```
 
-Or use it in a container image:
-
+### Docker
+#### Build your (go) application on top of the `mittnite` docker-image
+In order to run your own static application - e.g. a `golang`-binary with `mittnite`, we recommend to inherit the `mittnite` docker-image and copy your stuff on top.
 ```dockerfile
-FROM quay.io/mittwald/mittnite:stable
-COPY nginx.hcl /etc/mittnite.d/webserver.hcl
-COPY fpm.hcl /etc/mittnite.d/fpm.hcl
-CMD ["up", "--config-dir", "/etc/mittnite.d"]
+FROM            quay.io/mittwald/mittnite:stable
+COPY            mittnite.d/ /etc/mittnite.d/
+COPY            myApplication /usr/local/bin/
+# ENTRYPOINT and CMD are optional, because they are inherited by parent image
 ```
 
-The directory specified with `--config-dir` or the shorthand `-c` can contain any number of `.hcl` configuration files; all files in that directory are loaded by Mittnite on startup and can contain any of the configuration directives described in the following section:
+#### Download `mittnite` in your own custom `Dockerfile`
+If you'd like to use `mittnite` for non-static applications like `node` or similar, you can download the `mittnite`-binary from Github.
+```dockerfile
+FROM        node:12-alpine
+ENV         MITTNITE_VERSION="1.1.2"
+RUN         wget -qO- https://github.com/mittwald/mittnite/releases/download/v${MITTNITE_VERSION}/mittnite_${MITTNITE_VERSION}_linux_x86_64.tar.gz \
+                | tar xvz mittnite -C /usr/bin && \
+            chmod +x /usr/bin/mittnite
+COPY        mittnite.d/ /etc/mittnite.d/
+ENTRYPOINT  ["/usr/bin/mittnite"]
+CMD         ["up","--config-dir", "/etc/mittnite.d"]
+```
 
-## Configuration directives
+## Configuration
+The directory specified with `--config-dir`, or the shorthand `-c`, can contain any number of `.hcl` configuration files.  
+All files in that directory are loaded by `mittnite` on startup and can contain any of the configuration directives.
 
-Start a process:
+### Directives
+#### Job
+Possible directives to use in a job definition.
+```hcl
+	command = "/usr/local/bin/foo"
+	args = "bar"
+	watch "/etc/conf.d/barfoo" {
+	  signal = 12
+	}
+	max_attempts = 3
+	canFail = false
+```
+
+### File
+Possible directives to use in a file definition.
+```hcl
+	from = "examples/test.d/test.txt.tpl"
+	params = {
+      foo = "bar"
+    }
+```
+
+### Probe
+Possible directives to use in a probe definition.
+```hcl
+  wait = true
+
+  redis {
+    host = {
+      hostname = "localhost"
+      port = 6379
+    }
+    password = ""
+  }
+  
+  mysql {
+    host = {
+      hostname = "localhost"
+      port = 3306
+    }
+    credentials = {
+      user = "foo"
+      password = "bar"
+    }
+  }
+  
+  amqp {
+    host = {
+      hostname = "localhost"
+      port = 3306
+    }
+    credentials = {
+      user = "foo"
+      password = "bar"
+    }
+    virtualhost = "amqp.localhost.com"
+  }
+  
+  mongodb {
+    host = {
+      hostname = "localhost"
+      port = 3306
+    }
+    credentials = {
+      user = "foo"
+      password = "bar"
+    }    
+    database = "mongo"
+  }
+  
+  httpget {
+    scheme = "http"
+    host = {
+        hostname = "localhost"
+        port = 8080
+    }
+    path = "/status"
+    timeout = "5"
+  }
+```
+
+### HCL examples
+#### Start a process
 
 ```hcl
 job webserver {
   command = "/usr/bin/http-server"
 
-  watch "./test.txt" {
+  watch "/etc/conf.d/test.txt" {
     signal = 12 # USR2
   }
 }
 ```
 
-Render a file on startup:
+#### Render a file on startup
 
 ```hcl
-file test.txt {
-  from = "test.d/test.txt.tpl"
+file "/etc/conf.d/test.txt" {
+  from = "examples/test.d/test.txt.tpl"
 
   params = {
     foo = "bar"
@@ -56,13 +177,19 @@ file test.txt {
 }
 ```
 
-Wait until a Redis connection is possible:
+#### Wait until a Redis connection is possible
 
 ```hcl
 probe redis {
   wait = true
   redis {
-    host = "localhost"
+    host = {
+      hostname = "localhost"
+      port = 6379
+    }
   }
 }
 ```
+
+### More examples
+More example files can be found in the [examples directory](examples/)

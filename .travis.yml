@@ -3,7 +3,7 @@ language: go
 dist: xenial
 
 go:
-  - '1.12'
+  - '1.13'
 
 before_script:
   - sudo sysctl -w net.ipv4.ip_forward=1
@@ -22,7 +22,7 @@ env:
   global:
     - GO111MODULE=on
     - CGO_ENABLED=0
-    - GO_VERSION=1.12
+    - GO_VERSION=1.13
 script:
   - curl -sL https://git.io/goreleaser | bash -s -- --snapshot --skip-publish --rm-dist
 
