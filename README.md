@@ -11,7 +11,7 @@ It offers the following features:
 - Watch configuration files and send configurable signals to processes on change
 - Wait until required services are up before starting processes (currently supporting filesystem mounts, HTTP services, MySQL, Redis, AMQP and MongoDB)
 
-- [Mittnite - Smart init system for containers](#mittnite---smart-init-system-for-containers)
+## Table of contents
   * [Getting started](#getting-started)
     + [CLI usage](#cli-usage)
       - [Basic](#basic)
