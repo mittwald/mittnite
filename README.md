@@ -12,6 +12,7 @@ It offers the following features:
 - Wait until required services are up before starting processes (currently supporting filesystem mounts, HTTP services, MySQL, Redis, AMQP and MongoDB)
 
 ## Table of contents
+  * [Table of contents](#table-of-contents)
   * [Getting started](#getting-started)
     + [CLI usage](#cli-usage)
       - [Basic](#basic)
@@ -22,8 +23,8 @@ It offers the following features:
   * [Configuration](#configuration)
     + [Directives](#directives)
       - [Job](#job)
-    + [File](#file)
-    + [Probe](#probe)
+      - [File](#file)
+      - [Probe](#probe)
     + [HCL examples](#hcl-examples)
       - [Start a process](#start-a-process)
       - [Render a file on startup](#render-a-file-on-startup)
@@ -103,7 +104,7 @@ Possible directives to use in a job definition.
 	canFail = false
 ```
 
-### File
+#### File
 Possible directives to use in a file definition.
 ```hcl
 	from = "examples/test.d/test.txt.tpl"
@@ -112,7 +113,7 @@ Possible directives to use in a file definition.
     }
 ```
 
-### Probe
+#### Probe
 Possible directives to use in a probe definition.
 ```hcl
   wait = true
