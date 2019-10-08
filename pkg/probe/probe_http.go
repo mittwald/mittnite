@@ -30,7 +30,7 @@ func NewHttpProbe(cfg *config.HttpGet) *httpGetProbe {
 
 	host := cfg.Host.Hostname
 	if cfg.Host.Port != "" {
-		host += fmt.Sprintf("%s:%s", cfg.Hostname, cfg.Port)
+		host = fmt.Sprintf("%s:%s", cfg.Hostname, cfg.Port)
 	}
 
 	connCfg := httpGetProbe{
