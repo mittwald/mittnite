@@ -18,7 +18,7 @@ func NewMySQLProbe(cfg *config.MySQL) *mySQLProbe {
 	cfg.Database = helper.ResolveEnv(cfg.Database)
 	cfg.Password = helper.ResolveEnv(cfg.Password)
 	cfg.Hostname = helper.ResolveEnv(cfg.Hostname)
-	cfg.Port = helper.ResolveEnv(cfg.Port)
+	cfg.Port = helper.SetDefaultPort(helper.ResolveEnv(cfg.Port), "3306")
 
 	connCfg := mysql.Config{
 		User:   cfg.User,
