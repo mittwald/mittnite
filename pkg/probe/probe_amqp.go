@@ -25,7 +25,7 @@ func NewAmqpProbe(cfg *config.Amqp) *amqpProbe {
 	cfg.User = helper.ResolveEnv(cfg.User)
 	cfg.Password = helper.ResolveEnv(cfg.Password)
 	cfg.Hostname = helper.ResolveEnv(cfg.Hostname)
-	cfg.Port = helper.SetDefaultPort(helper.ResolveEnv(cfg.Port), "5672")
+	cfg.Port = helper.SetDefaultStringIfEmpty(helper.ResolveEnv(cfg.Port), "5672")
 	cfg.VirtualHost = helper.ResolveEnv(cfg.VirtualHost)
 	if cfg.VirtualHost == "" {
 		cfg.VirtualHost = defaultVirtualHost

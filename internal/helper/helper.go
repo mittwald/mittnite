@@ -13,7 +13,7 @@ func ResolveEnv(in string) string {
 	return in
 }
 
-func SetDefaultPort(port string, defaultPort string) string {
+func SetDefaultStringIfEmpty(port string, defaultPort string) string {
 	if len(port) == 0 {
 		log.Infof("No port specified or env variable not found, assuming default port %s", defaultPort)
 		return defaultPort
