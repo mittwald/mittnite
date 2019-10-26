@@ -26,6 +26,7 @@ func NewMongoDBProbe(cfg *config.MongoDB) *mongoDBProbe {
 	cfg.Password = helper.ResolveEnv(cfg.Password)
 	cfg.Hostname = helper.ResolveEnv(cfg.Hostname)
 	cfg.Database = helper.ResolveEnv(cfg.Database)
+	cfg.Port = helper.SetDefaultStringIfEmpty(helper.ResolveEnv(cfg.Port), "27017")
 
 	connCfg := mongoDBProbe{
 		user:     cfg.User,

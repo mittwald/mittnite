@@ -140,7 +140,7 @@ Possible directives to use in a probe definition.
   amqp {
     host = {
       hostname = "localhost"
-      port = 3306
+      port = 5672
     }
     credentials = {
       user = "foo"
@@ -152,7 +152,7 @@ Possible directives to use in a probe definition.
   mongodb {
     host = {
       hostname = "localhost"
-      port = 3306
+      port = 27017
     }
     credentials = {
       user = "foo"
@@ -171,6 +171,8 @@ Possible directives to use in a probe definition.
     timeout = "5"
   }
 ```
+
+Specifying a `port` is optional and defaults to the services default port.
 
 ### HCL examples
 #### Start a process

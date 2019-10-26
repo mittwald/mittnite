@@ -3,6 +3,7 @@ package helper
 import (
 	"os"
 	"strings"
+	log "github.com/sirupsen/logrus"
 )
 
 func ResolveEnv(in string) string {
@@ -10,4 +11,12 @@ func ResolveEnv(in string) string {
 		return os.Getenv(in[4:])
 	}
 	return in
+}
+
+func SetDefaultStringIfEmpty(port string, defaultPort string) string {
+	if len(port) == 0 {
+		log.Infof("No port specified or env variable not found, assuming default port %s", defaultPort)
+		return defaultPort
+	}
+	return port
 }

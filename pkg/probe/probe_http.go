@@ -28,8 +28,8 @@ func NewHttpProbe(cfg *config.HttpGet) *httpGetProbe {
 		cfg.Scheme = "http"
 	}
 
-	host := cfg.Host.Hostname
-	if cfg.Host.Port != "" {
+	host := cfg.Hostname
+	if cfg.Port != "" {
 		host = fmt.Sprintf("%s:%s", cfg.Hostname, cfg.Port)
 	}
 
