@@ -59,7 +59,7 @@ func (a *amqpProbe) Exec() error {
 	}
 	defer conn.Close()
 
-	log.Info("amqp is alive")
+	log.WithFields(log.Fields{"kind": "probe", "name": "amqp", "status": "alive", "host": fmt.Sprintf("%s:%s", a.hostname, a.port)}).Debug()
 
 	return nil
 }

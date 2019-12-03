@@ -55,17 +55,17 @@ func (m *mongoDBProbe) Exec() error {
 	defer cancel()
 
 	err = client.Connect(ctx)
-	defer client.Disconnect(ctx)
 	if err != nil {
 		return err
 	}
+	defer func(){_ = client.Disconnect(ctx)}()
 
 	err = client.Ping(ctx, readpref.Primary())
 	if err != nil {
 		return err
 	}
 
-	log.Info("mongodb is alive")
+	log.WithFields(log.Fields{"kind": "probe", "name": "mongodb", "status": "alive", "host": fmt.Sprintf("%s:%s", m.hostname, m.port)}).Debug()
 
 	return nil
 }
