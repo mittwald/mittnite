@@ -58,7 +58,7 @@ func (m *mongoDBProbe) Exec() error {
 	if err != nil {
 		return err
 	}
-	defer client.Disconnect(ctx)
+	defer func(){_ = client.Disconnect(ctx)}()
 
 	err = client.Ping(ctx, readpref.Primary())
 	if err != nil {
