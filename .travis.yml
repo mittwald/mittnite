@@ -5,9 +5,6 @@ dist: xenial
 go:
   - '1.13'
 
-before_script:
-  - sudo sysctl -w net.ipv4.ip_forward=1
-
 services:
   - docker
 
@@ -23,8 +20,15 @@ env:
     - GO111MODULE=on
     - CGO_ENABLED=0
     - GO_VERSION=1.13
+    - GOLANG_LINT_VERSION=v1.21.0
+
+before_script:
+  - sudo sysctl -w net.ipv4.ip_forward=1
+  - wget -O - -q https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin ${GOLANG_LINT_VERSION}
+
 script:
-  - curl -sL https://git.io/goreleaser | bash -s -- --snapshot --skip-publish --rm-dist
+  - golangci-lint run ./... || exit 1
+  - curl -sL https://git.io/goreleaser | bash -s -- --snapshot --skip-publish --rm-dist || exit 1
 
 before_deploy:
   - if [[ -n "${DOCKER_LOGIN_USERNAME}" ]] && [[ -n "${DOCKER_LOGIN_PASSWORD}" ]] && [[ -n "${DOCKER_LOGIN_URL}" ]]; then docker login -u "${DOCKER_LOGIN_USERNAME}" -p "${DOCKER_LOGIN_PASSWORD}" "${DOCKER_LOGIN_URL}"; fi

@@ -39,15 +39,13 @@ func (m *mySQLProbe) Exec() error {
 		return err
 	}
 
-	log.Info("connected")
-
 	defer db.Close()
 	r, err := db.Query("SELECT 1")
 	if err != nil {
 		return err
 	}
 
-	log.Info("selected successfully")
+	log.WithFields(log.Fields{"kind": "probe", "name": "mysql", "status": "alive", "host": m.dsn}).Debug()
 
 	r.Close()
 

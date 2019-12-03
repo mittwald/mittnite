@@ -34,6 +34,8 @@ func (r *redisProbe) Exec() error {
 	if err != nil {
 		return err
 	}
-	log.Info("redis is alive")
+
+	log.WithFields(log.Fields{"kind": "probe", "name": "redis", "status": "alive", "host": r.addr}).Debug()
+
 	return nil
 }

@@ -13,13 +13,13 @@ import (
 	"time"
 )
 
-type ProbeHandler struct {
-	cfg *config.Ignition
+type Handler struct {
+	cfg        *config.Ignition
 	probes     map[string]Probe
 	waitProbes map[string]Probe
 }
 
-func (s *ProbeHandler) Wait(interrupt chan os.Signal) error {
+func (h *Handler) Wait(interrupt chan os.Signal) error {
 	log.Info("waiting for probe readiness")
 
 	timer := time.NewTicker(1 * time.Second)
@@ -29,10 +29,10 @@ func (s *ProbeHandler) Wait(interrupt chan os.Signal) error {
 		case <-timer.C:
 			ready := true
 
-			for i := range s.waitProbes {
-				err := s.waitProbes[i].Exec()
+			for i := range h.waitProbes {
+				err := h.waitProbes[i].Exec()
 				if err != nil {
-					log.Warnf("probe %s is not yet ready: %s", i, err)
+					log.WithFields(log.Fields{"kind": "probe", "name": i, "err": err}).Warn("not ready yet")
 					ready = false
 				}
 			}
@@ -48,15 +48,15 @@ func (s *ProbeHandler) Wait(interrupt chan os.Signal) error {
 	}
 }
 
-func (s *ProbeHandler) HandleStatus(res http.ResponseWriter, req *http.Request) {
+func (h *Handler) HandleStatus(res http.ResponseWriter, req *http.Request) {
 	response := StatusResponse{
 		Probes: make(map[string]*ProbeResult),
 	}
 
-	results := make(chan *ProbeResult, len(s.probes))
+	results := make(chan *ProbeResult, len(h.probes))
 	timeout := time.NewTimer(1 * time.Second)
 
-	for i := range s.probes {
+	for i := range h.probes {
 		response.Probes[i] = &ProbeResult{i, false, "timed out"}
 
 		go func(p Probe, name string) {
@@ -67,19 +67,19 @@ func (s *ProbeHandler) HandleStatus(res http.ResponseWriter, req *http.Request) 
 			} else {
 				results <- &ProbeResult{Name: name, OK: true, Message: ""}
 			}
-		}(s.probes[i], i)
+		}(h.probes[i], i)
 	}
 
 	success := true
 
-	for i := 0; i < len(s.probes); i++ {
+	for i := 0; i < len(h.probes); i++ {
 		select {
 		case result := <-results:
 			response.Probes[result.Name] = result
 			success = success && result.OK
 		case <-timeout.C:
 			success = false
-			log.Error("probe timed out")
+			log.WithFields(log.Fields{"kind": "probe"}).Error("timed out")
 			break
 		}
 	}
@@ -93,15 +93,15 @@ func (s *ProbeHandler) HandleStatus(res http.ResponseWriter, req *http.Request) 
 	_ = json.NewEncoder(res).Encode(&response)
 }
 
-func NewProbeHandler(cfg *config.Ignition) (*ProbeHandler, error) {
+func NewProbeHandler(cfg *config.Ignition) (*Handler, error) {
 	probes := buildProbesFromConfig(cfg)
 	waitProbes := filterWaitProbes(cfg, probes)
 
-	handler := &ProbeHandler{cfg, probes, waitProbes}
+	handler := &Handler{cfg, probes, waitProbes}
 	return handler, nil
 }
 
-func RunProbeServer(ph *ProbeHandler, signals chan os.Signal) error {
+func RunProbeServer(ph *Handler, signals chan os.Signal) error {
 	m := mux.NewRouter()
 	m.Path("/status").HandlerFunc(ph.HandleStatus)
 
@@ -113,7 +113,7 @@ func RunProbeServer(ph *ProbeHandler, signals chan os.Signal) error {
 	go func() {
 		for s := range signals {
 			if s == syscall.SIGINT || s == syscall.SIGTERM {
-				log.Fatalf("shutting down monitoring server after receiving %s", s.String())
+				log.WithField("receivedSignal", s.String()).Fatal("shutting down monitoring server")
 				_ = server.Shutdown(context.Background())
 			}
 		}

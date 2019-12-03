@@ -70,7 +70,7 @@ func (h *httpGetProbe) Exec() error {
 	}
 
 	if res.StatusCode >= 200 && res.StatusCode < 400 {
-		log.Infof("http service '%s' is alive", urlStr)
+		log.WithFields(log.Fields{"kind": "probe", "name": "http", "status": "alive", "host": urlStr}).Debug()
 		return nil
 	}
 
