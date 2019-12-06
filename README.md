@@ -94,28 +94,36 @@ All files in that directory are loaded by `mittnite` on startup and can contain 
 ### Directives
 #### Job
 Possible directives to use in a job definition.
+
 ```hcl
-	command = "/usr/local/bin/foo"
-	args = "bar"
-	watch "/etc/conf.d/barfoo" {
-	  signal = 12
-	}
-	max_attempts = 3
-	canFail = false
+job "foo" {
+  command = "/usr/local/bin/foo"
+  args = "bar"
+  max_attempts = 3
+  canFail = false
+  
+  watch "/etc/conf.d/barfoo" {
+    signal = 12
+  }
+}
 ```
 
 #### File
 Possible directives to use in a file definition.
+
 ```hcl
-	from = "examples/test.d/test.txt.tpl"
-	params = {
-      foo = "bar"
-    }
+file "/path/to/file.txt" {
+  from = "examples/test.d/test.txt.tpl"
+  params = {
+    foo = "bar"
+  }
+}
 ```
 
 #### Probe
 Possible directives to use in a probe definition.
 ```hcl
+probe "probe-name" {
   wait = true
 
   redis {
@@ -170,6 +178,7 @@ Possible directives to use in a probe definition.
     path = "/status"
     timeout = "5"
   }
+}
 ```
 
 Specifying a `port` is optional and defaults to the services default port.
