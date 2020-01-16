@@ -169,14 +169,14 @@ probe "probe-name" {
     database = "mongo"
   }
   
-  httpget {
+  http {
     scheme = "http"
     host = {
         hostname = "localhost"
         port = 8080
     }
     path = "/status"
-    timeout = "5"
+    timeout = "5s"
   }
 }
 ```
