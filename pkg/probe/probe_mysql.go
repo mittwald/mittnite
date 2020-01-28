@@ -7,6 +7,7 @@ import (
 	"github.com/mittwald/mittnite/internal/config"
 	"github.com/mittwald/mittnite/internal/helper"
 	log "github.com/sirupsen/logrus"
+	"strconv"
 )
 
 type mySQLProbe struct {
@@ -18,14 +19,17 @@ func NewMySQLProbe(cfg *config.MySQL) *mySQLProbe {
 	cfg.Database = helper.ResolveEnv(cfg.Database)
 	cfg.Password = helper.ResolveEnv(cfg.Password)
 	cfg.Hostname = helper.ResolveEnv(cfg.Hostname)
-	cfg.Port = helper.SetDefaultStringIfEmpty(helper.ResolveEnv(cfg.Port), "3306")
+	cfg.Port = helper.SetDefaultStringIfEmpty(helper.ResolveEnv(cfg.Port), "3306", "Port", "mysql")
+	cfg.AllowNativePassword = helper.SetDefaultStringIfEmpty(helper.ResolveEnv(cfg.AllowNativePassword), "false", "AllowNativePassword", "mysql")
+	allowNativePassword, _ := strconv.ParseBool(cfg.AllowNativePassword)
 
 	connCfg := mysql.Config{
-		User:   cfg.User,
-		Passwd: cfg.Password,
-		Net:    "tcp",
-		Addr:   fmt.Sprintf("%s:%s", cfg.Hostname, cfg.Port),
-		DBName: cfg.Database,
+		User:                 cfg.User,
+		Passwd:               cfg.Password,
+		Net:                  "tcp",
+		Addr:                 fmt.Sprintf("%s:%s", cfg.Hostname, cfg.Port),
+		DBName:               cfg.Database,
+		AllowNativePasswords: allowNativePassword,
 	}
 
 	return &mySQLProbe{
