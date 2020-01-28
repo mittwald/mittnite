@@ -37,7 +37,7 @@ func RunServices(cfg *config.Ignition, signals chan os.Signal) error {
 
 	wg := sync.WaitGroup{}
 
-	for i := range cfg.Jobs {
+	for i, job := range cfg.Jobs {
 		var cmd *exec.Cmd
 
 		go func(job *config.JobConfig, signals <-chan os.Signal) {
@@ -47,10 +47,10 @@ func RunServices(cfg *config.Ignition, signals chan os.Signal) error {
 					_ = cmd.Process.Signal(sig)
 				}
 			}
-		}(&cfg.Jobs[i], signalsOut[i])
+		}(&job, signalsOut[i])
 
-		for i := range cfg.Jobs[i].Watches {
-			go func(j int, w *config.Watch) {
+		for _, w := range job.Watches {
+			go func(jobCfg config.JobConfig, w *config.Watch) {
 				var mtime time.Time
 				stat, err := os.Stat(w.Filename)
 
@@ -64,12 +64,12 @@ func RunServices(cfg *config.Ignition, signals chan os.Signal) error {
 				for range timer.C {
 					stat, err = os.Stat(w.Filename)
 					if err == nil && mtime != stat.ModTime() && cmd != nil && cmd.Process != nil {
-						log.Infof("file %s changed, signalling process %s", w.Filename, cfg.Jobs[j].Name)
+						log.Infof("file %s changed, signalling process %s", w.Filename, jobCfg.Name)
 						_ = cmd.Process.Signal(syscall.Signal(w.Signal))
 						mtime = stat.ModTime()
 					}
 				}
-			}(i, &cfg.Jobs[i].Watches[i])
+			}(job, &w)
 		}
 
 		wg.Add(1)
