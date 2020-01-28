@@ -13,7 +13,8 @@ type Host struct {
 type MySQL struct {
 	Credentials
 	Host
-	Database string
+	AllowNativePassword string
+	Database            string
 }
 
 type Amqp struct {

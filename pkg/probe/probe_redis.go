@@ -16,7 +16,7 @@ type redisProbe struct {
 func NewRedisProbe(cfg *config.Redis) *redisProbe {
 	cfg.Hostname = helper.ResolveEnv(cfg.Hostname)
 	cfg.Password = helper.ResolveEnv(cfg.Password)
-	cfg.Port = helper.SetDefaultStringIfEmpty(helper.ResolveEnv(cfg.Port), "6379")
+	cfg.Port = helper.SetDefaultStringIfEmpty(helper.ResolveEnv(cfg.Port), "6379", "port", "redis")
 
 	return &redisProbe{
 		addr:     fmt.Sprintf("%s:%s", cfg.Hostname, cfg.Port),

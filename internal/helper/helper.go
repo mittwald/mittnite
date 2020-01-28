@@ -1,9 +1,9 @@
 package helper
 
 import (
+	log "github.com/sirupsen/logrus"
 	"os"
 	"strings"
-	log "github.com/sirupsen/logrus"
 )
 
 func ResolveEnv(in string) string {
@@ -13,10 +13,10 @@ func ResolveEnv(in string) string {
 	return in
 }
 
-func SetDefaultStringIfEmpty(port string, defaultPort string) string {
-	if len(port) == 0 {
-		log.Infof("No port specified or env variable not found, assuming default port %s", defaultPort)
-		return defaultPort
+func SetDefaultStringIfEmpty(current, fallback, key, probeType string) string {
+	if len(current) == 0 {
+		log.WithFields(log.Fields{"kind": "cfg", "name": probeType, "key": key, "default": fallback}).Info("no input for probe specified, assuming default")
+		return fallback
 	}
-	return port
+	return current
 }

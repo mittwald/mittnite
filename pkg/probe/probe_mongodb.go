@@ -26,7 +26,7 @@ func NewMongoDBProbe(cfg *config.MongoDB) *mongoDBProbe {
 	cfg.Password = helper.ResolveEnv(cfg.Password)
 	cfg.Hostname = helper.ResolveEnv(cfg.Hostname)
 	cfg.Database = helper.ResolveEnv(cfg.Database)
-	cfg.Port = helper.SetDefaultStringIfEmpty(helper.ResolveEnv(cfg.Port), "27017")
+	cfg.Port = helper.SetDefaultStringIfEmpty(helper.ResolveEnv(cfg.Port), "27017", "port", "mongodb")
 
 	connCfg := mongoDBProbe{
 		user:     cfg.User,
@@ -58,7 +58,7 @@ func (m *mongoDBProbe) Exec() error {
 	if err != nil {
 		return err
 	}
-	defer func(){_ = client.Disconnect(ctx)}()
+	defer func() { _ = client.Disconnect(ctx) }()
 
 	err = client.Ping(ctx, readpref.Primary())
 	if err != nil {

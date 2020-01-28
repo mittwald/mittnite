@@ -15,16 +15,14 @@ builds:
   goarch:
   - amd64
 archives:
-  -
-    replacements:
+  - replacements:
       darwin: macos
       linux: linux
       windows: windows
       386: i386
       amd64: x86_64
 nfpms:
-  -
-    vendor: Mittwald CM Service
+  - vendor: Mittwald CM Service
     homepage: https://github.com/mittwald/mittnite
     maintainer: Martin Helmich <m.helmich@mittwald.de>
     description: Smart and small init system for containers
