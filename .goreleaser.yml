@@ -14,25 +14,27 @@ builds:
   - linux
   goarch:
   - amd64
-archive:
-  replacements:
-    darwin: macos
-    linux: linux
-    windows: windows
-    386: i386
-    amd64: x86_64
-nfpm:
-  vendor: Mittwald CM Service
-  homepage: https://github.com/mittwald/mittnite
-  maintainer: Martin Helmich <m.helmich@mittwald.de>
-  description: Smart and small init system for containers
-  license: Proprietary
-  formats:
-    - deb
-    - rpm
-  bindir: /usr/bin
-  empty_folders:
-    - /etc/mittnite.d
+archives:
+  -
+    replacements:
+      darwin: macos
+      linux: linux
+      windows: windows
+      386: i386
+      amd64: x86_64
+nfpms:
+  -
+    vendor: Mittwald CM Service
+    homepage: https://github.com/mittwald/mittnite
+    maintainer: Martin Helmich <m.helmich@mittwald.de>
+    description: Smart and small init system for containers
+    license: Proprietary
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin
+    empty_folders:
+      - /etc/mittnite.d
 checksum:
   name_template: 'checksums.txt'
 snapshot:
