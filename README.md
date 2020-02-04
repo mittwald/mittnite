@@ -198,7 +198,7 @@ Specifying a `port` is optional and defaults to the services default port.
 job webserver {
   command = "/usr/bin/http-server"
 
-  watch "/etc/conf.d/test.txt" {
+  watch "/etc/conf.d/*.conf" {
     signal = 12 # USR2
   }
 }
