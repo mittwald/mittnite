@@ -104,7 +104,7 @@ func (job *Job) Watch() {
 		signal := false
 		paths, err := filepath.Glob(watch.Filename)
 		if err != nil {
-			log.Warnf("failed to watch %s: %s", watch, err)
+			log.Warnf("failed to watch %s: %s", watch.Filename, err.Error())
 			continue
 		}
 

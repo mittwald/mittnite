@@ -64,7 +64,6 @@ type Watch struct {
 }
 
 type Job struct {
-	id          string
 	cmd         *exec.Cmd
 	Name        string   `hcl:",key"`
 	Command     string   `hcl:"command"`
