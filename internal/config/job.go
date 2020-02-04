@@ -10,17 +10,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-
-	"github.com/google/uuid"
 )
-
-func (job *Job) ID() string {
-	if job.id == "" {
-		job.id = uuid.New().String()
-	}
-
-	return job.id
-}
 
 func (job *Job) Init() {
 	for w := range job.Watches {

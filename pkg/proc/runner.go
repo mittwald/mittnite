@@ -2,7 +2,6 @@ package proc
 
 import (
 	"context"
-	"os"
 	"sync"
 	"time"
 
@@ -14,7 +13,6 @@ func NewRunner(ctx context.Context, ignitionConfig *config.Ignition) *Runner {
 	return &Runner{
 		IgnitionConfig: ignitionConfig,
 		ctx:            ctx,
-		sigChans:       make(map[string]chan os.Signal),
 		files:          make(map[string]time.Time),
 	}
 }
@@ -22,16 +20,8 @@ func NewRunner(ctx context.Context, ignitionConfig *config.Ignition) *Runner {
 func (r *Runner) exec(ctx context.Context, wg *sync.WaitGroup, errChan chan error) {
 	for j := range r.IgnitionConfig.Jobs {
 		job := &r.IgnitionConfig.Jobs[j]
-		r.sigChans[job.ID()] = make(chan os.Signal)
 
 		job.Init()
-
-		// listen for process signals
-		go func() {
-			for {
-				job.Signal(<-r.sigChans[job.ID()])
-			}
-		}()
 
 		// execute job command
 		wg.Add(1)
