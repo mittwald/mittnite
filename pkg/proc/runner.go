@@ -13,7 +13,6 @@ func NewRunner(ctx context.Context, ignitionConfig *config.Ignition) *Runner {
 	return &Runner{
 		IgnitionConfig: ignitionConfig,
 		ctx:            ctx,
-		files:          make(map[string]time.Time),
 	}
 }
 
