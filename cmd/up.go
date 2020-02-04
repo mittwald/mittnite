@@ -1,14 +1,16 @@
 package cmd
 
 import (
+	"context"
+	"os"
+	"os/signal"
+
 	"github.com/mittwald/mittnite/internal/config"
 	"github.com/mittwald/mittnite/pkg/files"
 	"github.com/mittwald/mittnite/pkg/probe"
 	"github.com/mittwald/mittnite/pkg/proc"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"os"
-	"os/signal"
 )
 
 func init() {
@@ -67,7 +69,16 @@ var up = &cobra.Command{
 			log.Fatalf("probe handler failed while waiting for readiness signals: '%+v'", err)
 		}
 
-		err = proc.RunServices(ignitionConfig, procSignals)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		runner := proc.NewRunner(ctx, ignitionConfig)
+		go func() {
+			<-procSignals
+			cancel()
+		}()
+
+		err = runner.Run()
 		if err != nil {
 			log.Fatalf("service runner stopped with error: %s", err)
 		} else {

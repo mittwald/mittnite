@@ -1,5 +1,10 @@
 package config
 
+import (
+	"os/exec"
+	"time"
+)
+
 type Credentials struct {
 	User     string
 	Password string
@@ -53,11 +58,14 @@ type Probe struct {
 }
 
 type Watch struct {
-	Filename string `hcl:",key"`
-	Signal   int
+	Filename      string `hcl:",key"`
+	Signal        int
+	matchingFiles map[string]time.Time
 }
 
-type JobConfig struct {
+type Job struct {
+	id          string
+	cmd         *exec.Cmd
 	Name        string   `hcl:",key"`
 	Command     string   `hcl:"command"`
 	Args        []string `hcl:"args"`
@@ -70,10 +78,11 @@ type File struct {
 	Target     string                 `hcl:",key"`
 	Template   string                 `hcl:"from"`
 	Parameters map[string]interface{} `hcl:"params"`
+	Overwrite  *bool                  `hcl:"overwrite"` // bool-pointer to make "true" the default
 }
 
 type Ignition struct {
-	Probes []Probe     `hcl:"probe"`
-	Files  []File      `hcl:"file"`
-	Jobs   []JobConfig `hcl:"job"`
+	Probes []Probe `hcl:"probe"`
+	Files  []File  `hcl:"file"`
+	Jobs   []Job   `hcl:"job"`
 }
