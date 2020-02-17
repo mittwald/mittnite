@@ -12,14 +12,16 @@ import (
 func NewRunner(ctx context.Context, ignitionConfig *config.Ignition) *Runner {
 	return &Runner{
 		IgnitionConfig: ignitionConfig,
+		jobs:           []*Job{},
 		ctx:            ctx,
 	}
 }
 
 func (r *Runner) exec(ctx context.Context, wg *sync.WaitGroup, errChan chan error) {
 	for j := range r.IgnitionConfig.Jobs {
-		job := &r.IgnitionConfig.Jobs[j]
-
+		job := Job{
+			Config: &r.IgnitionConfig.Jobs[j],
+		}
 		job.Init()
 
 		// execute job command
@@ -57,7 +59,7 @@ func (r *Runner) Run() error {
 
 		// watch files
 		case <-ticker.C:
-			for _, job := range r.IgnitionConfig.Jobs {
+			for _, job := range r.jobs {
 				job.Watch()
 			}
 

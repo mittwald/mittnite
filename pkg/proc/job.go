@@ -1,4 +1,4 @@
-package config
+package proc
 
 import (
 	"context"
@@ -13,9 +13,9 @@ import (
 )
 
 func (job *Job) Init() {
-	for w := range job.Watches {
-		watch := &job.Watches[w]
-		watch.matchingFiles = make(map[string]time.Time)
+	for w := range job.Config.Watches {
+		watch := &job.Config.Watches[w]
+		job.watchingFiles = make(map[string]time.Time)
 
 		paths, err := filepath.Glob(watch.Filename)
 		if err != nil {
@@ -28,14 +28,14 @@ func (job *Job) Init() {
 				continue
 			}
 
-			watch.matchingFiles[p] = stat.ModTime()
+			job.watchingFiles[p] = stat.ModTime()
 		}
 	}
 }
 
 func (job *Job) Run(ctx context.Context) error {
 	attempts := 0
-	maxAttempts := job.MaxAttempts
+	maxAttempts := job.Config.MaxAttempts
 
 	if maxAttempts == 0 {
 		maxAttempts = 3
@@ -43,21 +43,25 @@ func (job *Job) Run(ctx context.Context) error {
 
 	for { // restart failed jobs as long mittnite is running
 
-		log.Infof("starting job %s", job.Name)
-		job.cmd = exec.CommandContext(ctx, job.Command, job.Args...)
+		log.Infof("starting job %s", job.Config.Name)
+		job.cmd = exec.CommandContext(ctx, job.Config.Command, job.Config.Args...)
 		job.cmd.Stdout = os.Stdout
 		job.cmd.Stderr = os.Stderr
 
 		err := job.cmd.Start()
 		if err != nil {
-			return fmt.Errorf("failed to start job %s: %s", job.Name, err.Error())
+			return fmt.Errorf("failed to start job %s: %s", job.Config.Name, err.Error())
 		}
 
 		err = job.cmd.Wait()
 		if err != nil {
-			log.Errorf("job %s exited with error: %s", job.Name, err)
+			log.Errorf("job %s exited with error: %s", job.Config.Name, err)
 		} else {
-			log.Warnf("job %s exited without errors", job.Name)
+			if job.Config.OneTime {
+				log.Infof("one-time job %s has ended successfully", job.Config.Name)
+				return nil
+			}
+			log.Warnf("job %s exited without errors", job.Config.Name)
 		}
 
 		if ctx.Err() != nil { // execution cancelled
@@ -66,23 +70,24 @@ func (job *Job) Run(ctx context.Context) error {
 
 		attempts++
 		if attempts < maxAttempts {
-			log.Infof("job %s has %d attempts remaining", job.Name, maxAttempts-attempts)
+			log.Infof("job %s has %d attempts remaining", job.Config.Name, maxAttempts-attempts)
 			continue
 		}
 
-		if job.CanFail {
+		if job.Config.CanFail {
 			log.Warnf("")
 			return nil
 		}
 
-		return fmt.Errorf("reached max retries for job %s", job.Name)
+		return fmt.Errorf("reached max retries for job %s", job.Config.Name)
 	}
 }
 
 func (job *Job) Signal(sig os.Signal) {
+	fmt.Println("JOB SIGNAL")
 	errFunc := func(err error) {
 		if err != nil {
-			log.Warnf("failed to send signal %d to job %s: %s", sig, job.Name, err.Error())
+			log.Warnf("failed to send signal %d to job %s: %s", sig, job.Config.Name, err.Error())
 		}
 	}
 
@@ -99,8 +104,8 @@ func (job *Job) Signal(sig os.Signal) {
 }
 
 func (job *Job) Watch() {
-	for w := range job.Watches {
-		watch := &job.Watches[w]
+	for w := range job.Config.Watches {
+		watch := &job.Config.Watches[w]
 		signal := false
 		paths, err := filepath.Glob(watch.Filename)
 		if err != nil {
@@ -116,21 +121,21 @@ func (job *Job) Watch() {
 			}
 
 			mtime := stat.ModTime()
-			if mtime.Equal(watch.matchingFiles[p]) {
+			if mtime.Equal(job.watchingFiles[p]) {
 				continue
 			}
 
-			log.Infof("file %s changed, signalling process %s", p, job.Name)
-			watch.matchingFiles[p] = mtime
+			log.Infof("file %s changed, signalling process %s", p, job.Config.Name)
+			job.watchingFiles[p] = mtime
 			signal = true
 		}
 
 		// check deleted files
-		for p := range watch.matchingFiles {
+		for p := range job.watchingFiles {
 			_, err := os.Stat(p)
 			if os.IsNotExist(err) {
-				log.Infof("file %s changed, signalling process %s", p, job.Name)
-				delete(watch.matchingFiles, p)
+				log.Infof("file %s changed, signalling process %s", p, job.Config.Name)
+				delete(job.watchingFiles, p)
 				signal = true
 			}
 		}

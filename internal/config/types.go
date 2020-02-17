@@ -1,10 +1,5 @@
 package config
 
-import (
-	"os/exec"
-	"time"
-)
-
 type Credentials struct {
 	User     string
 	Password string
@@ -58,19 +53,18 @@ type Probe struct {
 }
 
 type Watch struct {
-	Filename      string `hcl:",key"`
-	Signal        int
-	matchingFiles map[string]time.Time
+	Filename string `hcl:",key"`
+	Signal   int
 }
 
-type Job struct {
-	cmd         *exec.Cmd
+type JobConfig struct {
 	Name        string   `hcl:",key"`
 	Command     string   `hcl:"command"`
 	Args        []string `hcl:"args"`
 	Watches     []Watch  `hcl:"watch"`
 	MaxAttempts int      `hcl:"max_attempts"`
 	CanFail     bool     `hcl:"canFail"`
+	OneTime     bool     `hcl:"oneTIme"`
 }
 
 type File struct {
@@ -81,7 +75,7 @@ type File struct {
 }
 
 type Ignition struct {
-	Probes []Probe `hcl:"probe"`
-	Files  []File  `hcl:"file"`
-	Jobs   []Job   `hcl:"job"`
+	Probes []Probe     `hcl:"probe"`
+	Files  []File      `hcl:"file"`
+	Jobs   []JobConfig `hcl:"job"`
 }
