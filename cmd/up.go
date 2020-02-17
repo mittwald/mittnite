@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/mittwald/mittnite/internal/config"
 	"github.com/mittwald/mittnite/pkg/files"
@@ -37,7 +38,11 @@ var up = &cobra.Command{
 		}
 
 		signals := make(chan os.Signal)
-		signal.Notify(signals)
+		signal.Notify(signals,
+			syscall.SIGTERM,
+			syscall.SIGKILL,
+			syscall.SIGINT,
+		)
 
 		readinessSignals := make(chan os.Signal, 1)
 		probeSignals := make(chan os.Signal, 1)
@@ -46,7 +51,6 @@ var up = &cobra.Command{
 		go func() {
 			for s := range signals {
 				log.Infof("received event %s", s.String())
-
 				readinessSignals <- s
 				probeSignals <- s
 				procSignals <- s
