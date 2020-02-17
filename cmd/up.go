@@ -40,7 +40,6 @@ var up = &cobra.Command{
 		signals := make(chan os.Signal)
 		signal.Notify(signals,
 			syscall.SIGTERM,
-			syscall.SIGKILL,
 			syscall.SIGINT,
 		)
 
