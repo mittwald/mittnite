@@ -118,6 +118,14 @@ file "/path/to/file.txt" {
     foo = "bar"
   }
 }
+
+file "/path/to/second_file.txt" {
+  from = "examples/test.d/second_test.txt.tpl"
+  overwrite = false
+  params = {
+    foo = "bar"
+  }
+}
 ```
 
 #### Probe
@@ -169,14 +177,14 @@ probe "probe-name" {
     database = "mongo"
   }
   
-  httpget {
+  http {
     scheme = "http"
     host = {
         hostname = "localhost"
         port = 8080
     }
     path = "/status"
-    timeout = "5"
+    timeout = "5s"
   }
 }
 ```
@@ -190,7 +198,7 @@ Specifying a `port` is optional and defaults to the services default port.
 job webserver {
   command = "/usr/bin/http-server"
 
-  watch "/etc/conf.d/test.txt" {
+  watch "/etc/conf.d/*.conf" {
     signal = 12 # USR2
   }
 }

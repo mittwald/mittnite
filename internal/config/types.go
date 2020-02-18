@@ -64,12 +64,14 @@ type JobConfig struct {
 	Watches     []Watch  `hcl:"watch"`
 	MaxAttempts int      `hcl:"max_attempts"`
 	CanFail     bool     `hcl:"canFail"`
+	OneTime     bool     `hcl:"oneTime"`
 }
 
 type File struct {
 	Target     string                 `hcl:",key"`
 	Template   string                 `hcl:"from"`
 	Parameters map[string]interface{} `hcl:"params"`
+	Overwrite  *bool                  `hcl:"overwrite"` // bool-pointer to make "true" the default
 }
 
 type Ignition struct {
