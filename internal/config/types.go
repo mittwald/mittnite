@@ -64,7 +64,7 @@ type JobConfig struct {
 	Watches     []Watch  `hcl:"watch"`
 	MaxAttempts int      `hcl:"max_attempts"`
 	CanFail     bool     `hcl:"canFail"`
-	OneTime     bool     `hcl:"oneTIme"`
+	OneTime     bool     `hcl:"oneTime"`
 }
 
 type File struct {

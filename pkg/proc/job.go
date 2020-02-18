@@ -84,7 +84,6 @@ func (job *Job) Run(ctx context.Context) error {
 }
 
 func (job *Job) Signal(sig os.Signal) {
-	fmt.Println("JOB SIGNAL")
 	errFunc := func(err error) {
 		if err != nil {
 			log.Warnf("failed to send signal %d to job %s: %s", sig, job.Config.Name, err.Error())
