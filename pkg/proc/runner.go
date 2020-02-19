@@ -19,10 +19,11 @@ func NewRunner(ctx context.Context, ignitionConfig *config.Ignition) *Runner {
 
 func (r *Runner) exec(ctx context.Context, wg *sync.WaitGroup, errChan chan error) {
 	for j := range r.IgnitionConfig.Jobs {
-		job := Job{
+		job := &Job{
 			Config: &r.IgnitionConfig.Jobs[j],
 		}
 		job.Init()
+		r.jobs = append(r.jobs, job)
 
 		// execute job command
 		wg.Add(1)
