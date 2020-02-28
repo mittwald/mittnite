@@ -29,6 +29,7 @@ func (r *redisProbe) Exec() error {
 		Addr:     r.addr,
 		Password: r.password,
 	})
+	defer client.Close()
 
 	_, err := client.Ping().Result()
 	if err != nil {
