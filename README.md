@@ -99,7 +99,7 @@ Possible directives to use in a job definition.
 job "foo" {
   command = "/usr/local/bin/foo"
   args = "bar"
-  max_attempts = 3
+  maxAttempts = 3
   canFail = false
   
   watch "/etc/conf.d/barfoo" {

@@ -58,13 +58,14 @@ type Watch struct {
 }
 
 type JobConfig struct {
-	Name        string   `hcl:",key"`
-	Command     string   `hcl:"command"`
-	Args        []string `hcl:"args"`
-	Watches     []Watch  `hcl:"watch"`
-	MaxAttempts int      `hcl:"max_attempts"`
-	CanFail     bool     `hcl:"canFail"`
-	OneTime     bool     `hcl:"oneTime"`
+	Name         string   `hcl:",key"`
+	Command      string   `hcl:"command"`
+	Args         []string `hcl:"args"`
+	Watches      []Watch  `hcl:"watch"`
+	MaxAttempts_ int      `hcl:"max_attempts"` // deprecated
+	MaxAttempts  int      `hcl:"maxAttempts"`
+	CanFail      bool     `hcl:"canFail"`
+	OneTime      bool     `hcl:"oneTime"`
 }
 
 type File struct {
