@@ -133,8 +133,6 @@ func (l *Listener) run() <-chan error {
 				case <-fromUpstreamErrors:
 					return
 				}
-
-				return
 			}()
 		}
 	}()

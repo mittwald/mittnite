@@ -28,7 +28,6 @@ type Job struct {
 
 	spinUpTimeout        time.Duration
 	coolDownTimeout      time.Duration
-	coolDownTimer        *time.Timer
 	lastConnectionClosed time.Time
 	activeConnections    uint32
 }

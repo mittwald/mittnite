@@ -83,7 +83,7 @@ func (job *Job) startProcessReaper(ctx context.Context) {
 					continue
 				}
 
-				diff := time.Now().Sub(job.lastConnectionClosed)
+				diff := time.Since(job.lastConnectionClosed)
 				if diff < job.coolDownTimeout {
 					continue
 				}
