@@ -33,7 +33,7 @@ func (job *Job) Init() {
 	}
 }
 
-func (job *Job) Run(ctx context.Context) error {
+func (job *Job) Run(ctx context.Context, errors chan<- error) error {
 	ctx, job.cancelAll = context.WithCancel(ctx)
 
 	listerWaitGroup := sync.WaitGroup{}
@@ -48,8 +48,13 @@ func (job *Job) Run(ctx context.Context) error {
 		listerWaitGroup.Add(1)
 
 		go func() {
+			listerWaitGroup.Wait()
+		}()
+
+		go func() {
 			if err := listener.Run(); err != nil {
 				log.WithError(err).Error("listener stopped with error")
+				errors <- err
 			}
 
 			listerWaitGroup.Done()
