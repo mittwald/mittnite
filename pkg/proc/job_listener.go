@@ -13,14 +13,13 @@ import (
 )
 
 type Listener struct {
-	ctx               context.Context
 	config            *config.Listener
 	job               *Job
 	socket            net.Listener
 	spinUpTimeout     time.Duration
 }
 
-func NewListener(ctx context.Context, j *Job, c *config.Listener) (*Listener, error) {
+func NewListener(j *Job, c *config.Listener) (*Listener, error) {
 	log.WithField("address", c.Address).Info("starting TCP listener")
 
 	listener, err := net.Listen("tcp", c.Address)
@@ -29,7 +28,6 @@ func NewListener(ctx context.Context, j *Job, c *config.Listener) (*Listener, er
 	}
 
 	return &Listener{
-		ctx:             ctx,
 		config:          c,
 		job:             j,
 		socket:          listener,
@@ -37,13 +35,13 @@ func NewListener(ctx context.Context, j *Job, c *config.Listener) (*Listener, er
 	}, nil
 }
 
-func (l *Listener) Run() error {
-	runErrors := l.run()
+func (l *Listener) Run(ctx context.Context) error {
+	runErrors := l.run(ctx)
 
 	select {
 	case err := <-runErrors:
 		return err
-	case <-l.ctx.Done():
+	case <-ctx.Done():
 		return errors.New("context closed")
 	}
 }
@@ -73,7 +71,7 @@ func (l *Listener) provideUpstreamConnection() (net.Conn, error) {
 	}
 }
 
-func (l *Listener) run() <-chan error {
+func (l *Listener) run(ctx context.Context) <-chan error {
 	errChan := make(chan error)
 
 	go func() {
@@ -89,7 +87,7 @@ func (l *Listener) run() <-chan error {
 			log.WithField("client.addr", conn.RemoteAddr()).Info("accepted connection")
 
 			if l.job.CanStartLazily() {
-				if err := l.job.AssertStarted(l.ctx); err != nil {
+				if err := l.job.AssertStarted(ctx); err != nil {
 					errChan <- err
 					return
 				}

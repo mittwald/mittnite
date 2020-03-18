@@ -40,7 +40,7 @@ func (job *Job) Run(ctx context.Context, errors chan<- error) error {
 	defer listerWaitGroup.Wait()
 
 	for i := range job.Config.Listeners {
-		listener, err := NewListener(ctx, job, &job.Config.Listeners[i])
+		listener, err := NewListener(job, &job.Config.Listeners[i])
 		if err != nil {
 			return err
 		}
@@ -52,7 +52,7 @@ func (job *Job) Run(ctx context.Context, errors chan<- error) error {
 		}()
 
 		go func() {
-			if err := listener.Run(); err != nil {
+			if err := listener.Run(ctx); err != nil {
 				log.WithError(err).Error("listener stopped with error")
 				errors <- err
 			}
