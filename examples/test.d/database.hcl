@@ -3,7 +3,10 @@ probe mysql {
   mysql {
     user = "test"
     password = "test"
-    host = "localhost"
+    host {
+      hostname = "localhost"
+      port = 3306
+    }
     database = "test"
   }
 }
@@ -11,7 +14,10 @@ probe mysql {
 probe redis {
   wait = true
   redis {
-    host = "localhost"
+    host {
+      hostname = "localhost"
+      port = 6379
+    }
   }
 }
 

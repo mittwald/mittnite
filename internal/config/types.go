@@ -57,15 +57,28 @@ type Watch struct {
 	Signal   int
 }
 
+type Listener struct {
+	Address  string `hcl:",key"`
+	Forward  string `hcl:"forward"`
+	Protocol string `hcl:"protocol"`
+}
+
+type Laziness struct {
+	SpinUpTimeout   string `hcl:"spinUpTimeout"`
+	CoolDownTimeout string `hcl:"coolDownTimeout"`
+}
+
 type JobConfig struct {
-	Name         string   `hcl:",key"`
-	Command      string   `hcl:"command"`
-	Args         []string `hcl:"args"`
-	Watches      []Watch  `hcl:"watch"`
-	MaxAttempts_ int      `hcl:"max_attempts"` // deprecated
-	MaxAttempts  int      `hcl:"maxAttempts"`
-	CanFail      bool     `hcl:"canFail"`
-	OneTime      bool     `hcl:"oneTime"`
+	Name         string     `hcl:",key"`
+	Command      string     `hcl:"command"`
+	Args         []string   `hcl:"args"`
+	Watches      []Watch    `hcl:"watch"`
+	MaxAttempts_ int        `hcl:"max_attempts"` // deprecated
+	MaxAttempts  int        `hcl:"maxAttempts"`
+	Laziness     *Laziness  `hcl:"lazy"`
+	Listeners    []Listener `hcl:"listen"`
+	CanFail      bool       `hcl:"canFail"`
+	OneTime      bool       `hcl:"oneTime"`
 }
 
 type File struct {

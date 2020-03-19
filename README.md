@@ -88,27 +88,66 @@ CMD         ["up","--config-dir", "/etc/mittnite.d"]
 ```
 
 ## Configuration
-The directory specified with `--config-dir`, or the shorthand `-c`, can contain any number of `.hcl` configuration files.  
+
+The directory specified with `--config-dir`, or the shorthand `-c`, can contain any number of `.hcl` configuration files.
+
 All files in that directory are loaded by `mittnite` on startup and can contain any of the configuration directives.
 
 ### Directives
+
 #### Job
-Possible directives to use in a job definition.
+
+A `Job` describes a runnable process that should be started by mittnite on startup.
+
+A `Job` consists of a `command` and (optional) `args`. When a process started by a Job fails, it will be restarted for a maximum of `maxAttempts` attempts. If it fails for more than `maxAttempts` time, mittnite itself will terminate to allow your container runtime to handle the failure.
 
 ```hcl
 job "foo" {
   command = "/usr/local/bin/foo"
-  args = "bar"
+  args = ["bar"]
   maxAttempts = 3
   canFail = false
+}
+```
+
+You can configure a Job to watch files and to send a signal to the managed process if that file changes. This can be used, for example, to send a `SIGHUP` to a process to reload its configuration file when it changes.
   
+```hcl
+job "foo" {
+  // ...
+
   watch "/etc/conf.d/barfoo" {
     signal = 12
   }
 }
 ```
 
+You can also configure a Job to start its process only on the first incoming request (a bit like [systemd's socket activation](https://www.freedesktop.org/software/systemd/man/systemd.socket.html)). In order to configure this, you need a `listener` and a `lazy` configuration:
+
+```hcl
+job "foo" {
+  command = "http-server"
+  args = ["-p8081", "-a127.0.0.1"]
+
+  lazy {
+    spinUpTimeout = "5s"
+    coolDownTimeout = "15m"
+  }
+
+  listen "0.0.0.0:8080" {
+    forward = "127.0.0.1:8081"
+  }
+}
+```
+
+The `listen` block will instruct mittnite itself to listen on the specified address; each connection accepted on that port will be forwarded to the address specified by `forward` (**NOTE**: mittnite will do some simple layer-4 forwarding; if your upstream service depends on working with the actual client IP addresses, you'll only see the local IP address).
+
+If there is a `lazy` block present, the process itself will only be started when the first connection is opened. If the process takes some time to start up, the connection will be held for that time (the client will not notice any of this, except for the time the process needs to spin up). mittnite will wait for a duration of at most `.lazy.spinUpTimeout` for the process to accept connection; if this timeout is exceeded, the client connection will be closed.
+
+When no connections have been active for a duration of at least `.lazy.coolDownTimeout`, mittnite will terminate the process again.
+
 #### File
+
 Possible directives to use in a file definition.
 
 ```hcl
@@ -129,7 +168,9 @@ file "/path/to/second_file.txt" {
 ```
 
 #### Probe
+
 Possible directives to use in a probe definition.
+
 ```hcl
 probe "probe-name" {
   wait = true
@@ -192,6 +233,7 @@ probe "probe-name" {
 Specifying a `port` is optional and defaults to the services default port.
 
 ### HCL examples
+
 #### Start a process
 
 ```hcl
@@ -200,6 +242,24 @@ job webserver {
 
   watch "/etc/conf.d/*.conf" {
     signal = 12 # USR2
+  }
+}
+```
+
+#### Start a process lazily on first request
+
+```hcl
+job webserver {
+  command = "/usr/bin/http-server"
+  args = ["-p8081", "-a127.0.0.1"]
+
+  lazy {
+    spinUpTimeout = "5s"
+    coolDownTimeout = "15m"
+  }
+
+  listen "0.0.0.0:8080" {
+    forward = "127.0.0.1:8081"
   }
 }
 ```

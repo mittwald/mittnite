@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"time"
 
@@ -33,54 +33,76 @@ func (job *Job) Init() {
 	}
 }
 
-func (job *Job) Run(ctx context.Context) error {
-	attempts := 0
-	maxAttempts := job.Config.MaxAttempts
+func (job *Job) Run(ctx context.Context, errors chan<- error) error {
+	ctx, job.cancelAll = context.WithCancel(ctx)
 
-	if maxAttempts == 0 {
-		maxAttempts = 3
-	}
+	listerWaitGroup := sync.WaitGroup{}
+	defer listerWaitGroup.Wait()
 
-	for { // restart failed jobs as long mittnite is running
-
-		log.Infof("starting job %s", job.Config.Name)
-		job.cmd = exec.CommandContext(ctx, job.Config.Command, job.Config.Args...)
-		job.cmd.Stdout = os.Stdout
-		job.cmd.Stderr = os.Stderr
-
-		err := job.cmd.Start()
+	for i := range job.Config.Listeners {
+		listener, err := NewListener(job, &job.Config.Listeners[i])
 		if err != nil {
-			return fmt.Errorf("failed to start job %s: %s", job.Config.Name, err.Error())
+			return err
 		}
 
-		err = job.cmd.Wait()
-		if err != nil {
-			log.Errorf("job %s exited with error: %s", job.Config.Name, err)
-		} else {
-			if job.Config.OneTime {
-				log.Infof("one-time job %s has ended successfully", job.Config.Name)
-				return nil
+		listerWaitGroup.Add(1)
+
+		go func() {
+			listerWaitGroup.Wait()
+		}()
+
+		go func() {
+			if err := listener.Run(ctx); err != nil {
+				log.WithError(err).Error("listener stopped with error")
+				errors <- err
 			}
-			log.Warnf("job %s exited without errors", job.Config.Name)
-		}
 
-		if ctx.Err() != nil { // execution cancelled
-			return nil
-		}
-
-		attempts++
-		if attempts < maxAttempts {
-			log.Infof("job %s has %d attempts remaining", job.Config.Name, maxAttempts-attempts)
-			continue
-		}
-
-		if job.Config.CanFail {
-			log.Warnf("")
-			return nil
-		}
-
-		return fmt.Errorf("reached max retries for job %s", job.Config.Name)
+			listerWaitGroup.Done()
+		}()
 	}
+
+	if job.CanStartLazily() {
+		job.startProcessReaper(ctx)
+
+		log.Infof("holding off starting job %s until first request", job.Config.Name)
+		return nil
+	}
+
+	p := make(chan *os.Process)
+	go func() {
+		job.process = <-p
+	}()
+
+	return job.start(ctx, p)
+}
+
+func (job *Job) startProcessReaper(ctx context.Context) {
+	ticker := time.NewTicker(5 * time.Minute)
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if job.activeConnections > 0 {
+					continue
+				}
+
+				diff := time.Since(job.lastConnectionClosed)
+				if diff < job.coolDownTimeout {
+					continue
+				}
+
+				job.lazyStartLock.Lock()
+
+				if job.cancelProcess != nil {
+					job.cancelProcess()
+				}
+
+				job.lazyStartLock.Unlock()
+			}
+		}
+	}()
 }
 
 func (job *Job) Signal(sig os.Signal) {
@@ -88,6 +110,10 @@ func (job *Job) Signal(sig os.Signal) {
 		if err != nil {
 			log.Warnf("failed to send signal %d to job %s: %s", sig, job.Config.Name, err.Error())
 		}
+	}
+
+	if sig == syscall.SIGTERM && job.cancelAll != nil {
+		job.cancelAll()
 	}
 
 	if job.cmd == nil || job.cmd.Process == nil {
