@@ -12,24 +12,31 @@ It offers the following features:
 - Wait until required services are up before starting processes (currently supporting filesystem mounts, HTTP services, MySQL, Redis, AMQP and MongoDB)
 
 ## Table of contents
-  * [Table of contents](#table-of-contents)
-  * [Getting started](#getting-started)
-    + [CLI usage](#cli-usage)
-      - [Basic](#basic)
-      - [Render templates and execute custom command](#render-templates-and-execute-custom-command)
-    + [Docker](#docker)
-      - [Build your (go) application on top of the `mittnite` docker-image](#build-your--go--application-on-top-of-the--mittnite--docker-image)
-      - [Download `mittnite` in your own custom `Dockerfile`](#download--mittnite--in-your-own-custom--dockerfile-)
-  * [Configuration](#configuration)
-    + [Directives](#directives)
-      - [Job](#job)
-      - [File](#file)
-      - [Probe](#probe)
-    + [HCL examples](#hcl-examples)
-      - [Start a process](#start-a-process)
-      - [Render a file on startup](#render-a-file-on-startup)
-      - [Wait until a Redis connection is possible](#wait-until-a-redis-connection-is-possible)
-    + [More examples](#more-examples)
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+
+- [Getting started](#getting-started)
+  - [CLI usage](#cli-usage)
+    - [Basic](#basic)
+    - [Render templates and execute custom command](#render-templates-and-execute-custom-command)
+  - [Docker](#docker)
+    - [Build your (go) application on top of the `mittnite` docker-image](#build-your-go-application-on-top-of-the-mittnite-docker-image)
+    - [Download `mittnite` in your own custom `Dockerfile`](#download-mittnite-in-your-own-custom-dockerfile)
+- [Configuration](#configuration)
+  - [Directives](#directives)
+    - [Job](#job)
+    - [File](#file)
+    - [Probe](#probe)
+  - [HCL examples](#hcl-examples)
+    - [Start a process](#start-a-process)
+    - [Start a process lazily on first request](#start-a-process-lazily-on-first-request)
+    - [Render a file on startup](#render-a-file-on-startup)
+    - [Wait until a Redis connection is possible](#wait-until-a-redis-connection-is-possible)
+  - [More examples](#more-examples)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Getting started
 
