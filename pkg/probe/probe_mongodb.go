@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/mittwald/mittnite/internal/config"
 	"github.com/mittwald/mittnite/internal/helper"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -58,7 +59,7 @@ func NewMongoDBProbe(cfg *config.MongoDB) (*mongoDBProbe, error) {
 		url: u,
 	}
 
-	return &connCfg, err
+	return &connCfg, errors.WithStack(err)
 }
 
 func (m *mongoDBProbe) Exec() error {

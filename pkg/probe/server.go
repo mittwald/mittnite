@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/mittwald/mittnite/internal/config"
 	log "github.com/sirupsen/logrus"
@@ -94,7 +95,10 @@ func (h *Handler) HandleStatus(res http.ResponseWriter, req *http.Request) {
 }
 
 func NewProbeHandler(cfg *config.Ignition) (*Handler, error) {
-	probes := buildProbesFromConfig(cfg)
+	probes, err := buildProbesFromConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
 	waitProbes := filterWaitProbes(cfg, probes)
 
 	handler := &Handler{cfg, probes, waitProbes}
@@ -137,8 +141,11 @@ func filterWaitProbes(cfg *config.Ignition, probes map[string]Probe) map[string]
 	return result
 }
 
-func buildProbesFromConfig(cfg *config.Ignition) map[string]Probe {
+func buildProbesFromConfig(cfg *config.Ignition) (map[string]Probe, error) {
 	result := make(map[string]Probe)
+
+	var errs []error
+
 	for i := range cfg.Probes {
 		if cfg.Probes[i].Filesystem != "" {
 			result[cfg.Probes[i].Name] = &filesystemProbe{cfg.Probes[i].Filesystem}
@@ -147,12 +154,22 @@ func buildProbesFromConfig(cfg *config.Ignition) map[string]Probe {
 		} else if cfg.Probes[i].Redis != nil {
 			result[cfg.Probes[i].Name] = NewRedisProbe(cfg.Probes[i].Redis)
 		} else if cfg.Probes[i].MongoDB != nil {
-			result[cfg.Probes[i].Name] = NewMongoDBProbe(cfg.Probes[i].MongoDB)
+			var err error
+			result[cfg.Probes[i].Name], err = NewMongoDBProbe(cfg.Probes[i].MongoDB)
+			if err != nil {
+				errs = append(errs, err)
+			}
 		} else if cfg.Probes[i].Amqp != nil {
 			result[cfg.Probes[i].Name] = NewAmqpProbe(cfg.Probes[i].Amqp)
 		} else if cfg.Probes[i].HTTP != nil {
 			result[cfg.Probes[i].Name] = NewHttpProbe(cfg.Probes[i].HTTP)
 		}
 	}
-	return result
+
+	var err error
+	if len(errs) != 0 {
+		err = fmt.Errorf("%+v", errs)
+	}
+
+	return result, err
 }
