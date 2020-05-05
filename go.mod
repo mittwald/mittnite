@@ -8,13 +8,12 @@ require (
 	github.com/golang/protobuf v1.3.1 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/go-cmp v0.3.0 // indirect
-	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.3
 	github.com/hashicorp/hcl v1.0.0
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.5.0 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5 // indirect
@@ -24,7 +23,6 @@ require (
 	github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c // indirect
 	github.com/xdg/stringprep v1.0.0 // indirect
 	go.mongodb.org/mongo-driver v1.2.1
-	golang.org/dl v0.0.0-20200128181350-716300cef114 // indirect
 	golang.org/x/crypto v0.0.0-20200117160349-530e935923ad // indirect
 	golang.org/x/net v0.0.0-20190603091049-60506f45cf65 // indirect
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect

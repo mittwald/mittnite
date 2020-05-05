@@ -35,14 +35,14 @@ before_deploy:
   - export FULL_IMAGE="${DOCKER_LOGIN_URL}/mittwald/mittnite"
 deploy:
   - provider: script
-    skip_cleanup: true
+    cleanup: true
     script: curl -sL https://git.io/goreleaser | bash -s -- --snapshot --skip-publish --rm-dist && docker push "${FULL_IMAGE}:latest"
     on:
       tags: false
       branch: master
       condition: $TRAVIS_OS_NAME = linux
   - provider: script
-    skip_cleanup: true
+    cleanup: true
     script: curl -sL https://git.io/goreleaser | bash -s -- --rm-dist
     on:
       tags: true
