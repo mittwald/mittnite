@@ -57,9 +57,6 @@ func (m *mongoDBProbe) Exec() error {
 	helper.AddValueToURLValuesIfNotEmpty("replicaSet", m.replicaSetName, &q)
 	helper.AddValueToURLValuesIfNotEmpty("gssapiServiceName", m.gssapiServiceName, &q)
 	helper.AddValueToURLValuesIfNotEmpty("authMechanism", m.authenticationMechanism, &q)
-	if m.user != "" && m.password != "" {
-		helper.AddValueToURLValuesIfNotEmpty("authSource", m.authenticationDatabase, &q)
-	}
 
 	u := url.URL{
 		Scheme:   "mongodb",
@@ -69,6 +66,7 @@ func (m *mongoDBProbe) Exec() error {
 	}
 
 	if m.user != "" && m.password != "" {
+		helper.AddValueToURLValuesIfNotEmpty("authSource", m.authenticationDatabase, &q)
 		u.User = url.UserPassword(m.user, m.password)
 	}
 
