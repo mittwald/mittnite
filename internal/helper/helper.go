@@ -2,6 +2,7 @@ package helper
 
 import (
 	log "github.com/sirupsen/logrus"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -19,4 +20,10 @@ func SetDefaultStringIfEmpty(current, fallback, key, probeType string) string {
 		return fallback
 	}
 	return current
+}
+
+func AddValueToURLValuesIfNotEmpty(key, value string, q *url.Values) {
+	if len(value) > 0 {
+		q.Add(key, value)
+	}
 }

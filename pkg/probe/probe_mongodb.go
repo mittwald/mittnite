@@ -14,11 +14,15 @@ import (
 )
 
 type mongoDBProbe struct {
-	user     string
-	password string
-	hostname string
-	database string
-	port     string
+	hostname                string
+	port                    string
+	user                    string
+	password                string
+	database                string
+	replicaSetName          string
+	authenticationDatabase  string
+	authenticationMechanism string
+	gssapiServiceName       string
 }
 
 func NewMongoDBProbe(cfg *config.MongoDB) *mongoDBProbe {
@@ -27,23 +31,45 @@ func NewMongoDBProbe(cfg *config.MongoDB) *mongoDBProbe {
 	cfg.Hostname = helper.ResolveEnv(cfg.Hostname)
 	cfg.Database = helper.ResolveEnv(cfg.Database)
 	cfg.Port = helper.SetDefaultStringIfEmpty(helper.ResolveEnv(cfg.Port), "27017", "port", "mongodb")
+	cfg.ReplicaSetName = helper.ResolveEnv(cfg.ReplicaSetName)
+	cfg.AuthenticationDatabase = helper.ResolveEnv(cfg.AuthenticationDatabase)
+	cfg.AuthenticationMechanism = helper.ResolveEnv(cfg.AuthenticationMechanism)
+	cfg.GssapiServiceName = helper.ResolveEnv(cfg.GssapiServiceName)
 
 	connCfg := mongoDBProbe{
-		user:     cfg.User,
-		password: cfg.Password,
-		hostname: cfg.Hostname,
-		database: cfg.Database,
-		port:     cfg.Port,
+		hostname:                cfg.Hostname,
+		port:                    cfg.Port,
+		user:                    cfg.User,
+		password:                cfg.Password,
+		database:                cfg.Database,
+		replicaSetName:          cfg.ReplicaSetName,
+		authenticationDatabase:  cfg.AuthenticationDatabase,
+		authenticationMechanism: cfg.AuthenticationMechanism,
+		gssapiServiceName:       cfg.GssapiServiceName,
 	}
 
 	return &connCfg
 }
 
 func (m *mongoDBProbe) Exec() error {
+	q := url.Values{}
+
+	helper.AddValueToURLValuesIfNotEmpty("replicaSet", m.replicaSetName, &q)
+	helper.AddValueToURLValuesIfNotEmpty("gssapiServiceName", m.gssapiServiceName, &q)
+	helper.AddValueToURLValuesIfNotEmpty("authMechanism", m.authenticationMechanism, &q)
+	if m.user != "" {
+		helper.AddValueToURLValuesIfNotEmpty("authSource", m.authenticationDatabase, &q)
+	}
+
 	u := url.URL{
-		Scheme: "mongodb",
-		Host:   fmt.Sprintf("%s:%s", m.hostname, m.port),
-		Path:   m.database,
+		Scheme:   "mongodb",
+		Host:     fmt.Sprintf("%s:%s", m.hostname, m.port),
+		Path:     m.database,
+		RawQuery: q.Encode(),
+	}
+
+	if m.user != "" && m.password != "" {
+		u.User = url.UserPassword(m.user, m.password)
 	}
 
 	client, err := mongo.NewClient(options.Client().ApplyURI(u.String()))
