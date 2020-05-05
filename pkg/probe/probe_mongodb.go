@@ -57,7 +57,7 @@ func (m *mongoDBProbe) Exec() error {
 	helper.AddValueToURLValuesIfNotEmpty("replicaSet", m.replicaSetName, &q)
 	helper.AddValueToURLValuesIfNotEmpty("gssapiServiceName", m.gssapiServiceName, &q)
 	helper.AddValueToURLValuesIfNotEmpty("authMechanism", m.authenticationMechanism, &q)
-	if m.user != "" {
+	if m.user != "" && m.password != "" {
 		helper.AddValueToURLValuesIfNotEmpty("authSource", m.authenticationDatabase, &q)
 	}
 
