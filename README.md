@@ -214,15 +214,7 @@ probe "probe-name" {
   }
   
   mongodb {
-    host = {
-      hostname = "localhost"
-      port = 27017
-    }
-    credentials = {
-      user = "foo"
-      password = "bar"
-    }    
-    database = "mongo"
+    url = "mongodb://localhost:27017/mongo"
   }
   
   http {

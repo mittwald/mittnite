@@ -26,7 +26,12 @@ type Amqp struct {
 type MongoDB struct {
 	Credentials
 	Host
-	Database string
+	Database                string
+	ReplicaSetName          string
+	AuthenticationDatabase  string
+	AuthenticationMechanism string
+	GssapiServiceName       string
+	URL                     string
 }
 
 type Redis struct {
