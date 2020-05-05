@@ -31,6 +31,7 @@ type MongoDB struct {
 	AuthenticationDatabase  string
 	AuthenticationMechanism string
 	GssapiServiceName       string
+	URL                     string
 }
 
 type Redis struct {

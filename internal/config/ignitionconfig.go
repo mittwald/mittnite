@@ -35,7 +35,7 @@ func (ignitionConfig *Ignition) GenerateFromConfigDir(configDir string) error {
 
 	for _, job := range ignitionConfig.Jobs {
 		if job.MaxAttempts_ != 0 {
-			log.Infof("field max_attempts in job %s is deprecated in favor of maxAttempts", job.Name)
+			log.Warnf("field max_attempts in job %s is deprecated in favor of maxAttempts", job.Name)
 			job.MaxAttempts = job.MaxAttempts_
 		}
 	}
