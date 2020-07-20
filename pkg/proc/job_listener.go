@@ -33,12 +33,7 @@ func NewListener(j *Job, c *config.Listener) (*Listener, error) {
 		}
 	}
 
-	network := "tcp"
-	if c.ListenProtocol != "" {
-		network = c.ListenProtocol
-	}
-
-	listener, err := net.Listen(network, c.Address)
+	listener, err := net.Listen(getProto(c.ListenProtocol), c.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -63,11 +58,6 @@ func (l *Listener) Run(ctx context.Context) error {
 }
 
 func (l *Listener) provideUpstreamConnection() (net.Conn, error) {
-	prot := l.config.ForwardProtocol
-	if prot == "" {
-		prot = "tcp"
-	}
-
 	timeout := time.NewTimer(l.spinUpTimeout)
 	ticker := time.NewTicker(20 * time.Millisecond)
 
@@ -77,7 +67,7 @@ func (l *Listener) provideUpstreamConnection() (net.Conn, error) {
 	for {
 		select {
 		case <-ticker.C:
-			conn, err := net.Dial(prot, l.config.Forward)
+			conn, err := net.Dial(getProto(l.config.ForwardProtocol), l.config.Forward)
 			if err == nil {
 				return conn, nil
 			}
@@ -152,4 +142,11 @@ func (l *Listener) run(ctx context.Context) <-chan error {
 	}()
 
 	return errChan
+}
+
+func getProto(proto string) string {
+	if proto == "" {
+		proto = "tcp"
+	}
+	return proto
 }
