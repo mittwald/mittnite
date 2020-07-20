@@ -63,9 +63,12 @@ type Watch struct {
 }
 
 type Listener struct {
-	Address  string `hcl:",key"`
-	Forward  string `hcl:"forward"`
-	Protocol string `hcl:"protocol"`
+	Address         string `hcl:",key"`
+	ListenProtocol  string `hcl:"listenProtocol"`
+	Forward         string `hcl:"forward"`
+	ForwardProtocol string `hcl:"forwardProtocol"`
+
+	Protocol string `hcl:"protocol"` // deprecated
 }
 
 type Laziness struct {

@@ -4,34 +4,45 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/mittwald/mittnite/internal/config"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"net"
 	"sync/atomic"
 	"time"
+
+	"github.com/mittwald/mittnite/internal/config"
+	log "github.com/sirupsen/logrus"
 )
 
 type Listener struct {
-	config            *config.Listener
-	job               *Job
-	socket            net.Listener
-	spinUpTimeout     time.Duration
+	config        *config.Listener
+	job           *Job
+	socket        net.Listener
+	spinUpTimeout time.Duration
 }
 
 func NewListener(j *Job, c *config.Listener) (*Listener, error) {
 	log.WithField("address", c.Address).Info("starting TCP listener")
 
-	listener, err := net.Listen("tcp", c.Address)
+	// deprecation check
+	if c.Protocol != "" {
+		if c.ForwardProtocol == "" {
+			log.Warnf("field protocol in job %s is deprecated in favor of forwardProtocol", j.Config.Name)
+			c.ForwardProtocol = c.Protocol
+		} else {
+			log.Warnf("field protocol in job %s is ignored because it is deprecated and forwardProtocol is already set", j.Config.Name)
+		}
+	}
+
+	listener, err := net.Listen(getProto(c.ListenProtocol), c.Address)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Listener{
-		config:          c,
-		job:             j,
-		socket:          listener,
-		spinUpTimeout:   j.spinUpTimeout,
+		config:        c,
+		job:           j,
+		socket:        listener,
+		spinUpTimeout: j.spinUpTimeout,
 	}, nil
 }
 
@@ -47,11 +58,6 @@ func (l *Listener) Run(ctx context.Context) error {
 }
 
 func (l *Listener) provideUpstreamConnection() (net.Conn, error) {
-	prot := l.config.Protocol
-	if prot == "" {
-		prot = "tcp"
-	}
-
 	timeout := time.NewTimer(l.spinUpTimeout)
 	ticker := time.NewTicker(20 * time.Millisecond)
 
@@ -61,7 +67,7 @@ func (l *Listener) provideUpstreamConnection() (net.Conn, error) {
 	for {
 		select {
 		case <-ticker.C:
-			conn, err := net.Dial(prot, l.config.Forward)
+			conn, err := net.Dial(getProto(l.config.ForwardProtocol), l.config.Forward)
 			if err == nil {
 				return conn, nil
 			}
@@ -136,4 +142,11 @@ func (l *Listener) run(ctx context.Context) <-chan error {
 	}()
 
 	return errChan
+}
+
+func getProto(proto string) string {
+	if proto == "" {
+		proto = "tcp"
+	}
+	return proto
 }
