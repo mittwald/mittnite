@@ -80,6 +80,7 @@ type JobConfig struct {
 	Name         string     `hcl:",key"`
 	Command      string     `hcl:"command"`
 	Args         []string   `hcl:"args"`
+	Env          []string   `hcl:"env"`
 	Watches      []Watch    `hcl:"watch"`
 	MaxAttempts_ int        `hcl:"max_attempts"` // deprecated
 	MaxAttempts  int        `hcl:"maxAttempts"`

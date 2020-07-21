@@ -3,9 +3,10 @@ package proc
 import (
 	"context"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func (job *Job) CanStartLazily() bool {
@@ -64,6 +65,9 @@ func (job *Job) start(ctx context.Context, process chan<- *os.Process) error {
 	job.cmd = exec.CommandContext(ctx, job.Config.Command, job.Config.Args...)
 	job.cmd.Stdout = os.Stdout
 	job.cmd.Stderr = os.Stderr
+	if job.Config.Env != nil {
+		job.cmd.Env = append(os.Environ(), job.Config.Env...)
+	}
 
 	for { // restart failed jobs as long mittnite is running
 		l.Info("starting job")
