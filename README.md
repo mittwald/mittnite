@@ -117,6 +117,18 @@ job "foo" {
 }
 ```
 
+You can append a custom environment to the process by setting `env`:
+
+```hcl
+job "foo" {
+  command = "/usr/local/bin/foo"
+  args = ["bar"]
+  env = ["ENABLED=1", "BAR=\"BAZ\""]
+  maxAttempts = 3
+  canFail = false
+}
+```
+
 You can configure a Job to watch files and to send a signal to the managed process if that file changes. This can be used, for example, to send a `SIGHUP` to a process to reload its configuration file when it changes.
   
 ```hcl
