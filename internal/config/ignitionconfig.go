@@ -35,7 +35,7 @@ func (ignitionConfig *Ignition) GenerateFromConfigDir(configDir string) error {
 
 	for _, job := range ignitionConfig.Jobs {
 		if job.OneTime {
-			log.Warnf("field oneTime in job %s is deprecated in favor of 'bootJob' directies", job.Name)
+			log.Warnf("field oneTime in job %s is deprecated in favor of 'boot' directies", job.Name)
 		}
 
 		if job.MaxAttempts_ != 0 {
