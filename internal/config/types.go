@@ -90,6 +90,15 @@ type JobConfig struct {
 	OneTime      bool       `hcl:"oneTime"`
 }
 
+type BootJobConfig struct {
+	Name    string   `hcl:",key"`
+	Command string   `hcl:"command"`
+	Args    []string `hcl:"args"`
+	Env     []string `hcl:"env"`
+	CanFail bool     `hcl:"canFail"`
+	Timeout string   `hcl:"timeout"`
+}
+
 type File struct {
 	Target     string                 `hcl:",key"`
 	Template   string                 `hcl:"from"`
@@ -98,7 +107,8 @@ type File struct {
 }
 
 type Ignition struct {
-	Probes []Probe     `hcl:"probe"`
-	Files  []File      `hcl:"file"`
-	Jobs   []JobConfig `hcl:"job"`
+	Probes   []Probe         `hcl:"probe"`
+	Files    []File          `hcl:"file"`
+	Jobs     []JobConfig     `hcl:"job"`
+	BootJobs []BootJobConfig `hcl:"boot"`
 }

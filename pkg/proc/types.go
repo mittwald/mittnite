@@ -13,7 +13,15 @@ import (
 type Runner struct {
 	IgnitionConfig *config.Ignition
 	jobs           []*Job
-	ctx            context.Context
+	bootJobs       []*BootJob
+}
+
+type BootJob struct {
+	Config        *config.BootJobConfig
+	cmd           *exec.Cmd
+	process       *os.Process
+	timeout       time.Duration
+	cancelProcess context.CancelFunc
 }
 
 type Job struct {
@@ -62,4 +70,23 @@ func NewJob(c *config.JobConfig) (*Job, error) {
 	}
 
 	return &j, nil
+}
+
+func NewBootJob(c *config.BootJobConfig) (*BootJob, error) {
+	bj := BootJob{
+		Config: c,
+	}
+
+	if ts := c.Timeout; ts != "" {
+		t, err := time.ParseDuration(ts)
+		if err != nil {
+			return nil, err
+		}
+
+		bj.timeout = t
+	} else {
+		bj.timeout = 30 * time.Second
+	}
+
+	return &bj, nil
 }

@@ -165,6 +165,21 @@ If there is a `lazy` block present, the process itself will only be started when
 
 When no connections have been active for a duration of at least `.lazy.coolDownTimeout`, mittnite will terminate the process again.
 
+#### Boot Jobs
+
+Boot jobs are "special" jobs that are executed before regular `job` definitions. Boot jobs are required to run to completion before any regular jobs are started.
+
+```hcl
+boot "setup" {
+  command = "/bin/bash"
+  args = ["/init-script.sh"]
+  timeout = "30s"
+  env = [
+    "FOO=bar"
+  ]
+}
+```
+
 #### File
 
 Possible directives to use in a file definition.

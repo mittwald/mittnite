@@ -19,7 +19,9 @@ func init() {
 }
 
 var up = &cobra.Command{
-	Use: "up",
+	Use:   "up",
+	Short: "Render config files, start probes and processes",
+	Long:  "This sub-command renders the configuration files, starts the probes and launches all configured processes",
 	Run: func(cmd *cobra.Command, args []string) {
 		ignitionConfig := &config.Ignition{
 			Probes: nil,
@@ -75,15 +77,20 @@ var up = &cobra.Command{
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		runner := proc.NewRunner(ctx, ignitionConfig)
+		runner := proc.NewRunner(ignitionConfig)
 		go func() {
 			<-procSignals
 			cancel()
 		}()
 
-		err = runner.Run()
-		if err != nil {
-			log.Fatalf("service runner stopped with error: %s", err)
+		if err := runner.Boot(ctx); err != nil {
+			log.WithError(err).Fatal("runner error'ed during initialization")
+		} else {
+			log.Info("initialization complete")
+		}
+
+		if err := runner.Run(ctx); err != nil {
+			log.WithError(err).Fatal("service runner stopped with error")
 		} else {
 			log.Print("service runner stopped without error")
 		}

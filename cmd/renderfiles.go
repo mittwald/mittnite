@@ -13,8 +13,11 @@ func init() {
 	rootCmd.AddCommand(renderFiles)
 }
 
+// TODO(@hermsi1337): WTH do we even need this for!?
 var renderFiles = &cobra.Command{
-	Use: "renderfiles",
+	Use:   "renderfiles",
+	Short: "Renders configuration files",
+	Long:  "This command renders the configured configuration files, before (optionally) starting another process",
 	Run: func(cmd *cobra.Command, args []string) {
 		ignitionConfig := &config.Ignition{
 			Probes: nil,
