@@ -42,13 +42,20 @@ func (r *Runner) Boot(ctx context.Context) error {
 
 	for _, job := range r.bootJobs {
 		wg.Add(1)
-		go func(job *BootJob) {
+		go func(job *BootJob, ctx context.Context) {
 			defer wg.Done()
+
+			if job.timeout != 0 {
+				toCtx, cancel := context.WithTimeout(ctx, job.timeout)
+				defer cancel()
+
+				ctx = toCtx
+			}
 
 			if err := job.Run(ctx); err != nil {
 				errs <- err
 			}
-		}(job)
+		}(job, ctx)
 	}
 
 	select {
