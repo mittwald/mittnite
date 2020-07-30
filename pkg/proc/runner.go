@@ -9,12 +9,64 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func NewRunner(ctx context.Context, ignitionConfig *config.Ignition) *Runner {
+func NewRunner(ignitionConfig *config.Ignition) *Runner {
 	return &Runner{
 		IgnitionConfig: ignitionConfig,
-		jobs:           []*Job{},
-		ctx:            ctx,
+		jobs:           make([]*Job, 0, len(ignitionConfig.Jobs)),
+		bootJobs:       make([]*BootJob, 0, len(ignitionConfig.BootJobs)),
 	}
+}
+
+func waitGroupToChannel(wg *sync.WaitGroup) <-chan struct{} {
+	d := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(d)
+	}()
+
+	return d
+}
+
+func (r *Runner) Boot(ctx context.Context) error {
+	wg := sync.WaitGroup{}
+	errs := make(chan error)
+
+	for j := range r.IgnitionConfig.BootJobs {
+		job, err := NewBootJob(&r.IgnitionConfig.BootJobs[j])
+		if err != nil {
+			return err
+		}
+
+		r.bootJobs = append(r.bootJobs, job)
+	}
+
+	for _, job := range r.bootJobs {
+		wg.Add(1)
+		go func(job *BootJob) {
+			defer wg.Done()
+
+			if err := job.Run(ctx); err != nil {
+				errs <- err
+			}
+		}(job)
+	}
+
+	select {
+	case <-waitGroupToChannel(&wg):
+		return nil
+
+	case <-ctx.Done():
+		log.Warn("context cancelled")
+		return ctx.Err()
+
+	case err, ok := <-errs:
+		if ok && err != nil {
+			log.Error("job return error, shutting down other services")
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (r *Runner) exec(ctx context.Context, wg *sync.WaitGroup, errChan chan<- error) {
@@ -42,24 +94,18 @@ func (r *Runner) exec(ctx context.Context, wg *sync.WaitGroup, errChan chan<- er
 	}
 }
 
-func (r *Runner) Run() error {
+func (r *Runner) Run(ctx context.Context) error {
 	errChan := make(chan error)
 	ticker := time.NewTicker(5 * time.Second)
 
 	wg := sync.WaitGroup{}
 
-	r.exec(r.ctx, &wg, errChan)
-
-	allDone := make(chan struct{})
-	go func() {
-		wg.Wait()
-		close(allDone)
-	}()
+	r.exec(ctx, &wg, errChan)
 
 	for {
 		select {
 		// wait for them all to finish, or one to fail
-		case <-allDone:
+		case <-waitGroupToChannel(&wg):
 			return nil
 
 		// watch files

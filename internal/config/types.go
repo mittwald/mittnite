@@ -87,7 +87,18 @@ type JobConfig struct {
 	Laziness     *Laziness  `hcl:"lazy"`
 	Listeners    []Listener `hcl:"listen"`
 	CanFail      bool       `hcl:"canFail"`
-	OneTime      bool       `hcl:"oneTime"`
+
+	// DEPRECATED: Use "BootJob"s instead
+	OneTime bool `hcl:"oneTime"`
+}
+
+type BootJobConfig struct {
+	Name    string   `hcl:",key"`
+	Command string   `hcl:"command"`
+	Args    []string `hcl:"args"`
+	Env     []string `hcl:"env"`
+	CanFail bool     `hcl:"canFail"`
+	Timeout string   `hcl:"timeout"`
 }
 
 type File struct {
@@ -98,7 +109,8 @@ type File struct {
 }
 
 type Ignition struct {
-	Probes []Probe     `hcl:"probe"`
-	Files  []File      `hcl:"file"`
-	Jobs   []JobConfig `hcl:"job"`
+	Probes   []Probe         `hcl:"probe"`
+	Files    []File          `hcl:"file"`
+	Jobs     []JobConfig     `hcl:"job"`
+	BootJobs []BootJobConfig `hcl:"boot"`
 }

@@ -4,3 +4,8 @@ job sleep {
   canFail = true
   oneTime = true
 }
+
+boot hello {
+  command = "cowsay"
+  args = ["moo"]
+}
