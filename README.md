@@ -27,6 +27,7 @@ It offers the following features:
 - [Configuration](#configuration)
   - [Directives](#directives)
     - [Job](#job)
+    - [Boot Jobs](#boot-jobs)
     - [File](#file)
     - [Probe](#probe)
   - [HCL examples](#hcl-examples)
