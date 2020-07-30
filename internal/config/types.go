@@ -87,9 +87,7 @@ type JobConfig struct {
 	Laziness     *Laziness  `hcl:"lazy"`
 	Listeners    []Listener `hcl:"listen"`
 	CanFail      bool       `hcl:"canFail"`
-
-	// DEPRECATED: Use "BootJob"s instead
-	OneTime bool `hcl:"oneTime"`
+	OneTime      bool       `hcl:"oneTime"`
 }
 
 type BootJobConfig struct {
