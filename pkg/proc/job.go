@@ -34,8 +34,6 @@ func (job *Job) Init() {
 }
 
 func (job *Job) Run(ctx context.Context, errors chan<- error) error {
-	ctx, job.cancelAll = context.WithCancel(ctx)
-
 	listerWaitGroup := sync.WaitGroup{}
 	defer listerWaitGroup.Wait()
 
@@ -44,6 +42,7 @@ func (job *Job) Run(ctx context.Context, errors chan<- error) error {
 		if err != nil {
 			return err
 		}
+		job.listeners = append(job.listeners, listener)
 
 		listerWaitGroup.Add(1)
 
@@ -95,9 +94,7 @@ func (job *Job) startProcessReaper(ctx context.Context) {
 
 				job.lazyStartLock.Lock()
 
-				if job.cancelProcess != nil {
-					job.cancelProcess()
-				}
+				job.Signal(syscall.SIGTERM)
 
 				job.lazyStartLock.Unlock()
 			}
@@ -105,15 +102,48 @@ func (job *Job) startProcessReaper(ctx context.Context) {
 	}()
 }
 
+func (job *Job) Stop() {
+	job.cancel = true
+
+	// First closing all listeners to prevent new job starts
+	for _, listener := range job.listeners {
+		listener.Shutdown()
+	}
+
+	if !job.running {
+		return
+	}
+
+	// send SIGTERM to the process for a graceful shutdown
+	job.Signal(syscall.SIGTERM)
+	timer := time.NewTicker(1 * time.Second)
+	attempts := 0
+
+	// wait for the process to stop
+	for {
+		select {
+		case <-timer.C:
+			if !job.running {
+				return
+			}
+
+			// kill the process after the max wait time
+			if attempts >= SchutdownWaitingTimeSeconds {
+				if job.kill != nil {
+					job.kill()
+				}
+				return
+			}
+			attempts++
+		}
+	}
+}
+
 func (job *Job) Signal(sig os.Signal) {
 	errFunc := func(err error) {
 		if err != nil {
 			log.Warnf("failed to send signal %d to job %s: %s", sig, job.Config.Name, err.Error())
 		}
-	}
-
-	if sig == syscall.SIGTERM && job.cancelAll != nil {
-		job.cancelAll()
 	}
 
 	if job.cmd == nil || job.cmd.Process == nil {

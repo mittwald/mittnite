@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/mittwald/mittnite/internal/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -14,6 +16,7 @@ func NewRunner(ignitionConfig *config.Ignition) *Runner {
 		IgnitionConfig: ignitionConfig,
 		jobs:           make([]*Job, 0, len(ignitionConfig.Jobs)),
 		bootJobs:       make([]*BootJob, 0, len(ignitionConfig.BootJobs)),
+		shutdownChan:   make(chan error, 1),
 	}
 }
 
@@ -68,7 +71,8 @@ func (r *Runner) Boot(ctx context.Context) error {
 
 	case err, ok := <-errs:
 		if ok && err != nil {
-			log.Error("job return error, shutting down other services")
+			log.Error(err)
+			r.Shutdown(errors.New(RunnerShuwtdownCause))
 			return err
 		}
 	}
@@ -123,8 +127,24 @@ func (r *Runner) Run(ctx context.Context) error {
 
 		// handle errors
 		case err := <-errChan:
-			log.Error("job return error, shutting down other services")
-			return err
+			log.Error(err)
+			r.Shutdown(errors.New(RunnerShuwtdownCause))
+
+		case <-r.shutdownChan:
+			wg := sync.WaitGroup{}
+			for i := range r.jobs {
+				wg.Add(1)
+				go func(job *Job) {
+					job.Stop()
+					wg.Done()
+				}(r.jobs[i])
+			}
+			wg.Wait()
+			return nil
 		}
 	}
+}
+
+func (r *Runner) Shutdown(err error) {
+	r.shutdownChan <- err
 }

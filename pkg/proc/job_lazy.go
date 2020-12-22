@@ -53,14 +53,14 @@ func (job *Job) AssertStarted(ctx context.Context) error {
 func (job *Job) start(ctx context.Context, process chan<- *os.Process) error {
 	l := log.WithField("job.name", job.Config.Name)
 
-	ctx, job.cancelProcess = context.WithCancel(ctx)
-
 	attempts := 0
 	maxAttempts := job.Config.MaxAttempts
 
 	if maxAttempts == 0 {
 		maxAttempts = 3
 	}
+
+	ctx, job.kill = context.WithCancel(ctx)
 
 	job.cmd = exec.CommandContext(ctx, job.Config.Command, job.Config.Args...)
 	job.cmd.Stdout = os.Stdout
@@ -70,6 +70,10 @@ func (job *Job) start(ctx context.Context, process chan<- *os.Process) error {
 	}
 
 	for { // restart failed jobs as long mittnite is running
+		if job.cancel {
+			return nil
+		}
+
 		l.Info("starting job")
 
 		err := job.cmd.Start()
@@ -77,11 +81,13 @@ func (job *Job) start(ctx context.Context, process chan<- *os.Process) error {
 			return fmt.Errorf("failed to start job %s: %s", job.Config.Name, err.Error())
 		}
 
+		job.running = true
 		if process != nil {
 			process <- job.cmd.Process
 		}
 
 		err = job.cmd.Wait()
+		job.running = false
 		if err != nil {
 			l.WithError(err).Error("job exited with error")
 		} else {

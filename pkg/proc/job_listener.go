@@ -18,6 +18,7 @@ type Listener struct {
 	job           *Job
 	socket        net.Listener
 	spinUpTimeout time.Duration
+	shutdown      bool
 }
 
 func NewListener(j *Job, c *config.Listener) (*Listener, error) {
@@ -57,6 +58,13 @@ func (l *Listener) Run(ctx context.Context) error {
 	}
 }
 
+func (l *Listener) Shutdown() {
+	l.shutdown = true
+	if l.socket != nil {
+		_ = l.socket.Close()
+	}
+}
+
 func (l *Listener) provideUpstreamConnection() (net.Conn, error) {
 	timeout := time.NewTimer(l.spinUpTimeout)
 	ticker := time.NewTicker(20 * time.Millisecond)
@@ -86,7 +94,11 @@ func (l *Listener) run(ctx context.Context) <-chan error {
 
 			conn, err := l.socket.Accept()
 			if err != nil {
-				errChan <- err
+				// TODO: maybe we can find a more elegant way to stop the listener?
+				//		 This workaround is only for suppressing the "use of closed network connection" error
+				if !l.shutdown {
+					errChan <- err
+				}
 				return
 			}
 

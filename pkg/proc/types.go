@@ -10,10 +10,16 @@ import (
 	"github.com/mittwald/mittnite/internal/config"
 )
 
+const (
+	SchutdownWaitingTimeSeconds = 10
+	RunnerShuwtdownCause        = "job return error, shutting down other services"
+)
+
 type Runner struct {
 	IgnitionConfig *config.Ignition
 	jobs           []*Job
 	bootJobs       []*BootJob
+	shutdownChan   chan error
 }
 
 type BootJob struct {
@@ -29,8 +35,10 @@ type Job struct {
 	watchingFiles map[string]time.Time
 	cmd           *exec.Cmd
 	process       *os.Process
-	cancelAll     context.CancelFunc
-	cancelProcess context.CancelFunc
+	cancel        bool
+	running       bool
+	kill          context.CancelFunc
+	listeners     []*Listener
 
 	lazyStartLock sync.Mutex
 
