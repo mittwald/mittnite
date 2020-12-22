@@ -120,6 +120,7 @@ func (job *Job) Stop() {
 	attempts := 0
 
 	// wait for the process to stop
+	// nolint:S1000
 	for {
 		select {
 		case <-timer.C:
