@@ -80,7 +80,7 @@ var up = &cobra.Command{
 		runner := proc.NewRunner(ignitionConfig)
 		go func() {
 			<-procSignals
-			runner.Shutdown(nil)
+			cancel()
 		}()
 
 		if err := runner.Boot(ctx); err != nil {

@@ -18,7 +18,11 @@ type Listener struct {
 	job           *Job
 	socket        net.Listener
 	spinUpTimeout time.Duration
-	shutdown      bool
+}
+
+type acceptResult struct {
+	conn net.Conn
+	err  error
 }
 
 func NewListener(j *Job, c *config.Listener) (*Listener, error) {
@@ -58,13 +62,6 @@ func (l *Listener) Run(ctx context.Context) error {
 	}
 }
 
-func (l *Listener) Shutdown() {
-	l.shutdown = true
-	if l.socket != nil {
-		_ = l.socket.Close()
-	}
-}
-
 func (l *Listener) provideUpstreamConnection() (net.Conn, error) {
 	timeout := time.NewTimer(l.spinUpTimeout)
 	ticker := time.NewTicker(20 * time.Millisecond)
@@ -90,17 +87,33 @@ func (l *Listener) run(ctx context.Context) <-chan error {
 
 	go func() {
 		for {
-			var err error
+			// START DOM
+			// DAS IST DOCH ALLES KACKE ICH MACH MITTAG :D
+			var conn net.Conn
+			connChan := make(chan acceptResult, 1)
+			go func() {
+				conn, err := l.socket.Accept()
+				connChan <- acceptResult{
+					conn: conn,
+					err:  err,
+				}
+			}()
 
-			conn, err := l.socket.Accept()
-			if err != nil {
-				// TODO: maybe we can find a more elegant way to stop the listener?
-				//		 This workaround is only for suppressing the "use of closed network connection" error
-				if !l.shutdown {
-					errChan <- err
+			select {
+			case <-ctx.Done():
+				// received sigterm before new connection could have been established,
+				// we are about to shut down, close socket and listener and return
+				if err := l.socket.Close(); err != nil {
+					log.WithField("reason", err.Error()).Warn("cannot reliably close socket")
 				}
 				return
+			case ar := <-connChan:
+				if ar.err != nil {
+					errChan <- ar.err
+				}
+				conn = ar.conn
 			}
+			// END DOM
 
 			log.WithField("client.addr", conn.RemoteAddr()).Info("accepted connection")
 

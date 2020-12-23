@@ -3,18 +3,19 @@ package proc
 import (
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
+	"syscall"
+	"time"
+
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 func (job *BootJob) Run(ctx context.Context) error {
 	l := log.WithField("job.name", job.Config.Name)
 
-	ctx, job.cancelProcess = context.WithCancel(ctx)
-
-	job.cmd = exec.CommandContext(ctx, job.Config.Command, job.Config.Args...)
+	job.cmd = exec.Command(job.Config.Command, job.Config.Args...)
 	job.cmd.Stdout = os.Stdout
 	job.cmd.Stderr = os.Stderr
 	if job.Config.Env != nil {
@@ -30,25 +31,47 @@ func (job *BootJob) Run(ctx context.Context) error {
 
 	job.process = job.cmd.Process
 
-	err = job.cmd.Wait()
-	if err != nil {
-		l.WithError(err).Error("job exited with error")
-	} else {
-		l.Info("boot job completed")
-	}
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- job.cmd.Wait()
+	}()
 
-	if ctx.Err() != nil { // execution cancelled
-		return ctx.Err()
-	}
-
-	if err != nil {
-		if job.Config.CanFail {
-			l.WithError(err).Warn("job failed, but is allowed to fail")
-			return nil
+	select {
+	// job errChan or failed
+	case err := <-errChan:
+		if err != nil {
+			l.WithError(err).Error("job exited with error")
+		} else {
+			l.Info("boot job completed")
 		}
 
-		l.WithError(err).Error("boot job failed")
-		return errors.Wrapf(err, "error while exec'ing boot job '%s'", job.Config.Name)
+		if err != nil {
+			if job.Config.CanFail {
+				l.WithError(err).Warn("job failed, but is allowed to fail")
+				return nil
+			}
+
+			l.WithError(err).Error("boot job failed")
+			return errors.Wrapf(err, "error while exec'ing boot job '%s'", job.Config.Name)
+		}
+		close(errChan)
+
+	case <-ctx.Done():
+		// ctx canceled, try to terminate job
+		_ = job.cmd.Process.Signal(syscall.SIGTERM)
+
+		select {
+		case <-time.After(time.Second * ShutdownWaitingTimeSeconds):
+			// process seems to hang, kill process
+			_ = job.cmd.Process.Kill()
+			l.WithField("job.name", job.Config.Name).Warn("forcefully killed job")
+			return nil
+
+		case err := <-errChan:
+			// all good
+			close(errChan)
+			return err
+		}
 	}
 
 	return nil
