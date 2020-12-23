@@ -87,8 +87,6 @@ func (l *Listener) run(ctx context.Context) <-chan error {
 
 	go func() {
 		for {
-			// START DOM
-			// DAS IST DOCH ALLES KACKE ICH MACH MITTAG :D
 			var conn net.Conn
 			connChan := make(chan acceptResult, 1)
 			go func() {
@@ -113,7 +111,6 @@ func (l *Listener) run(ctx context.Context) <-chan error {
 				}
 				conn = ar.conn
 			}
-			// END DOM
 
 			log.WithField("client.addr", conn.RemoteAddr()).Info("accepted connection")
 
