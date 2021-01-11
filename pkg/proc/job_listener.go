@@ -108,6 +108,7 @@ func (l *Listener) run(ctx context.Context) <-chan error {
 			case ar := <-connChan:
 				if ar.err != nil {
 					errChan <- ar.err
+					return
 				}
 				conn = ar.conn
 			}
