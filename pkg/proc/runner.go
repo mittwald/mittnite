@@ -29,7 +29,7 @@ func waitGroupToChannel(wg *sync.WaitGroup) <-chan struct{} {
 
 func (r *Runner) Boot(ctx context.Context) error {
 	wg := sync.WaitGroup{}
-	errs := make(chan error)
+	bootErrs := make(chan error)
 
 	for j := range r.IgnitionConfig.BootJobs {
 		job, err := NewBootJob(&r.IgnitionConfig.BootJobs[j])
@@ -53,7 +53,7 @@ func (r *Runner) Boot(ctx context.Context) error {
 			}
 
 			if err := job.Run(ctx); err != nil {
-				errs <- err
+				bootErrs <- err
 			}
 		}(job, ctx)
 	}
@@ -65,6 +65,10 @@ func (r *Runner) Boot(ctx context.Context) error {
 	case <-ctx.Done():
 		log.Warn("context cancelled")
 		return ctx.Err()
+
+	case err := <-bootErrs:
+		log.Error("boot job error occurred", err)
+		return err
 	}
 }
 
