@@ -120,7 +120,7 @@ func (job *Job) start(ctx context.Context, process chan<- *os.Process) error {
 			case <-time.After(time.Second * ShutdownWaitingTimeSeconds):
 				// process seems to hang, kill process
 				_ = job.cmd.Process.Kill()
-				l.WithField("job.name", job.Config.Name).Warn("forcefully killed job")
+				l.WithField("job.name", job.Config.Name).Error("forcefully killed job")
 				return nil
 
 			case err := <-errChan:
