@@ -32,6 +32,9 @@ func (job *BootJob) Run(ctx context.Context) error {
 	job.process = job.cmd.Process
 
 	errChan := make(chan error, 1)
+	defer func() {
+		close(errChan)
+	}()
 	go func() {
 		errChan <- job.cmd.Wait()
 	}()
@@ -40,12 +43,6 @@ func (job *BootJob) Run(ctx context.Context) error {
 	// job errChan or failed
 	case err := <-errChan:
 		if err != nil {
-			l.WithError(err).Error("job exited with error")
-		} else {
-			l.Info("boot job completed")
-		}
-
-		if err != nil {
 			if job.Config.CanFail {
 				l.WithError(err).Warn("job failed, but is allowed to fail")
 				return nil
@@ -53,12 +50,14 @@ func (job *BootJob) Run(ctx context.Context) error {
 
 			l.WithError(err).Error("boot job failed")
 			return errors.Wrapf(err, "error while exec'ing boot job '%s'", job.Config.Name)
+		} else {
+			l.Info("boot job completed")
 		}
-		close(errChan)
 
 	case <-ctx.Done():
 		// ctx canceled, try to terminate job
 		_ = job.cmd.Process.Signal(syscall.SIGTERM)
+		l.WithField("job.name", job.Config.Name).Info("sent SIGTERM to boot job")
 
 		select {
 		case <-time.After(time.Second * ShutdownWaitingTimeSeconds):
@@ -69,7 +68,6 @@ func (job *BootJob) Run(ctx context.Context) error {
 
 		case err := <-errChan:
 			// all good
-			close(errChan)
 			return err
 		}
 	}

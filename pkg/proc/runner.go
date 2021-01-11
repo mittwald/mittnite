@@ -67,7 +67,7 @@ func (r *Runner) Boot(ctx context.Context) error {
 		return ctx.Err()
 
 	case err := <-bootErrs:
-		log.Error("boot job error occurred", err)
+		log.Error("boot job error occurred: ", err)
 		return err
 	}
 }
