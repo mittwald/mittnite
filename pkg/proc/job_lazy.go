@@ -69,13 +69,6 @@ func (job *Job) start(ctx context.Context, process chan<- *os.Process) error {
 		job.cmd.Env = append(os.Environ(), job.Config.Env...)
 	}
 
-	var errChans []chan error
-	defer func() {
-		for i := range errChans {
-			close(errChans[i])
-		}
-	}()
-
 	for { // restart failed jobs as long mittnite is running
 		l.Info("starting job")
 
@@ -89,7 +82,6 @@ func (job *Job) start(ctx context.Context, process chan<- *os.Process) error {
 		}
 
 		errChan := make(chan error, 1)
-		errChans = append(errChans, errChan)
 		go func() {
 			errChan <- job.cmd.Wait()
 		}()
@@ -97,6 +89,7 @@ func (job *Job) start(ctx context.Context, process chan<- *os.Process) error {
 		select {
 		// job errChan or failed
 		case err := <-errChan:
+			close(errChan)
 			if err != nil {
 				l.WithError(err).Error("job exited with error")
 			} else {
@@ -129,10 +122,12 @@ func (job *Job) start(ctx context.Context, process chan<- *os.Process) error {
 				// process seems to hang, kill process
 				_ = job.cmd.Process.Kill()
 				l.WithField("job.name", job.Config.Name).Error("forcefully killed job")
+				close(errChan)
 				return nil
 
 			case err := <-errChan:
 				// all good
+				close(errChan)
 				return err
 			}
 		}
