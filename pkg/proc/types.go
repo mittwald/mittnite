@@ -1,13 +1,16 @@
 package proc
 
 import (
-	"context"
 	"os"
 	"os/exec"
 	"sync"
 	"time"
 
 	"github.com/mittwald/mittnite/internal/config"
+)
+
+const (
+	ShutdownWaitingTimeSeconds = 10
 )
 
 type Runner struct {
@@ -17,11 +20,10 @@ type Runner struct {
 }
 
 type BootJob struct {
-	Config        *config.BootJobConfig
-	cmd           *exec.Cmd
-	process       *os.Process
-	timeout       time.Duration
-	cancelProcess context.CancelFunc
+	Config  *config.BootJobConfig
+	cmd     *exec.Cmd
+	process *os.Process
+	timeout time.Duration
 }
 
 type Job struct {
@@ -29,8 +31,6 @@ type Job struct {
 	watchingFiles map[string]time.Time
 	cmd           *exec.Cmd
 	process       *os.Process
-	cancelAll     context.CancelFunc
-	cancelProcess context.CancelFunc
 
 	lazyStartLock sync.Mutex
 

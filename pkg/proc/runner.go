@@ -29,7 +29,7 @@ func waitGroupToChannel(wg *sync.WaitGroup) <-chan struct{} {
 
 func (r *Runner) Boot(ctx context.Context) error {
 	wg := sync.WaitGroup{}
-	errs := make(chan error)
+	bootErrs := make(chan error)
 
 	for j := range r.IgnitionConfig.BootJobs {
 		job, err := NewBootJob(&r.IgnitionConfig.BootJobs[j])
@@ -53,7 +53,7 @@ func (r *Runner) Boot(ctx context.Context) error {
 			}
 
 			if err := job.Run(ctx); err != nil {
-				errs <- err
+				bootErrs <- err
 			}
 		}(job, ctx)
 	}
@@ -66,14 +66,10 @@ func (r *Runner) Boot(ctx context.Context) error {
 		log.Warn("context cancelled")
 		return ctx.Err()
 
-	case err, ok := <-errs:
-		if ok && err != nil {
-			log.Error("job return error, shutting down other services")
-			return err
-		}
+	case err := <-bootErrs:
+		log.Error("boot job error occurred: ", err)
+		return err
 	}
-
-	return nil
 }
 
 func (r *Runner) exec(ctx context.Context, wg *sync.WaitGroup, errChan chan<- error) {
@@ -123,8 +119,8 @@ func (r *Runner) Run(ctx context.Context) error {
 
 		// handle errors
 		case err := <-errChan:
-			log.Error("job return error, shutting down other services")
-			return err
+			log.Error(err)
+
 		}
 	}
 }

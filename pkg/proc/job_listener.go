@@ -20,6 +20,11 @@ type Listener struct {
 	spinUpTimeout time.Duration
 }
 
+type acceptResult struct {
+	conn net.Conn
+	err  error
+}
+
 func NewListener(j *Job, c *config.Listener) (*Listener, error) {
 	log.WithField("address", c.Address).Info("starting TCP listener")
 
@@ -82,12 +87,30 @@ func (l *Listener) run(ctx context.Context) <-chan error {
 
 	go func() {
 		for {
-			var err error
+			var conn net.Conn
+			connChan := make(chan acceptResult, 1)
+			go func() {
+				conn, err := l.socket.Accept()
+				connChan <- acceptResult{
+					conn: conn,
+					err:  err,
+				}
+			}()
 
-			conn, err := l.socket.Accept()
-			if err != nil {
-				errChan <- err
+			select {
+			case <-ctx.Done():
+				// received sigterm before new connection could have been established,
+				// we are about to shut down, close socket and listener and return
+				if err := l.socket.Close(); err != nil {
+					log.WithField("reason", err.Error()).Warn("cannot reliably close socket")
+				}
 				return
+			case ar := <-connChan:
+				if ar.err != nil {
+					errChan <- ar.err
+					return
+				}
+				conn = ar.conn
 			}
 
 			log.WithField("client.addr", conn.RemoteAddr()).Info("accepted connection")
