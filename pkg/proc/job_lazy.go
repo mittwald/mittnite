@@ -93,6 +93,9 @@ func (job *Job) start(ctx context.Context, process chan<- *os.Process) error {
 			if err != nil {
 				l.WithError(err).Error("job exited with error")
 			} else {
+				if job.CanStartLazily() {
+					return nil
+				}
 				if job.Config.OneTime {
 					l.Info("one-time job has ended successfully")
 					return nil
