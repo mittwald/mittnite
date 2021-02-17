@@ -74,6 +74,8 @@ var up = &cobra.Command{
 			log.Fatalf("probe handler failed while waiting for readiness signals: '%+v'", err)
 		}
 
+		go proc.ReapChildren()
+
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
