@@ -3,16 +3,33 @@ package proc
 import (
 	"context"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"syscall"
 	"time"
-
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 )
 
-func (job *BootJob) Run(ctx context.Context) error {
+func (job *BaseJob) Signal(sig os.Signal) {
+	errFunc := func(err error) {
+		if err != nil {
+			log.Warnf("failed to send signal %d to job %s: %s", sig, job.Config.Name, err.Error())
+		}
+	}
+
+	if job.cmd == nil || job.cmd.Process == nil {
+		errFunc(
+			fmt.Errorf("job is not running"),
+		)
+		return
+	}
+
+	errFunc(
+		job.cmd.Process.Signal(sig),
+	)
+}
+
+func (job *BaseJob) startOnce(ctx context.Context, process chan<- *os.Process) error {
 	l := log.WithField("job.name", job.Config.Name)
 
 	job.cmd = exec.Command(job.Config.Command, job.Config.Args...)
@@ -22,14 +39,16 @@ func (job *BootJob) Run(ctx context.Context) error {
 		job.cmd.Env = append(os.Environ(), job.Config.Env...)
 	}
 
-	l.Info("starting boot job")
+	l.Info("starting job")
 
 	err := job.cmd.Start()
 	if err != nil {
 		return fmt.Errorf("failed to start job %s: %s", job.Config.Name, err.Error())
 	}
 
-	job.process = job.cmd.Process
+	if process != nil {
+		process <- job.cmd.Process
+	}
 
 	errChan := make(chan error, 1)
 	defer func() {
@@ -43,27 +62,19 @@ func (job *BootJob) Run(ctx context.Context) error {
 	// job errChan or failed
 	case err := <-errChan:
 		if err != nil {
-			if job.Config.CanFail {
-				l.WithError(err).Warn("job failed, but is allowed to fail")
-				return nil
-			}
-
-			l.WithError(err).Error("boot job failed")
-			return errors.Wrapf(err, "error while exec'ing boot job '%s'", job.Config.Name)
-		} else {
-			l.Info("boot job completed")
+			l.WithError(err).Error("job exited with error")
 		}
-
+		return err
 	case <-ctx.Done():
 		// ctx canceled, try to terminate job
 		_ = job.cmd.Process.Signal(syscall.SIGTERM)
-		l.WithField("job.name", job.Config.Name).Info("sent SIGTERM to boot job")
+		l.WithField("job.name", job.Config.Name).Info("sent SIGTERM to job")
 
 		select {
 		case <-time.After(time.Second * ShutdownWaitingTimeSeconds):
 			// process seems to hang, kill process
 			_ = job.cmd.Process.Kill()
-			l.WithField("job.name", job.Config.Name).Warn("forcefully killed job")
+			l.WithField("job.name", job.Config.Name).Error("forcefully killed job")
 			return nil
 
 		case err := <-errChan:
@@ -71,6 +82,4 @@ func (job *BootJob) Run(ctx context.Context) error {
 			return err
 		}
 	}
-
-	return nil
 }

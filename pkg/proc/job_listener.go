@@ -15,7 +15,7 @@ import (
 
 type Listener struct {
 	config        *config.Listener
-	job           *Job
+	job           *LazyJob
 	socket        net.Listener
 	spinUpTimeout time.Duration
 }
@@ -25,7 +25,7 @@ type acceptResult struct {
 	err  error
 }
 
-func NewListener(j *Job, c *config.Listener) (*Listener, error) {
+func NewListener(j *LazyJob, c *config.Listener) (*Listener, error) {
 	log.WithField("address", c.Address).Info("starting TCP listener")
 
 	// deprecation check
@@ -115,11 +115,9 @@ func (l *Listener) run(ctx context.Context) <-chan error {
 
 			log.WithField("client.addr", conn.RemoteAddr()).Info("accepted connection")
 
-			if l.job.CanStartLazily() {
-				if err := l.job.AssertStarted(ctx); err != nil {
-					errChan <- err
-					return
-				}
+			if err := l.job.AssertStarted(ctx); err != nil {
+				errChan <- err
+				return
 			}
 
 			go func() {

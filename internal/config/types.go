@@ -71,32 +71,38 @@ type Listener struct {
 	Protocol string `hcl:"protocol"` // deprecated
 }
 
+type BaseJobConfig struct {
+	Name    string   `hcl:",key"`
+	Command string   `hcl:"command"`
+	Args    []string `hcl:"args"`
+	Env     []string `hcl:"env"`
+	CanFail bool     `hcl:"canFail"`
+}
+
 type Laziness struct {
 	SpinUpTimeout   string `hcl:"spinUpTimeout"`
 	CoolDownTimeout string `hcl:"coolDownTimeout"`
 }
 
 type JobConfig struct {
-	Name         string     `hcl:",key"`
-	Command      string     `hcl:"command"`
-	Args         []string   `hcl:"args"`
-	Env          []string   `hcl:"env"`
-	Watches      []Watch    `hcl:"watch"`
-	MaxAttempts_ int        `hcl:"max_attempts"` // deprecated
-	MaxAttempts  int        `hcl:"maxAttempts"`
-	Laziness     *Laziness  `hcl:"lazy"`
-	Listeners    []Listener `hcl:"listen"`
-	CanFail      bool       `hcl:"canFail"`
-	OneTime      bool       `hcl:"oneTime"`
+	BaseJobConfig `hcl:",squash"`
+
+	// optional fields for "normal" jobs
+	// these will be ignored if fields for lazy jobs are set
+	Watches      []Watch `hcl:"watch"`
+	MaxAttempts_ int     `hcl:"max_attempts"` // deprecated
+	MaxAttempts  int     `hcl:"maxAttempts"`
+	OneTime      bool    `hcl:"oneTime"`
+
+	// fields required for lazy activation
+	Laziness  *Laziness  `hcl:"lazy"`
+	Listeners []Listener `hcl:"listen"`
 }
 
 type BootJobConfig struct {
-	Name    string   `hcl:",key"`
-	Command string   `hcl:"command"`
-	Args    []string `hcl:"args"`
-	Env     []string `hcl:"env"`
-	CanFail bool     `hcl:"canFail"`
-	Timeout string   `hcl:"timeout"`
+	BaseJobConfig `hcl:",squash"`
+
+	Timeout string `hcl:"timeout"`
 }
 
 type File struct {

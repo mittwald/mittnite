@@ -12,7 +12,8 @@ import (
 func NewRunner(ignitionConfig *config.Ignition) *Runner {
 	return &Runner{
 		IgnitionConfig: ignitionConfig,
-		jobs:           make([]*Job, 0, len(ignitionConfig.Jobs)),
+		jobs:           []*Job{},
+		lazyJobs:       []*LazyJob{},
 		bootJobs:       make([]*BootJob, 0, len(ignitionConfig.BootJobs)),
 	}
 }
@@ -74,22 +75,42 @@ func (r *Runner) Boot(ctx context.Context) error {
 
 func (r *Runner) exec(ctx context.Context, wg *sync.WaitGroup, errChan chan<- error) {
 	for j := range r.IgnitionConfig.Jobs {
-		job, err := NewJob(&r.IgnitionConfig.Jobs[j])
+		// init non-lazy jobs
+		if r.IgnitionConfig.Jobs[j].Laziness == nil {
+			job := NewJob(&r.IgnitionConfig.Jobs[j])
+			r.jobs = append(r.jobs, job)
+
+			job.InitWatches()
+
+			// execute job command
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				err := job.Run(ctx)
+				if err != nil {
+					errChan <- err
+				}
+			}()
+
+			continue
+		}
+
+		lJob, err := NewLazyJob(&r.IgnitionConfig.Jobs[j])
 		if err != nil {
 			errChan <- err
 			return
 		}
 
-		job.Init()
+		r.lazyJobs = append(r.lazyJobs, lJob)
 
-		r.jobs = append(r.jobs, job)
 
 		// execute job command
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 
-			err := job.Run(ctx, errChan)
+			err := lJob.Run(ctx, errChan)
 			if err != nil {
 				errChan <- err
 			}

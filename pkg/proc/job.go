@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
 	"syscall"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
-func (job *Job) Init() {
+func (job *Job) InitWatches() {
 	for w := range job.Config.Watches {
 		watch := &job.Config.Watches[w]
 		job.watchingFiles = make(map[string]time.Time)
@@ -33,91 +32,41 @@ func (job *Job) Init() {
 	}
 }
 
-func (job *Job) Run(ctx context.Context, errors chan<- error) error {
-	listerWaitGroup := sync.WaitGroup{}
-	defer listerWaitGroup.Wait()
+func (job *Job) Run(ctx context.Context) error {
+	l := log.WithField("job.name", job.Config.Name)
 
-	for i := range job.Config.Listeners {
-		listener, err := NewListener(job, &job.Config.Listeners[i])
+	attempts := 0
+	maxAttempts := job.Config.MaxAttempts
+
+	if maxAttempts == 0 {
+		maxAttempts = 3
+	}
+
+	for { // restart failed jobs as long mittnite is running
+		err := job.startOnce(ctx, nil)
 		if err != nil {
-			return err
-		}
-
-		listerWaitGroup.Add(1)
-
-		go func() {
-			listerWaitGroup.Wait()
-		}()
-
-		go func() {
-			if err := listener.Run(ctx); err != nil {
-				log.WithError(err).Error("listener stopped with error")
-				errors <- err
+			l.WithError(err).Error("job exited with error")
+		} else {
+			if job.Config.OneTime {
+				l.Info("one-time job has ended successfully")
+				return nil
 			}
-
-			listerWaitGroup.Done()
-		}()
-	}
-
-	if job.CanStartLazily() {
-		job.startProcessReaper(ctx)
-
-		log.Infof("holding off starting job %s until first request", job.Config.Name)
-		return nil
-	}
-
-	p := make(chan *os.Process)
-	go func() {
-		job.process = <-p
-	}()
-
-	return job.start(ctx, p)
-}
-
-func (job *Job) startProcessReaper(ctx context.Context) {
-	ticker := time.NewTicker(5 * time.Minute)
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				if job.activeConnections > 0 {
-					continue
-				}
-
-				diff := time.Since(job.lastConnectionClosed)
-				if diff < job.coolDownTimeout {
-					continue
-				}
-
-				job.lazyStartLock.Lock()
-
-				job.Signal(syscall.SIGTERM)
-
-				job.lazyStartLock.Unlock()
-			}
+			l.Warn("job exited without errors")
 		}
-	}()
-}
 
-func (job *Job) Signal(sig os.Signal) {
-	errFunc := func(err error) {
-		if err != nil {
-			log.Warnf("failed to send signal %d to job %s: %s", sig, job.Config.Name, err.Error())
+		attempts++
+		if attempts < maxAttempts {
+			l.WithField("job.maxAttempts", maxAttempts).WithField("job.usedAttempts", attempts).Info("remaining attempts")
+			continue
 		}
-	}
 
-	if job.cmd == nil || job.cmd.Process == nil {
-		errFunc(
-			fmt.Errorf("job is not running"),
-		)
-		return
-	}
+		if job.Config.CanFail {
+			l.WithField("job.maxAttempts", maxAttempts).Warn("reached max retries")
+			return nil
+		}
 
-	errFunc(
-		job.cmd.Process.Signal(sig),
-	)
+		return fmt.Errorf("reached max retries for job %s", job.Config.Name)
+	}
 }
 
 func (job *Job) Watch() {
