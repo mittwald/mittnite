@@ -55,8 +55,6 @@ dockers:
         - quay.io/mittwald/mittnite:v{{ .Major }}.{{ .Minor }}-alpine
         - quay.io/mittwald/mittnite:{{ .Tag }}-alpine
         - quay.io/mittwald/mittnite:stable-alpine
-      binaries:
-        - mittnite
       goos: linux
       goarch: amd64
       goarm: ''
