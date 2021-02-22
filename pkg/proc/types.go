@@ -43,7 +43,6 @@ type CommonJob struct {
 
 type LazyJob struct {
 	CommonJob
-	Config *config.JobConfig
 
 	process *os.Process
 
@@ -74,12 +73,7 @@ func NewCommonJob(c *config.JobConfig) *CommonJob {
 
 func NewLazyJob(c *config.JobConfig) (*LazyJob, error) {
 	j := LazyJob{
-		CommonJob: CommonJob{
-			baseJob: baseJob{
-				Config: &c.BaseJobConfig,
-			},
-		},
-		Config: c,
+		CommonJob: *NewCommonJob(c),
 	}
 
 	if c.Laziness.SpinUpTimeout != "" {
