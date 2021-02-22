@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (job *Job) InitWatches() {
+func (job *CommonJob) Init() {
 	for w := range job.Config.Watches {
 		watch := &job.Config.Watches[w]
 		job.watchingFiles = make(map[string]time.Time)
@@ -32,13 +32,13 @@ func (job *Job) InitWatches() {
 	}
 }
 
-func (job *Job) Run(ctx context.Context) error {
+func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 	l := log.WithField("job.name", job.Config.Name)
 
 	attempts := 0
 	maxAttempts := job.Config.MaxAttempts
 
-	if maxAttempts == 0 {
+	if maxAttempts <= 0 {
 		maxAttempts = 3
 	}
 
@@ -69,7 +69,7 @@ func (job *Job) Run(ctx context.Context) error {
 	}
 }
 
-func (job *Job) Watch() {
+func (job *CommonJob) Watch() {
 	for w := range job.Config.Watches {
 		watch := &job.Config.Watches[w]
 		signal := false

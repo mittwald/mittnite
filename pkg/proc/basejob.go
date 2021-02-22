@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func (job *BaseJob) Signal(sig os.Signal) {
+func (job *baseJob) Signal(sig os.Signal) {
 	errFunc := func(err error) {
 		if err != nil {
 			log.Warnf("failed to send signal %d to job %s: %s", sig, job.Config.Name, err.Error())
@@ -29,7 +29,7 @@ func (job *BaseJob) Signal(sig os.Signal) {
 	)
 }
 
-func (job *BaseJob) startOnce(ctx context.Context, process chan<- *os.Process) error {
+func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) error {
 	l := log.WithField("job.name", job.Config.Name)
 
 	job.cmd = exec.Command(job.Config.Command, job.Config.Args...)

@@ -44,8 +44,8 @@ func (job *LazyJob) AssertStarted(ctx context.Context) error {
 }
 
 func (job *LazyJob) Run(ctx context.Context, errors chan<- error) error {
-	listerWaitGroup := sync.WaitGroup{}
-	defer listerWaitGroup.Wait()
+	listenerWaitGroup := sync.WaitGroup{}
+	defer listenerWaitGroup.Wait()
 
 	for i := range job.Config.Listeners {
 		listener, err := NewListener(job, &job.Config.Listeners[i])
@@ -53,11 +53,7 @@ func (job *LazyJob) Run(ctx context.Context, errors chan<- error) error {
 			return err
 		}
 
-		listerWaitGroup.Add(1)
-
-		go func() {
-			listerWaitGroup.Wait()
-		}()
+		listenerWaitGroup.Add(1)
 
 		go func() {
 			if err := listener.Run(ctx); err != nil {
@@ -65,7 +61,7 @@ func (job *LazyJob) Run(ctx context.Context, errors chan<- error) error {
 				errors <- err
 			}
 
-			listerWaitGroup.Done()
+			listenerWaitGroup.Done()
 		}()
 	}
 
