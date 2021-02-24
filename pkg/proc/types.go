@@ -1,6 +1,7 @@
 package proc
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"sync"
@@ -15,58 +16,86 @@ const (
 
 type Runner struct {
 	IgnitionConfig *config.Ignition
-	jobs           []*Job
-	bootJobs       []*BootJob
+
+	jobs     []Job
+	bootJobs []*BootJob
+}
+
+type baseJob struct {
+	Config *config.BaseJobConfig
+
+	cmd *exec.Cmd
 }
 
 type BootJob struct {
-	Config  *config.BootJobConfig
-	cmd     *exec.Cmd
-	process *os.Process
+	baseJob
+	Config *config.BootJobConfig
+
 	timeout time.Duration
 }
 
-type Job struct {
-	Config        *config.JobConfig
-	watchingFiles map[string]time.Time
-	cmd           *exec.Cmd
-	process       *os.Process
+type CommonJob struct {
+	baseJob
+	Config *config.JobConfig
 
-	lazyStartLock sync.Mutex
+	watchingFiles map[string]time.Time
+}
+
+type LazyJob struct {
+	CommonJob
+
+	process *os.Process
+
+	lazyStartLock     sync.Mutex
+	activeConnections uint32
 
 	spinUpTimeout        time.Duration
 	coolDownTimeout      time.Duration
 	lastConnectionClosed time.Time
-	activeConnections    uint32
 }
 
-func NewJob(c *config.JobConfig) (*Job, error) {
-	j := Job{
+type Job interface {
+	Init()
+	Run(context.Context, chan<- error) error
+	Watch()
+}
+
+func NewCommonJob(c *config.JobConfig) *CommonJob {
+	j := CommonJob{
+		baseJob: baseJob{
+			Config: &c.BaseJobConfig,
+		},
 		Config: c,
 	}
 
-	if c.Laziness != nil {
-		if c.Laziness.SpinUpTimeout != "" {
-			t, err := time.ParseDuration(c.Laziness.SpinUpTimeout)
-			if err != nil {
-				return nil, err
-			}
+	return &j
+}
 
-			j.spinUpTimeout = t
-		} else {
-			j.spinUpTimeout = 5 * time.Second
+func NewLazyJob(c *config.JobConfig) (*LazyJob, error) {
+	j := LazyJob{
+		CommonJob: *NewCommonJob(c),
+	}
+
+	if c.Laziness.SpinUpTimeout != "" {
+		t, err := time.ParseDuration(c.Laziness.SpinUpTimeout)
+		if err != nil {
+			return nil, err
 		}
 
-		if c.Laziness.CoolDownTimeout != "" {
-			t, err := time.ParseDuration(c.Laziness.CoolDownTimeout)
-			if err != nil {
-				return nil, err
-			}
+		j.spinUpTimeout = t
+	} else {
+		j.spinUpTimeout = 5 * time.Second
+	}
 
-			j.coolDownTimeout = t
-		} else {
-			j.coolDownTimeout = 15 * time.Minute
+	if c.Laziness.CoolDownTimeout != "" {
+		t, err := time.ParseDuration(c.Laziness.CoolDownTimeout)
+		if err != nil {
+			return nil, err
 		}
+
+		j.coolDownTimeout = t
+	} else {
+		j.coolDownTimeout = 15 * time.Minute
 	}
 
 	return &j, nil
@@ -74,6 +103,9 @@ func NewJob(c *config.JobConfig) (*Job, error) {
 
 func NewBootJob(c *config.BootJobConfig) (*BootJob, error) {
 	bj := BootJob{
+		baseJob: baseJob{
+			Config: &c.BaseJobConfig,
+		},
 		Config: c,
 	}
 

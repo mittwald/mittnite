@@ -12,7 +12,7 @@ import (
 func NewRunner(ignitionConfig *config.Ignition) *Runner {
 	return &Runner{
 		IgnitionConfig: ignitionConfig,
-		jobs:           make([]*Job, 0, len(ignitionConfig.Jobs)),
+		jobs:           []Job{},
 		bootJobs:       make([]*BootJob, 0, len(ignitionConfig.BootJobs)),
 	}
 }
@@ -73,16 +73,22 @@ func (r *Runner) Boot(ctx context.Context) error {
 }
 
 func (r *Runner) exec(ctx context.Context, wg *sync.WaitGroup, errChan chan<- error) {
+	var err error
 	for j := range r.IgnitionConfig.Jobs {
-		job, err := NewJob(&r.IgnitionConfig.Jobs[j])
-		if err != nil {
-			errChan <- err
-			return
+		var job Job
+		// init non-lazy jobs
+		if r.IgnitionConfig.Jobs[j].Laziness == nil {
+			job = NewCommonJob(&r.IgnitionConfig.Jobs[j])
+		} else {
+			job, err = NewLazyJob(&r.IgnitionConfig.Jobs[j])
+			if err != nil {
+				errChan <- err
+				return
+			}
 		}
+		r.jobs = append(r.jobs, job)
 
 		job.Init()
-
-		r.jobs = append(r.jobs, job)
 
 		// execute job command
 		wg.Add(1)

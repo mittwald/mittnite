@@ -2,24 +2,15 @@ package proc
 
 import (
 	"context"
-	"fmt"
 	"os"
-	"os/exec"
+	"sync"
 	"syscall"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
-func (job *Job) CanStartLazily() bool {
-	if len(job.Config.Listeners) == 0 {
-		return false
-	}
-
-	return job.Config.Laziness != nil
-}
-
-func (job *Job) AssertStarted(ctx context.Context) error {
+func (job *LazyJob) AssertStarted(ctx context.Context) error {
 	if job.process != nil {
 		return nil
 	}
@@ -37,7 +28,7 @@ func (job *Job) AssertStarted(ctx context.Context) error {
 	e := make(chan error)
 
 	go func() {
-		if err := job.start(ctx, p); err != nil {
+		if err := job.startOnce(ctx, p); err != nil {
 			e <- err
 		}
 
@@ -52,87 +43,57 @@ func (job *Job) AssertStarted(ctx context.Context) error {
 	}
 }
 
-func (job *Job) start(ctx context.Context, process chan<- *os.Process) error {
-	l := log.WithField("job.name", job.Config.Name)
+func (job *LazyJob) Run(ctx context.Context, errors chan<- error) error {
+	listenerWaitGroup := sync.WaitGroup{}
+	defer listenerWaitGroup.Wait()
 
-	attempts := 0
-	maxAttempts := job.Config.MaxAttempts
-
-	if maxAttempts == 0 {
-		maxAttempts = 3
-	}
-
-	job.cmd = exec.Command(job.Config.Command, job.Config.Args...)
-	job.cmd.Stdout = os.Stdout
-	job.cmd.Stderr = os.Stderr
-	if job.Config.Env != nil {
-		job.cmd.Env = append(os.Environ(), job.Config.Env...)
-	}
-
-	for { // restart failed jobs as long mittnite is running
-		l.Info("starting job")
-
-		err := job.cmd.Start()
+	for i := range job.Config.Listeners {
+		listener, err := NewListener(job, &job.Config.Listeners[i])
 		if err != nil {
-			return fmt.Errorf("failed to start job %s: %s", job.Config.Name, err.Error())
+			return err
 		}
 
-		if process != nil {
-			process <- job.cmd.Process
-		}
+		listenerWaitGroup.Add(1)
 
-		errChan := make(chan error, 1)
 		go func() {
-			errChan <- job.cmd.Wait()
+			if err := listener.Run(ctx); err != nil {
+				log.WithError(err).Error("listener stopped with error")
+				errors <- err
+			}
+
+			listenerWaitGroup.Done()
 		}()
+	}
 
-		select {
-		// job errChan or failed
-		case err := <-errChan:
-			close(errChan)
-			if err != nil {
-				l.WithError(err).Error("job exited with error")
-			} else {
-				if job.CanStartLazily() {
-					return nil
-				}
-				if job.Config.OneTime {
-					l.Info("one-time job has ended successfully")
-					return nil
-				}
-				l.Warn("job exited without errors")
-			}
+	job.startProcessReaper(ctx)
 
-			attempts++
-			if attempts < maxAttempts {
-				l.WithField("job.maxAttempts", maxAttempts).WithField("job.usedAttempts", attempts).Info("remaining attempts")
-				continue
-			}
+	log.Infof("holding off starting job %s until first request", job.Config.Name)
+	return nil
+}
 
-			if job.Config.CanFail {
-				l.WithField("job.maxAttempts", maxAttempts).Warn("reached max retries")
-				return nil
-			}
-
-			return fmt.Errorf("reached max retries for job %s", job.Config.Name)
-		case <-ctx.Done():
-			// ctx canceled, try to terminate job
-			_ = job.cmd.Process.Signal(syscall.SIGTERM)
-			l.WithField("job.name", job.Config.Name).Info("sent SIGTERM to job")
-
+func (job *LazyJob) startProcessReaper(ctx context.Context) {
+	ticker := time.NewTicker(5 * time.Minute)
+	go func() {
+		for {
 			select {
-			case <-time.After(time.Second * ShutdownWaitingTimeSeconds):
-				// process seems to hang, kill process
-				_ = job.cmd.Process.Kill()
-				l.WithField("job.name", job.Config.Name).Error("forcefully killed job")
-				close(errChan)
-				return nil
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if job.activeConnections > 0 {
+					continue
+				}
 
-			case err := <-errChan:
-				// all good
-				close(errChan)
-				return err
+				diff := time.Since(job.lastConnectionClosed)
+				if diff < job.coolDownTimeout {
+					continue
+				}
+
+				job.lazyStartLock.Lock()
+
+				job.Signal(syscall.SIGTERM)
+
+				job.lazyStartLock.Unlock()
 			}
 		}
-	}
+	}()
 }
