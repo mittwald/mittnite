@@ -2,7 +2,6 @@ package files
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,7 +43,7 @@ func renderFile(cfg *config.File) error {
 
 	log.Infof("creating configuration file %s from template %s", cfg.Target, cfg.Template)
 
-	tplContents, err := ioutil.ReadFile(cfg.Template)
+	tplContents, err := os.ReadFile(cfg.Template)
 	if err != nil {
 		return err
 	}

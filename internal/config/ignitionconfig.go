@@ -2,10 +2,11 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/hashicorp/hcl"
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
-	"strings"
 )
 
 func (ignitionConfig *Ignition) GenerateFromConfigDir(configDir string) error {
@@ -21,7 +22,7 @@ func (ignitionConfig *Ignition) GenerateFromConfigDir(configDir string) error {
 	for _, m := range matches {
 		log.Infof("found config file: %s", m)
 
-		contents, err := ioutil.ReadFile(m)
+		contents, err := os.ReadFile(m)
 		if err != nil {
 			return err
 		}

@@ -1,7 +1,7 @@
 package probe
 
 import (
-	"io/ioutil"
+	"os"
 )
 
 type filesystemProbe struct {
@@ -9,6 +9,6 @@ type filesystemProbe struct {
 }
 
 func (f *filesystemProbe) Exec() error {
-	_, err := ioutil.ReadDir(f.path)
+	_, err := os.ReadDir(f.path)
 	return err
 }

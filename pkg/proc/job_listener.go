@@ -140,14 +140,14 @@ func (l *Listener) run(ctx context.Context) <-chan error {
 				fromUpstreamErrors := make(chan error)
 
 				go func() {
-					if _, err := io.Copy(upstream, conn); err != nil && err != io.EOF {
+					if _, err := io.Copy(upstream, conn); err != nil && !errors.Is(err, io.EOF) {
 						toUpstreamErrors <- err
 					}
 					close(toUpstreamErrors)
 				}()
 
 				go func() {
-					if _, err := io.Copy(conn, upstream); err != nil && err != io.EOF {
+					if _, err := io.Copy(conn, upstream); err != nil && !errors.Is(err, io.EOF) {
 						fromUpstreamErrors <- err
 					}
 					close(fromUpstreamErrors)

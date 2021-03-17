@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/mittwald/mittnite/internal/config"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"syscall"
 	"time"
+
+	"github.com/gorilla/mux"
+	"github.com/mittwald/mittnite/internal/config"
+	log "github.com/sirupsen/logrus"
 )
 
 type Handler struct {

@@ -3,6 +3,9 @@ package probe
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"time"
+
 	"github.com/mittwald/mittnite/internal/config"
 	"github.com/mittwald/mittnite/internal/helper"
 	"github.com/pkg/errors"
@@ -10,8 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"net/url"
-	"time"
 )
 
 type mongoDBProbe struct {

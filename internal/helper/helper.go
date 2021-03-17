@@ -1,10 +1,11 @@
 package helper
 
 import (
-	log "github.com/sirupsen/logrus"
 	"net/url"
 	"os"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func ResolveEnv(in string) string {

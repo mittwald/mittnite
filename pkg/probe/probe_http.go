@@ -2,12 +2,13 @@ package probe
 
 import (
 	"fmt"
-	"github.com/mittwald/mittnite/internal/config"
-	"github.com/mittwald/mittnite/internal/helper"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/mittwald/mittnite/internal/config"
+	"github.com/mittwald/mittnite/internal/helper"
+	log "github.com/sirupsen/logrus"
 )
 
 type httpGetProbe struct {
@@ -44,7 +45,7 @@ func NewHttpProbe(cfg *config.HttpGet) *httpGetProbe {
 }
 
 func (h *httpGetProbe) Exec() error {
-	var timeout = time.Second * 5
+	timeout := time.Second * 5
 	if h.timeout != "" {
 		duration, err := time.ParseDuration(h.timeout)
 		if err == nil {
@@ -61,7 +62,7 @@ func (h *httpGetProbe) Exec() error {
 	}
 	urlStr := u.String()
 
-	var client = &http.Client{
+	client := &http.Client{
 		Timeout: timeout,
 	}
 	res, err := client.Get(urlStr)
