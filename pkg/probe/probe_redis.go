@@ -2,6 +2,7 @@ package probe
 
 import (
 	"fmt"
+
 	"github.com/go-redis/redis"
 	"github.com/mittwald/mittnite/internal/config"
 	"github.com/mittwald/mittnite/internal/helper"

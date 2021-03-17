@@ -5,9 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	configDir string
-)
+var configDir string
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&configDir, "config-dir", "c", "/etc/mittnite.d", "set directory to where your .hcl-configs are located")

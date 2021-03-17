@@ -3,11 +3,12 @@ package proc
 import (
 	"context"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"syscall"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func (job *baseJob) Signal(sig os.Signal) {

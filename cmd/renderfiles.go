@@ -1,12 +1,13 @@
 package cmd
 
 import (
+	"os"
+	"os/exec"
+
 	"github.com/mittwald/mittnite/internal/config"
 	"github.com/mittwald/mittnite/pkg/files"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"os"
-	"os/exec"
 )
 
 func init() {

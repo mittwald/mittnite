@@ -1,4 +1,4 @@
-FROM        alpine:3.10
+FROM        alpine:3.12
 COPY        mittnite /usr/bin/mittnite
 EXPOSE      9102
 ENTRYPOINT  ["/usr/bin/mittnite"]

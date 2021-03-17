@@ -2,11 +2,12 @@ package probe
 
 import (
 	"fmt"
+	"net/url"
+
 	"github.com/mittwald/mittnite/internal/config"
 	"github.com/mittwald/mittnite/internal/helper"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
-	"net/url"
 )
 
 const (
