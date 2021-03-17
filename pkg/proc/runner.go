@@ -111,10 +111,11 @@ func (r *Runner) Run(ctx context.Context) error {
 
 	r.exec(ctx, &wg, errChan)
 
+	wgChan := waitGroupToChannel(&wg)
 	for {
 		select {
 		// wait for them all to finish, or one to fail
-		case <-waitGroupToChannel(&wg):
+		case <-wgChan:
 			return nil
 
 		// watch files
