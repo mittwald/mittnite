@@ -88,7 +88,7 @@ If you'd like to use `mittnite` for non-static applications like `node` or simil
 FROM        node:12-alpine
 ENV         MITTNITE_VERSION="1.1.2"
 RUN         wget -qO- https://github.com/mittwald/mittnite/releases/download/v${MITTNITE_VERSION}/mittnite_${MITTNITE_VERSION}_linux_x86_64.tar.gz \
-                | tar xvz mittnite -C /usr/bin && \
+                | tar xvz -C /usr/bin mittnite && \
             chmod +x /usr/bin/mittnite
 COPY        mittnite.d/ /etc/mittnite.d/
 ENTRYPOINT  ["/usr/bin/mittnite"]
