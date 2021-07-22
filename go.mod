@@ -13,9 +13,7 @@ require (
 	github.com/spf13/cobra v1.1.3
 	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
 	github.com/stretchr/testify v1.7.0 // indirect
-	github.com/xdg/stringprep v1.0.0 // indirect
-	go.mongodb.org/mongo-driver v1.5.0
-	golang.org/x/text v0.3.5 // indirect
+	go.mongodb.org/mongo-driver v1.5.1
 )
 
 go 1.16
