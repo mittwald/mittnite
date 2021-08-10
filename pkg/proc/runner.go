@@ -127,7 +127,7 @@ func (r *Runner) Run(ctx context.Context) error {
 		// handle errors
 		case err := <-errChan:
 			log.Error(err)
-
+			return err
 		}
 	}
 }
