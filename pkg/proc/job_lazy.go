@@ -2,7 +2,6 @@ package proc
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"sync"
 	"syscall"
