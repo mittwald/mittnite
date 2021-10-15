@@ -29,7 +29,10 @@ func (job *LazyJob) AssertStarted(ctx context.Context) error {
 
 	go func() {
 		if err := job.startOnce(ctx, p); err != nil {
-			e <- err
+			select {
+			case e <- err:
+			default:
+			}
 		}
 
 		job.process = nil
@@ -72,7 +75,7 @@ func (job *LazyJob) Run(ctx context.Context, errors chan<- error) error {
 }
 
 func (job *LazyJob) startProcessReaper(ctx context.Context) {
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(1 * time.Minute)
 	go func() {
 		for {
 			select {
@@ -85,6 +88,10 @@ func (job *LazyJob) startProcessReaper(ctx context.Context) {
 
 				diff := time.Since(job.lastConnectionClosed)
 				if diff < job.coolDownTimeout {
+					continue
+				}
+
+				if job.process == nil {
 					continue
 				}
 
