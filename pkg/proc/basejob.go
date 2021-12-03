@@ -36,8 +36,10 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 	job.cmd = exec.Command(job.Config.Command, job.Config.Args...)
 	job.cmd.Stdout = os.Stdout
 	job.cmd.Stderr = os.Stderr
+	job.cmd.Env = os.Environ()
+
 	if job.Config.Env != nil {
-		job.cmd.Env = append(os.Environ(), job.Config.Env...)
+		job.cmd.Env = append(job.cmd.Env, job.Config.Env...)
 	}
 
 	l.Info("starting job")
