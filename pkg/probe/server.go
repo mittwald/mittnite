@@ -106,12 +106,12 @@ func NewProbeHandler(cfg *config.Ignition) (*Handler, error) {
 	return handler, nil
 }
 
-func RunProbeServer(ph *Handler, signals chan os.Signal) error {
+func RunProbeServer(ph *Handler, signals chan os.Signal, probePort int) error {
 	m := mux.NewRouter()
 	m.Path("/status").HandlerFunc(ph.HandleStatus)
 
 	server := http.Server{
-		Addr:    ":9102",
+		Addr:    fmt.Sprintf(":%d", probePort),
 		Handler: m,
 	}
 

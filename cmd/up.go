@@ -14,8 +14,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var probeListenPort int
+
 func init() {
 	rootCmd.AddCommand(up)
+	up.PersistentFlags().IntVarP(&probeListenPort, "probe-listen-port", "p", 9102, "set the port to listen for probe requests")
 }
 
 var up = &cobra.Command{
@@ -61,7 +64,8 @@ var up = &cobra.Command{
 		probeHandler, _ := probe.NewProbeHandler(ignitionConfig)
 
 		go func() {
-			err := probe.RunProbeServer(probeHandler, probeSignals)
+			log.Infof("probeServer listens on port %d", probeListenPort)
+			err := probe.RunProbeServer(probeHandler, probeSignals, probeListenPort)
 			if err != nil {
 				log.Fatalf("probe server stopped with error: %s", err)
 			} else {
