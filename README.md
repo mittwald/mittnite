@@ -142,6 +142,29 @@ job "foo" {
 }
 ```
 
+In addition, it is possible to execute a command before and/or after signaling.
+This command should not modify the file being watched, otherwise the watcher might enter an infinite loop.
+
+```hcl
+job "foo" {
+  // ...
+
+  watch "/etc/conf.d/barfoo" {
+    signal = 12
+
+    preCommand {
+      command = "echo"
+      args = ["before"]
+    }
+
+    postCommand {
+      command = "echo"
+      args = ["after"]
+    }
+  }
+}
+```
+
 You can also configure a Job to start its process only on the first incoming request (a bit like [systemd's socket activation](https://www.freedesktop.org/software/systemd/man/systemd.socket.html)). In order to configure this, you need a `listener` and a `lazy` configuration:
 
 ```hcl
