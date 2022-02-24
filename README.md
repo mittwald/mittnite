@@ -130,7 +130,7 @@ job "foo" {
 }
 ```
 
-You can configure a Job to watch files and to send a signal to the managed process if that file changes. This can be used, for example, to send a `SIGHUP` to a process to reload its configuration file when it changes. 
+You can configure a Job to watch files and to send a signal to the managed process if that file changes. This can be used, for example, to send a `SIGHUP` to a process to reload its configuration file when it changes.
   
 ```hcl
 job "foo" {

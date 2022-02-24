@@ -131,11 +131,10 @@ func (job *CommonJob) Watch() {
 			continue
 		}
 
+		l := log.WithField("job.name", job.Config.Name)
 		if watch.PreCommand != nil {
 			if err := job.executeWatchCommand(watch.PreCommand); err != nil {
-				log.WithField("job.name", job.Config.Name).
-					WithError(err).
-					Warn("failed to execute pre watch command")
+				l.WithError(err).Warn("failed to execute pre watch command")
 			}
 		}
 
@@ -143,9 +142,7 @@ func (job *CommonJob) Watch() {
 
 		if watch.PostCommand != nil {
 			if err := job.executeWatchCommand(watch.PostCommand); err != nil {
-				log.WithField("job.name", job.Config.Name).
-					WithError(err).
-					Warn("failed to execute post watch command")
+				l.WithError(err).Warn("failed to execute post watch command")
 			}
 		}
 	}
