@@ -142,7 +142,8 @@ job "foo" {
 }
 ```
 
-In addition, it is possible to execute an optional command before and/or after signaling:
+In addition, it is possible to execute a command before and/or after signaling.
+This command should not modify the file being watched, otherwise the watcher might enter an infinite loop.
 
 ```hcl
 job "foo" {
