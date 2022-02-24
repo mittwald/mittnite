@@ -59,7 +59,16 @@ type Probe struct {
 
 type Watch struct {
 	Filename string `hcl:",key"`
-	Signal   int
+	Signal   int    `hcl:"signal"`
+
+	PreCommand  *WatchCommand `hcl:"preCommand"`
+	PostCommand *WatchCommand `hcl:"postCommand"`
+}
+
+type WatchCommand struct {
+	Command string   `hcl:"command"`
+	Args    []string `hcl:"args"`
+	Env     []string `hcl:"env"`
 }
 
 type Listener struct {

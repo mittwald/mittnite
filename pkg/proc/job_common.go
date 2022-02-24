@@ -2,8 +2,11 @@ package proc
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/mittwald/mittnite/internal/config"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"syscall"
 	"time"
@@ -69,6 +72,24 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 	}
 }
 
+func (job *CommonJob) executeWatchCommand(watchCmd *config.WatchCommand) error {
+	if len(watchCmd.Command) == 0 {
+		return errors.New("command is missing")
+	}
+	cmd := exec.Command(watchCmd.Command, watchCmd.Args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+
+	if watchCmd.Env != nil {
+		cmd.Env = append(cmd.Env, watchCmd.Env...)
+	}
+
+	log.WithField("job.name", job.Config.Name).
+		Info("executing watch command")
+	return cmd.Run()
+}
+
 func (job *CommonJob) Watch() {
 	for w := range job.Config.Watches {
 		watch := &job.Config.Watches[w]
@@ -106,9 +127,26 @@ func (job *CommonJob) Watch() {
 			}
 		}
 
-		// send signal
-		if signal {
-			job.Signal(syscall.Signal(watch.Signal))
+		if !signal {
+			continue
+		}
+
+		if watch.PreCommand != nil {
+			if err := job.executeWatchCommand(watch.PreCommand); err != nil {
+				log.WithField("job.name", job.Config.Name).
+					WithError(err).
+					Warn("failed to execute pre watch command")
+			}
+		}
+
+		job.Signal(syscall.Signal(watch.Signal))
+
+		if watch.PostCommand != nil {
+			if err := job.executeWatchCommand(watch.PostCommand); err != nil {
+				log.WithField("job.name", job.Config.Name).
+					WithError(err).
+					Warn("failed to execute post watch command")
+			}
 		}
 	}
 }
