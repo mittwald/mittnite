@@ -54,7 +54,7 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 				return nil
 			}
 			l.Warn("job exited without errors")
-		case ErrRestartProcess:
+		case ProcessWillBeRestartedError:
 			l.Info("restart process")
 			continue
 		default:

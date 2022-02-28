@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var ErrRestartProcess = errors.New("restart process")
+var ProcessWillBeRestartedError = errors.New("process will be restarted")
 
 func (job *baseJob) Signal(sig os.Signal) {
 	errFunc := func(err error) {
@@ -69,7 +69,7 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 	case err := <-errChan:
 		select {
 		case <-job.restartChan:
-			return ErrRestartProcess
+			return ProcessWillBeRestartedError
 		default:
 			if err != nil {
 				l.WithError(err).Error("job exited with error")
