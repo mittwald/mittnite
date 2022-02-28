@@ -60,6 +60,7 @@ type Probe struct {
 type Watch struct {
 	Filename string `hcl:",key"`
 	Signal   int    `hcl:"signal"`
+	Restart  bool   `hcl:"restart"`
 
 	PreCommand  *WatchCommand `hcl:"preCommand"`
 	PostCommand *WatchCommand `hcl:"postCommand"`

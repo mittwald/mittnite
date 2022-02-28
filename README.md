@@ -142,6 +142,19 @@ job "foo" {
 }
 ```
 
+If the running process cannot handle a signal to reload the configuration, the `restart` parameter can be set to `true`. In this case the specified `signal` will be sent to gracefully terminate the process and restart it afterwards:
+
+```hcl
+job "foo" {
+  // ...
+
+  watch "/etc/conf.d/barfoo" {
+    signal = 15 # SIGTERM
+    restart = true
+  }
+}
+```
+
 In addition, it is possible to execute a command before and/or after signaling.
 This command should not modify the file being watched, otherwise the watcher might enter an infinite loop.
 

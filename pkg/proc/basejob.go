@@ -2,6 +2,7 @@ package proc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,6 +11,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 )
+
+var ErrRestartProcess = errors.New("restart process")
 
 func (job *baseJob) Signal(sig os.Signal) {
 	errFunc := func(err error) {
@@ -25,6 +28,7 @@ func (job *baseJob) Signal(sig os.Signal) {
 		return
 	}
 
+	log.WithField("job.name", job.Config.Name).Infof("sending signal %d to process", sig)
 	errFunc(
 		job.cmd.Process.Signal(sig),
 	)
@@ -54,9 +58,8 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 	}
 
 	errChan := make(chan error, 1)
-	defer func() {
-		close(errChan)
-	}()
+	defer close(errChan)
+
 	go func() {
 		errChan <- job.cmd.Wait()
 	}()
@@ -64,10 +67,15 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 	select {
 	// job errChan or failed
 	case err := <-errChan:
-		if err != nil {
-			l.WithError(err).Error("job exited with error")
+		select {
+		case <-job.restartChan:
+			return ErrRestartProcess
+		default:
+			if err != nil {
+				l.WithError(err).Error("job exited with error")
+			}
+			return err
 		}
-		return err
 	case <-ctx.Done():
 		// ctx canceled, try to terminate job
 		_ = job.cmd.Process.Signal(syscall.SIGTERM)
@@ -85,4 +93,12 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 			return err
 		}
 	}
+}
+
+func (job *baseJob) Restart() {
+	job.restartChan <- nil
+}
+
+func (job *baseJob) TearDown() {
+	close(job.restartChan)
 }

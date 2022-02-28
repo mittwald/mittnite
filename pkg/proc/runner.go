@@ -93,7 +93,10 @@ func (r *Runner) exec(ctx context.Context, wg *sync.WaitGroup, errChan chan<- er
 		// execute job command
 		wg.Add(1)
 		go func() {
-			defer wg.Done()
+			defer func() {
+				job.TearDown()
+				wg.Done()
+			}()
 
 			err := job.Run(ctx, errChan)
 			if err != nil {

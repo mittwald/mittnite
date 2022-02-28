@@ -47,14 +47,18 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 
 	for { // restart failed jobs as long mittnite is running
 		err := job.startOnce(ctx, nil)
-		if err != nil {
-			l.WithError(err).Error("job exited with error")
-		} else {
+		switch err {
+		case nil:
 			if job.Config.OneTime {
 				l.Info("one-time job has ended successfully")
 				return nil
 			}
 			l.Warn("job exited without errors")
+		case ErrRestartProcess:
+			l.Info("restart process")
+			continue
+		default:
+			l.WithError(err).Error("job exited with error")
 		}
 
 		attempts++
@@ -138,6 +142,9 @@ func (job *CommonJob) Watch() {
 			}
 		}
 
+		if watch.Restart {
+			go job.Restart()
+		}
 		job.Signal(syscall.Signal(watch.Signal))
 
 		if watch.PostCommand != nil {

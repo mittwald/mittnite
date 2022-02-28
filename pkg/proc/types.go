@@ -22,7 +22,8 @@ type Runner struct {
 }
 
 type baseJob struct {
-	Config *config.BaseJobConfig
+	Config      *config.BaseJobConfig
+	restartChan chan interface{}
 
 	cmd *exec.Cmd
 }
@@ -58,12 +59,14 @@ type Job interface {
 	Init()
 	Run(context.Context, chan<- error) error
 	Watch()
+	TearDown()
 }
 
 func NewCommonJob(c *config.JobConfig) *CommonJob {
 	j := CommonJob{
 		baseJob: baseJob{
-			Config: &c.BaseJobConfig,
+			Config:      &c.BaseJobConfig,
+			restartChan: make(chan interface{}),
 		},
 		Config: c,
 	}
@@ -104,7 +107,8 @@ func NewLazyJob(c *config.JobConfig) (*LazyJob, error) {
 func NewBootJob(c *config.BootJobConfig) (*BootJob, error) {
 	bj := BootJob{
 		baseJob: baseJob{
-			Config: &c.BaseJobConfig,
+			Config:      &c.BaseJobConfig,
+			restartChan: make(chan interface{}),
 		},
 		Config: c,
 	}
