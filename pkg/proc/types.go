@@ -24,7 +24,8 @@ type Runner struct {
 type baseJob struct {
 	Config *config.BaseJobConfig
 
-	cmd *exec.Cmd
+	cmd     *exec.Cmd
+	restart bool
 }
 
 type BootJob struct {
