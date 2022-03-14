@@ -143,7 +143,7 @@ func (job *CommonJob) Watch() {
 		}
 
 		if watch.Restart {
-			go job.Restart()
+			job.MarkForRestart()
 		}
 		job.Signal(syscall.Signal(watch.Signal))
 

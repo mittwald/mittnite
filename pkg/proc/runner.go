@@ -94,7 +94,6 @@ func (r *Runner) exec(ctx context.Context, wg *sync.WaitGroup, errChan chan<- er
 		wg.Add(1)
 		go func() {
 			defer func() {
-				job.TearDown()
 				wg.Done()
 			}()
 

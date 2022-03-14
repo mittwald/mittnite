@@ -67,15 +67,15 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 	select {
 	// job errChan or failed
 	case err := <-errChan:
-		select {
-		case <-job.restartChan:
+		if job.restart {
+			job.restart = false
 			return ProcessWillBeRestartedError
-		default:
-			if err != nil {
-				l.WithError(err).Error("job exited with error")
-			}
-			return err
 		}
+
+		if err != nil {
+			l.WithError(err).Error("job exited with error")
+		}
+		return err
 	case <-ctx.Done():
 		// ctx canceled, try to terminate job
 		_ = job.cmd.Process.Signal(syscall.SIGTERM)
@@ -95,10 +95,6 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 	}
 }
 
-func (job *baseJob) Restart() {
-	job.restartChan <- nil
-}
-
-func (job *baseJob) TearDown() {
-	close(job.restartChan)
+func (job *baseJob) MarkForRestart() {
+	job.restart = true
 }
