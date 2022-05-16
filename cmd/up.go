@@ -3,7 +3,6 @@ package cmd
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -133,7 +132,7 @@ func writePidFile() error {
 	}
 	if stats, err := os.Stat(pidFile); err == nil {
 		if stats.Size() > 0 {
-			return errors.New("pidFile already exists")
+			return fmt.Errorf("pidFile %q already exists", pidFile)
 		}
 	}
 
