@@ -1,9 +1,13 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/mittwald/mittnite/internal/config"
@@ -14,11 +18,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var probeListenPort int
+var (
+	probeListenPort int
+	pidFIle         string
+)
 
 func init() {
+	log.StandardLogger().ExitFunc = func(i int) {
+		defer func() {
+			_ = recover() // prevent from printing trace
+		}()
+		panic(fmt.Sprintf("exit %d", i))
+	}
 	rootCmd.AddCommand(up)
 	up.PersistentFlags().IntVarP(&probeListenPort, "probe-listen-port", "p", 9102, "set the port to listen for probe requests")
+	up.PersistentFlags().StringVarP(&pidFIle, "pidfile", "", "", "write mittnites process id to this file")
 }
 
 var up = &cobra.Command{
@@ -32,13 +46,20 @@ var up = &cobra.Command{
 			Jobs:   nil,
 		}
 
-		err := ignitionConfig.GenerateFromConfigDir(configDir)
-		if err != nil {
+		if err := writePidFile(); err != nil {
+			log.Fatalf("failed to write pid file to %q: %s", pidFIle, err)
+		}
+		defer func() {
+			if err := deletePidFile(); err != nil {
+				log.Errorf("error while cleaning up the pid file: %s", err)
+			}
+		}()
+
+		if err := ignitionConfig.GenerateFromConfigDir(configDir); err != nil {
 			log.Fatalf("failed while trying to generate ignition config from dir '%+v', err: '%+v'", configDir, err)
 		}
 
-		err = files.RenderFiles(ignitionConfig.Files)
-		if err != nil {
+		if err := files.RenderFiles(ignitionConfig.Files); err != nil {
 			log.Fatalf("failed while rendering files from ignition config, err: '%+v'", err)
 		}
 
@@ -73,8 +94,7 @@ var up = &cobra.Command{
 			}
 		}()
 
-		err = probeHandler.Wait(readinessSignals)
-		if err != nil {
+		if err := probeHandler.Wait(readinessSignals); err != nil {
 			log.Fatalf("probe handler failed while waiting for readiness signals: '%+v'", err)
 		}
 
@@ -101,4 +121,44 @@ var up = &cobra.Command{
 			log.Print("service runner stopped without error")
 		}
 	},
+}
+
+func writePidFile() error {
+	if pidFIle == "" {
+		return nil
+	}
+
+	if err := os.MkdirAll(filepath.Dir(pidFIle), 0o755); err != nil {
+		return err
+	}
+	if stats, err := os.Stat(pidFIle); err == nil {
+		if stats.Size() > 0 {
+			return errors.New("pidFile already exists")
+		}
+	}
+
+	return os.WriteFile(pidFIle, pidToByteString(), 0644)
+
+}
+
+func deletePidFile() error {
+	if pidFIle == "" {
+		return nil
+	}
+
+	pid := pidToByteString()
+	content, err := os.ReadFile(pidFIle)
+	if err != nil {
+		return err
+	}
+
+	if bytes.Compare(pid, content) != 0 {
+		return fmt.Errorf("won't delete pid file %q because it does not contain the expected content", pidFIle)
+	}
+
+	return os.Remove(pidFIle)
+}
+
+func pidToByteString() []byte {
+	return []byte(fmt.Sprintf("%d", os.Getpid()))
 }
