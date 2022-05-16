@@ -20,7 +20,7 @@ import (
 
 var (
 	probeListenPort int
-	pidFIle         string
+	pidFile         string
 )
 
 func init() {
@@ -32,7 +32,7 @@ func init() {
 	}
 	rootCmd.AddCommand(up)
 	up.PersistentFlags().IntVarP(&probeListenPort, "probe-listen-port", "p", 9102, "set the port to listen for probe requests")
-	up.PersistentFlags().StringVarP(&pidFIle, "pidfile", "", "", "write mittnites process id to this file")
+	up.PersistentFlags().StringVarP(&pidFile, "pidfile", "", "", "write mittnites process id to this file")
 }
 
 var up = &cobra.Command{
@@ -47,7 +47,7 @@ var up = &cobra.Command{
 		}
 
 		if err := writePidFile(); err != nil {
-			log.Fatalf("failed to write pid file to %q: %s", pidFIle, err)
+			log.Fatalf("failed to write pid file to %q: %s", pidFile, err)
 		}
 		defer func() {
 			if err := deletePidFile(); err != nil {
@@ -124,39 +124,39 @@ var up = &cobra.Command{
 }
 
 func writePidFile() error {
-	if pidFIle == "" {
+	if pidFile == "" {
 		return nil
 	}
 
-	if err := os.MkdirAll(filepath.Dir(pidFIle), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(pidFile), 0o755); err != nil {
 		return err
 	}
-	if stats, err := os.Stat(pidFIle); err == nil {
+	if stats, err := os.Stat(pidFile); err == nil {
 		if stats.Size() > 0 {
 			return errors.New("pidFile already exists")
 		}
 	}
 
-	return os.WriteFile(pidFIle, pidToByteString(), 0644)
+	return os.WriteFile(pidFile, pidToByteString(), 0644)
 
 }
 
 func deletePidFile() error {
-	if pidFIle == "" {
+	if pidFile == "" {
 		return nil
 	}
 
 	pid := pidToByteString()
-	content, err := os.ReadFile(pidFIle)
+	content, err := os.ReadFile(pidFile)
 	if err != nil {
 		return err
 	}
 
 	if bytes.Compare(pid, content) != 0 {
-		return fmt.Errorf("won't delete pid file %q because it does not contain the expected content", pidFIle)
+		return fmt.Errorf("won't delete pid file %q because it does not contain the expected content", pidFile)
 	}
 
-	return os.Remove(pidFIle)
+	return os.Remove(pidFile)
 }
 
 func pidToByteString() []byte {
