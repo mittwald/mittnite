@@ -31,8 +31,9 @@ nfpms:
       - deb
       - rpm
     bindir: /usr/bin
-    empty_folders:
-      - /etc/mittnite.d
+    contents:
+      - dst: /etc/mittnite.d
+        type: dir
 checksum:
   name_template: 'checksums.txt'
 snapshot:
