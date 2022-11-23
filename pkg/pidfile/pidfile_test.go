@@ -1,10 +1,11 @@
 package pidfile_test
 
 import (
-	"github.com/mittwald/mittnite/pkg/pidfile"
-	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
+
+	"github.com/mittwald/mittnite/pkg/pidfile"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPidFileCanBeAcquiredAndReleased(t *testing.T) {

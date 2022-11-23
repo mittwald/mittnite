@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/mittwald/mittnite/internal/config"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"syscall"
 	"time"
 
+	"github.com/mittwald/mittnite/internal/config"
 	log "github.com/sirupsen/logrus"
 )
 

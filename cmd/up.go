@@ -3,13 +3,13 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"github.com/mittwald/mittnite/pkg/pidfile"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/mittwald/mittnite/internal/config"
 	"github.com/mittwald/mittnite/pkg/files"
+	"github.com/mittwald/mittnite/pkg/pidfile"
 	"github.com/mittwald/mittnite/pkg/probe"
 	"github.com/mittwald/mittnite/pkg/proc"
 	log "github.com/sirupsen/logrus"
