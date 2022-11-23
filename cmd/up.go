@@ -1,16 +1,15 @@
 package cmd
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 
 	"github.com/mittwald/mittnite/internal/config"
 	"github.com/mittwald/mittnite/pkg/files"
+	"github.com/mittwald/mittnite/pkg/pidfile"
 	"github.com/mittwald/mittnite/pkg/probe"
 	"github.com/mittwald/mittnite/pkg/proc"
 	log "github.com/sirupsen/logrus"
@@ -45,11 +44,14 @@ var up = &cobra.Command{
 			Jobs:   nil,
 		}
 
-		if err := writePidFile(); err != nil {
+		pidFileHandle := pidfile.New(pidFile)
+
+		if err := pidFileHandle.Acquire(); err != nil {
 			log.Fatalf("failed to write pid file to %q: %s", pidFile, err)
 		}
+
 		defer func() {
-			if err := deletePidFile(); err != nil {
+			if err := pidFileHandle.Release(); err != nil {
 				log.Errorf("error while cleaning up the pid file: %s", err)
 			}
 		}()
@@ -120,44 +122,4 @@ var up = &cobra.Command{
 			log.Print("service runner stopped without error")
 		}
 	},
-}
-
-func writePidFile() error {
-	if pidFile == "" {
-		return nil
-	}
-
-	if err := os.MkdirAll(filepath.Dir(pidFile), 0o755); err != nil {
-		return err
-	}
-	if stats, err := os.Stat(pidFile); err == nil {
-		if stats.Size() > 0 {
-			return fmt.Errorf("pidFile %q already exists", pidFile)
-		}
-	}
-
-	return os.WriteFile(pidFile, pidToByteString(), 0644)
-
-}
-
-func deletePidFile() error {
-	if pidFile == "" {
-		return nil
-	}
-
-	pid := pidToByteString()
-	content, err := os.ReadFile(pidFile)
-	if err != nil {
-		return err
-	}
-
-	if bytes.Compare(pid, content) != 0 {
-		return fmt.Errorf("won't delete pid file %q because it does not contain the expected content", pidFile)
-	}
-
-	return os.Remove(pidFile)
-}
-
-func pidToByteString() []byte {
-	return []byte(fmt.Sprintf("%d", os.Getpid()))
 }
