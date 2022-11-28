@@ -1,6 +1,7 @@
 module github.com/mittwald/mittnite
 
 require (
+	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/go-redis/redis v6.15.6+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/google/go-cmp v0.5.4 // indirect
@@ -12,7 +13,7 @@ require (
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.1.3
 	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
-	github.com/stretchr/testify v1.7.0 // indirect
+	github.com/stretchr/testify v1.7.0
 	go.mongodb.org/mongo-driver v1.5.1
 )
 
