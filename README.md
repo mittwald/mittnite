@@ -254,6 +254,13 @@ probe "probe-name" {
     password = ""
   }
   
+  smtp {
+    host = {
+      hostname = "localhost"
+      port = 25
+    }
+  }
+
   mysql {
     host = {
       hostname = "localhost"

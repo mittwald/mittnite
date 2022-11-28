@@ -164,6 +164,8 @@ func buildProbesFromConfig(cfg *config.Ignition) (map[string]Probe, error) {
 			result[cfg.Probes[i].Name] = NewAmqpProbe(cfg.Probes[i].Amqp)
 		} else if cfg.Probes[i].HTTP != nil {
 			result[cfg.Probes[i].Name] = NewHttpProbe(cfg.Probes[i].HTTP)
+		} else if cfg.Probes[i].SMTP != nil {
+			result[cfg.Probes[i].Name] = NewSmtpProbe(cfg.Probes[i].SMTP)
 		}
 	}
 

@@ -39,6 +39,10 @@ type Redis struct {
 	Password string
 }
 
+type SMTP struct {
+	Host
+}
+
 type HttpGet struct {
 	Scheme string
 	Host
@@ -55,6 +59,7 @@ type Probe struct {
 	MongoDB    *MongoDB
 	Amqp       *Amqp
 	HTTP       *HttpGet
+	SMTP       *SMTP
 }
 
 type Watch struct {
