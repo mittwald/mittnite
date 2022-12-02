@@ -289,6 +289,7 @@ probe "probe-name" {
   }
   
   http {
+    method = "post"
     scheme = "http"
     host = {
         hostname = "localhost"
@@ -296,6 +297,13 @@ probe "probe-name" {
     }
     path = "/status"
     timeout = "5s"
+    payload = "{\"body\": 123}"
+    # regex to match against the response status line
+    # (e.g. 403 Forbidden)
+    expectStatus = "(200|201)"
+    headers = {
+      Content-Type = "application/json"
+    }
   }
 }
 ```
