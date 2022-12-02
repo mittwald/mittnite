@@ -1,4 +1,6 @@
 /.idea
 /mittnite
+/mittnite.*
+/mittnite-*
 /dist
 examples/mittnite.d/local.hcl

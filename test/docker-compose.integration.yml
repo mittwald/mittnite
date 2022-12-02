@@ -1,0 +1,38 @@
+---
+
+version: '2.4'
+
+services:
+  amqp:
+    image: docker.io/nikitanovosibirsk/amqp-mock
+    ports:
+      - 127.0.0.1:15672:5672
+  http:
+    image: docker.io/kennethreitz/httpbin
+    ports:
+      - 127.0.0.1:18080:80
+  mongo:
+    image: docker.io/library/mongo
+    ports:
+      - 127.0.0.1:17017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: tester
+      MONGO_INITDB_ROOT_PASSWORD: integration_test
+      MONGO_INITDB_DATABASE: integration
+  mysql:
+    image: docker.io/library/mariadb
+    ports:
+      - 127.0.0.1:13306:3306
+    environment:
+      MYSQL_USER: tester
+      MYSQL_PASSWORD: integration_test
+      MYSQL_DATABASE: integration
+      MYSQL_ROOT_PASSWORD: integration_test
+  redis:
+    image: docker.io/library/redis
+    ports:
+      - 127.0.0.1:16379:6379
+  smtp:
+    image: docker.io/tremolosecurity/smtp-blackhole
+    ports:
+      - 127.0.0.1:12525:1025
