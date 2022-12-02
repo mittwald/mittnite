@@ -43,11 +43,15 @@ type SMTP struct {
 	Host
 }
 
-type HttpGet struct {
+type HTTP struct {
+	Method string
 	Scheme string
 	Host
-	Path    string
-	Timeout string
+	Path         string
+	Timeout      string
+	Payload      string
+	ExpectStatus string
+	Headers      map[string]string
 }
 
 type Probe struct {
@@ -58,7 +62,7 @@ type Probe struct {
 	Redis      *Redis
 	MongoDB    *MongoDB
 	Amqp       *Amqp
-	HTTP       *HttpGet
+	HTTP       *HTTP
 	SMTP       *SMTP
 }
 
