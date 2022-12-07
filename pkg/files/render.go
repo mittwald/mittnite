@@ -7,6 +7,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/Masterminds/sprig/v3"
 	"github.com/mittwald/mittnite/internal/config"
 	log "github.com/sirupsen/logrus"
 )
@@ -14,6 +15,23 @@ import (
 type templateData struct {
 	Env    map[string]string
 	Params map[string]interface{}
+}
+
+func newTemplateData(params map[string]interface{}) *templateData {
+	pairs := os.Environ()
+	env := make(map[string]string, len(pairs))
+
+	for _, e := range pairs {
+		e := strings.SplitN(e, "=", 2)
+		if len(e) > 1 {
+			env[e[0]] = e[1]
+		}
+	}
+
+	return &templateData{
+		Params: params,
+		Env:    env,
+	}
 }
 
 func RenderFiles(configs []config.File) error {
@@ -43,12 +61,7 @@ func renderFile(cfg *config.File) error {
 
 	log.Infof("creating configuration file %s from template %s", cfg.Target, cfg.Template)
 
-	tplContents, err := os.ReadFile(cfg.Template)
-	if err != nil {
-		return err
-	}
-
-	tpl, err := template.New(cfg.Target).Parse(string(tplContents))
+	tpl, err := newTemplate(cfg.Target).ParseFiles(cfg.Template)
 	if err != nil {
 		return err
 	}
@@ -69,22 +82,31 @@ func renderFile(cfg *config.File) error {
 
 	defer func() { _ = out.Close() }()
 
-	data := templateData{
-		Env:    make(map[string]string),
-		Params: cfg.Parameters,
-	}
+	data := newTemplateData(cfg.Parameters)
 
-	for _, e := range os.Environ() {
-		e := strings.SplitN(e, "=", 2)
-		if len(e) > 1 {
-			data.Env[e[0]] = e[1]
-		}
-	}
-
-	err = tpl.Execute(out, &data)
+	err = tpl.Execute(out, data)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// newTemplateFuncs create a map of template
+// functions for use with data rendering
+func newTemplateFuncs() template.FuncMap {
+	funcs := sprig.TxtFuncMap()
+
+	// env is not needed as environment
+	// varibles are already accessible
+	// from the template parameters via Env
+	delete(funcs, "env")
+
+	return funcs
+}
+
+// newTemplate creates a template instance with
+// custom functions loaded
+func newTemplate(name string) *template.Template {
+	return template.New(name).Funcs(newTemplateFuncs())
 }

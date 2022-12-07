@@ -238,6 +238,21 @@ file "/path/to/second_file.txt" {
 }
 ```
 
+Files are rendered using Golang's [text rendering engine][].
+The rendering capabilities have been enhanced with
+[sprig][] functions. The `env` function has been removed
+as environment variables can be accessed via the *Env*
+template variable.
+
+```
+some.param = {{ .Params.foo | default "bac" }}
+some.env = {{ .Env.USER | upper }}
+secret = {{ randAlphaNum 16 }}
+```
+
+[text rendering engine]: https://pkg.go.dev/text/template
+[sprig]: https://github.com/Masterminds/sprig
+
 #### Probe
 
 Possible directives to use in a probe definition.
