@@ -41,6 +41,7 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 	job.cmd.Stdout = os.Stdout
 	job.cmd.Stderr = os.Stderr
 	job.cmd.Env = os.Environ()
+	job.cmd.Dir = job.Config.WorkingDirectory
 
 	if job.Config.Env != nil {
 		job.cmd.Env = append(job.cmd.Env, job.Config.Env...)
