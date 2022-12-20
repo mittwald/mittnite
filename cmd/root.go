@@ -27,3 +27,9 @@ func Execute() {
 		log.Fatal(err)
 	}
 }
+
+func ExecuteCTL() {
+	if err := ctlCommand.Execute(); err != nil {
+		log.Fatal(err)
+	}
+}

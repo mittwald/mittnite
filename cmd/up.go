@@ -16,9 +16,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	defaultApiAddress = "unix:///tmp/mittnite/mittnite.sock"
+)
+
 var (
-	probeListenPort int
-	pidFile         string
+	probeListenPort  int
+	pidFile          string
+	apiEnabled       bool
+	apiListenAddress string
+	keepRunning      bool
 )
 
 func init() {
@@ -31,6 +38,9 @@ func init() {
 	rootCmd.AddCommand(up)
 	up.PersistentFlags().IntVarP(&probeListenPort, "probe-listen-port", "p", 9102, "set the port to listen for probe requests")
 	up.PersistentFlags().StringVarP(&pidFile, "pidfile", "", "", "write mittnites process id to this file")
+	up.PersistentFlags().BoolVarP(&apiEnabled, "api", "", false, "enables the api for remote or cli controlling")
+	up.PersistentFlags().StringVarP(&apiListenAddress, "api-listen-address", "", defaultApiAddress, fmt.Sprintf("listen address for the api. Defaults to %q", defaultApiAddress))
+	up.PersistentFlags().BoolVarP(&keepRunning, "keep-running", "k", false, "keep mittnite running even if no job is running anymore")
 }
 
 var up = &cobra.Command{
@@ -104,19 +114,23 @@ var up = &cobra.Command{
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		runner := proc.NewRunner(ignitionConfig)
+		var api *proc.Api
+		if apiEnabled {
+			api = proc.NewApi(apiListenAddress)
+		}
+		runner := proc.NewRunner(ctx, api, keepRunning, ignitionConfig)
 		go func() {
 			<-procSignals
 			cancel()
 		}()
 
-		if err := runner.Boot(ctx); err != nil {
+		if err := runner.Boot(); err != nil {
 			log.WithError(err).Fatal("runner error'ed during initialization")
 		} else {
 			log.Info("initialization complete")
 		}
 
-		if err := runner.Run(ctx); err != nil {
+		if err := runner.Run(); err != nil {
 			log.WithError(err).Fatal("service runner stopped with error")
 		} else {
 			log.Print("service runner stopped without error")

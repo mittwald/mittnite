@@ -87,11 +87,12 @@ type Listener struct {
 }
 
 type BaseJobConfig struct {
-	Name    string   `hcl:",key"`
-	Command string   `hcl:"command"`
-	Args    []string `hcl:"args"`
-	Env     []string `hcl:"env"`
-	CanFail bool     `hcl:"canFail"`
+	Name         string   `hcl:",key" json:"name"`
+	Command      string   `hcl:"command" json:"command"`
+	Args         []string `hcl:"args" json:"args"`
+	Env          []string `hcl:"env" json:"env"`
+	CanFail      bool     `hcl:"canFail" json:"canFail"`
+	Controllable bool     `hcl:"controllable" json:"controllable"`
 }
 
 type Laziness struct {
@@ -100,18 +101,18 @@ type Laziness struct {
 }
 
 type JobConfig struct {
-	BaseJobConfig `hcl:",squash"`
+	BaseJobConfig `hcl:",squash" json:",inline"`
 
 	// optional fields for "normal" jobs
 	// these will be ignored if fields for lazy jobs are set
-	Watches      []Watch `hcl:"watch"`
-	MaxAttempts_ int     `hcl:"max_attempts"` // deprecated
-	MaxAttempts  int     `hcl:"maxAttempts"`
-	OneTime      bool    `hcl:"oneTime"`
+	Watches      []Watch `hcl:"watch" json:"watch"`
+	MaxAttempts_ int     `hcl:"max_attempts" json:"-"` // deprecated
+	MaxAttempts  int     `hcl:"maxAttempts" json:"maxAttempts"`
+	OneTime      bool    `hcl:"oneTime" json:"oneTime"`
 
 	// fields required for lazy activation
-	Laziness  *Laziness  `hcl:"lazy"`
-	Listeners []Listener `hcl:"listen"`
+	Laziness  *Laziness  `hcl:"lazy" json:"lazy"`
+	Listeners []Listener `hcl:"listen" json:"listen"`
 }
 
 type BootJobConfig struct {

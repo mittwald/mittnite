@@ -2,6 +2,9 @@ package proc
 
 import (
 	"context"
+	"fmt"
+	"github.com/gorilla/mux"
+	"net/http"
 	"sync"
 	"time"
 
@@ -9,11 +12,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func NewRunner(ignitionConfig *config.Ignition) *Runner {
+func NewRunner(ctx context.Context, api *Api, keepRunning bool, ignitionConfig *config.Ignition) *Runner {
 	return &Runner{
 		IgnitionConfig: ignitionConfig,
+		ctx:            ctx,
 		jobs:           []Job{},
 		bootJobs:       make([]*BootJob, 0, len(ignitionConfig.BootJobs)),
+		api:            api,
+		keepRunning:    keepRunning,
 	}
 }
 
@@ -27,7 +33,7 @@ func waitGroupToChannel(wg *sync.WaitGroup) <-chan struct{} {
 	return d
 }
 
-func (r *Runner) Boot(ctx context.Context) error {
+func (r *Runner) Boot() error {
 	wg := sync.WaitGroup{}
 	bootErrs := make(chan error)
 
@@ -55,16 +61,16 @@ func (r *Runner) Boot(ctx context.Context) error {
 			if err := job.Run(ctx); err != nil {
 				bootErrs <- err
 			}
-		}(job, ctx)
+		}(job, r.ctx)
 	}
 
 	select {
 	case <-waitGroupToChannel(&wg):
 		return nil
 
-	case <-ctx.Done():
+	case <-r.ctx.Done():
 		log.Warn("context cancelled")
-		return ctx.Err()
+		return r.ctx.Err()
 
 	case err := <-bootErrs:
 		log.Error("boot job error occurred: ", err)
@@ -72,7 +78,59 @@ func (r *Runner) Boot(ctx context.Context) error {
 	}
 }
 
-func (r *Runner) exec(ctx context.Context, wg *sync.WaitGroup, errChan chan<- error) {
+func (r *Runner) Run() error {
+	go func() {
+		if err := r.startApi(); err != nil {
+			r.errChan <- err
+		}
+	}()
+	if r.api != nil {
+		defer r.api.Shutdown()
+	}
+
+	r.errChan = make(chan error)
+	r.waitGroup = &sync.WaitGroup{}
+	if r.keepRunning {
+		r.waitGroup.Add(1)
+		defer r.waitGroup.Done()
+	}
+	ticker := time.NewTicker(5 * time.Second)
+
+	r.exec()
+
+	wgChan := waitGroupToChannel(r.waitGroup)
+	for {
+		select {
+		case <-r.ctx.Done():
+			log.Warn("context cancelled")
+			return r.ctx.Err()
+
+		// wait for them all to finish, or one to fail
+		case <-wgChan:
+			return nil
+
+		// watch files
+		case <-ticker.C:
+			for _, job := range r.jobs {
+				job.Watch()
+				if r.keepRunning {
+					commonJob, ok := job.(*CommonJob)
+					if ok && !commonJob.IsRunning() {
+						r.removeJob(job)
+						r.addAndStartJob(job)
+					}
+				}
+			}
+
+		// handle errors
+		case err := <-r.errChan:
+			log.Error(err)
+			return err
+		}
+	}
+}
+
+func (r *Runner) exec() {
 	var err error
 	for j := range r.IgnitionConfig.Jobs {
 		var job Job
@@ -82,52 +140,125 @@ func (r *Runner) exec(ctx context.Context, wg *sync.WaitGroup, errChan chan<- er
 		} else {
 			job, err = NewLazyJob(&r.IgnitionConfig.Jobs[j])
 			if err != nil {
-				errChan <- err
+				r.errChan <- err
 				return
 			}
 		}
-		r.jobs = append(r.jobs, job)
-
-		job.Init()
-
-		// execute job command
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			err := job.Run(ctx, errChan)
-			if err != nil {
-				errChan <- err
-			}
-		}()
+		r.addAndStartJob(job)
 	}
 }
 
-func (r *Runner) Run(ctx context.Context) error {
-	errChan := make(chan error)
-	ticker := time.NewTicker(5 * time.Second)
-
-	wg := sync.WaitGroup{}
-
-	r.exec(ctx, &wg, errChan)
-
-	wgChan := waitGroupToChannel(&wg)
-	for {
-		select {
-		// wait for them all to finish, or one to fail
-		case <-wgChan:
-			return nil
-
-		// watch files
-		case <-ticker.C:
-			for _, job := range r.jobs {
-				job.Watch()
+func (r *Runner) startApi() error {
+	if r.api == nil {
+		return nil
+	}
+	r.api.RegisterMiddlewareFuncs(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			jobName, ok := mux.Vars(req)["job"]
+			if !ok {
+				http.Error(w, "job parameter is missing", http.StatusBadRequest)
+				return
 			}
 
-		// handle errors
-		case err := <-errChan:
-			log.Error(err)
-			return err
+			job := r.findCommonJobByName(jobName)
+			if job == nil {
+				job = r.findCommonIgnitionJobByName(jobName)
+			}
+			if r.jobExistsAndIsControllable(job) {
+				r.addJobIfNotExists(job)
+				next.ServeHTTP(w, req.WithContext(context.WithValue(req.Context(), contextKeyJob, job)))
+				return
+			}
+
+			http.Error(w, fmt.Sprintf("job %q not found or is not controllable", jobName), http.StatusNotFound)
+		})
+	})
+
+	r.api.RegisterHandler("/v1/job/{job}/start", []string{http.MethodPost}, r.apiV1StartJob)
+	r.api.RegisterHandler("/v1/job/{job}/restart", []string{http.MethodPost}, r.apiV1RestartJob)
+	r.api.RegisterHandler("/v1/job/{job}/stop", []string{http.MethodPost}, r.apiV1StopJob)
+	r.api.RegisterHandler("/v1/job/{job}/status", []string{http.MethodGet}, r.apiV1JobStatus)
+	return r.api.Start()
+}
+
+func (r *Runner) apiMiddleWare(req *http.Request) int {
+	jobName, ok := mux.Vars(req)["job"]
+	if !ok {
+		return http.StatusBadRequest
+	}
+
+	existingJob := r.findCommonJobByName(jobName)
+	newJob := r.findCommonIgnitionJobByName(jobName)
+
+	if !r.jobExistsAndIsControllable(existingJob) && !r.jobExistsAndIsControllable(newJob) {
+		return http.StatusNotFound
+	}
+
+	return http.StatusOK
+}
+
+func (r *Runner) jobExistsAndIsControllable(job *CommonJob) bool {
+	return job != nil && job.IsControllable()
+}
+
+func (r *Runner) addAndStartJob(job Job) {
+	r.addJobIfNotExists(job)
+	r.startJob(job)
+}
+
+func (r *Runner) addJobIfNotExists(job Job) {
+	for _, j := range r.jobs {
+		if j.GetName() == job.GetName() {
+			return
 		}
 	}
+	r.jobs = append(r.jobs, job)
+}
+
+func (r *Runner) startJob(job Job) {
+	job.Init()
+
+	r.waitGroup.Add(1)
+	go func() {
+		defer func() {
+			r.waitGroup.Done()
+		}()
+
+		if err := job.Run(r.ctx, r.errChan); err != nil {
+			r.errChan <- err
+		}
+	}()
+}
+
+func (r *Runner) removeJob(job Job) {
+	for i, j := range r.jobs {
+		if j.GetName() == job.GetName() {
+			r.jobs[i] = r.jobs[len(r.jobs)-1]
+			r.jobs[len(r.jobs)-1] = nil
+			r.jobs = r.jobs[:len(r.jobs)-1]
+			return
+		}
+	}
+}
+
+func (r *Runner) findCommonJobByName(name string) *CommonJob {
+	for i, job := range r.jobs {
+		if job.GetName() == name {
+			commonJob, ok := r.jobs[i].(*CommonJob)
+			if !ok {
+				return nil
+			}
+			return commonJob
+		}
+	}
+	return nil
+}
+
+func (r *Runner) findCommonIgnitionJobByName(name string) *CommonJob {
+	for i, ignJob := range r.IgnitionConfig.Jobs {
+		if ignJob.Name == name && ignJob.Laziness == nil {
+			return NewCommonJob(&r.IgnitionConfig.Jobs[i])
+		}
+	}
+	return nil
 }

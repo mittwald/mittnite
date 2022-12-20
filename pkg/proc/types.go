@@ -2,6 +2,8 @@ package proc
 
 import (
 	"context"
+	"github.com/gorilla/mux"
+	"net/http"
 	"os"
 	"os/exec"
 	"sync"
@@ -15,10 +17,28 @@ const (
 )
 
 type Runner struct {
-	IgnitionConfig *config.Ignition
+	jobs        []Job
+	bootJobs    []*BootJob
+	api         *Api
+	waitGroup   *sync.WaitGroup
+	ctx         context.Context
+	errChan     chan error
+	keepRunning bool
 
-	jobs     []Job
-	bootJobs []*BootJob
+	IgnitionConfig *config.Ignition
+}
+
+type Api struct {
+	listenAddr string
+	srv        *http.Server
+	router     *mux.Router
+}
+
+func NewApi(listenAddress string) *Api {
+	return &Api{
+		router:     mux.NewRouter(),
+		listenAddr: listenAddress,
+	}
 }
 
 type baseJob struct {
@@ -26,6 +46,7 @@ type baseJob struct {
 
 	cmd     *exec.Cmd
 	restart bool
+	stop    bool
 }
 
 type BootJob struct {
@@ -40,6 +61,12 @@ type CommonJob struct {
 	Config *config.JobConfig
 
 	watchingFiles map[string]time.Time
+}
+
+type CommonJobStatus struct {
+	Pid     int               `json:"pid,omitempty"`
+	Running bool              `json:"running"`
+	Config  *config.JobConfig `json:"config"`
 }
 
 type LazyJob struct {
@@ -59,6 +86,8 @@ type Job interface {
 	Init()
 	Run(context.Context, chan<- error) error
 	Watch()
+
+	GetName() string
 }
 
 func NewCommonJob(c *config.JobConfig) *CommonJob {

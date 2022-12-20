@@ -15,6 +15,9 @@ import (
 )
 
 func (job *CommonJob) Init() {
+	job.restart = false
+	job.stop = false
+
 	for w := range job.Config.Watches {
 		watch := &job.Config.Watches[w]
 		job.watchingFiles = make(map[string]time.Time)
@@ -36,6 +39,10 @@ func (job *CommonJob) Init() {
 }
 
 func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
+	if job.stop {
+		return nil
+	}
+
 	l := log.WithField("job.name", job.Config.Name)
 
 	attempts := 0
@@ -57,6 +64,9 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 		case ProcessWillBeRestartedError:
 			l.Info("restart process")
 			continue
+		case ProcessWillBeStoppedError:
+			l.Info("stop process")
+			return nil
 		default:
 			l.WithError(err).Error("job exited with error")
 		}
@@ -74,24 +84,6 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 
 		return fmt.Errorf("reached max retries for job %s", job.Config.Name)
 	}
-}
-
-func (job *CommonJob) executeWatchCommand(watchCmd *config.WatchCommand) error {
-	if len(watchCmd.Command) == 0 {
-		return errors.New("command is missing")
-	}
-	cmd := exec.Command(watchCmd.Command, watchCmd.Args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Env = os.Environ()
-
-	if watchCmd.Env != nil {
-		cmd.Env = append(cmd.Env, watchCmd.Env...)
-	}
-
-	log.WithField("job.name", job.Config.Name).
-		Info("executing watch command")
-	return cmd.Run()
 }
 
 func (job *CommonJob) Watch() {
@@ -153,4 +145,58 @@ func (job *CommonJob) Watch() {
 			}
 		}
 	}
+}
+
+func (job *CommonJob) IsRunning() bool {
+	if job.cmd == nil {
+		return false
+	}
+	if job.cmd.Process == nil {
+		return false
+	}
+	if job.cmd.Process.Pid > 0 {
+		return syscall.Kill(job.cmd.Process.Pid, syscall.Signal(0)) == nil
+	}
+	return true
+}
+
+func (job *CommonJob) Restart() {
+	job.restart = true
+	job.Signal(syscall.SIGTERM)
+}
+
+func (job *CommonJob) Stop() {
+	job.stop = true
+	job.Signal(syscall.SIGTERM)
+}
+
+func (job *CommonJob) Status() *CommonJobStatus {
+	running := job.IsRunning()
+	var pid int
+	if running {
+		pid = job.cmd.Process.Pid
+	}
+	return &CommonJobStatus{
+		Pid:     pid,
+		Running: job.IsRunning(),
+		Config:  job.Config,
+	}
+}
+
+func (job *CommonJob) executeWatchCommand(watchCmd *config.WatchCommand) error {
+	if len(watchCmd.Command) == 0 {
+		return errors.New("command is missing")
+	}
+	cmd := exec.Command(watchCmd.Command, watchCmd.Args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+
+	if watchCmd.Env != nil {
+		cmd.Env = append(cmd.Env, watchCmd.Env...)
+	}
+
+	log.WithField("job.name", job.Config.Name).
+		Info("executing watch command")
+	return cmd.Run()
 }
