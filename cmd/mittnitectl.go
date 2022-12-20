@@ -9,11 +9,11 @@ var (
 )
 
 func init() {
-	ctlCommand.PersistentFlags().StringVarP(&apiAddress, "api-address", "", defaultApiAddress, "write mittnites process id to this file")
+	ctlCommand.PersistentFlags().StringVarP(&apiAddress, "api-address", "", defaultAPIAddress, "write mittnites process id to this file")
 }
 
 var ctlCommand = &cobra.Command{
 	Use:   "mittnitectl",
-	Short: "controll mittnite (with --api) from cli",
+	Short: "control mittnite (with --api) from cli",
 	Long:  "This command can be used to control mittnite by command line.",
 }
