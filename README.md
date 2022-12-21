@@ -36,7 +36,7 @@ It offers the following features:
     - [Render a file on startup](#render-a-file-on-startup)
     - [Wait until a Redis connection is possible](#wait-until-a-redis-connection-is-possible)
   - [More examples](#more-examples)
-
+- [mittnitectl](#mittnitectl)
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Getting started
@@ -378,3 +378,39 @@ probe redis {
 
 ### More examples
 More example files can be found in the [examples directory](examples/)
+
+## mittnitectl
+
+`mittnitectl` can be used to control the mittnite process as long as the required API is enabled (`mittnite up --api`).
+Currently, it is possible to _start_, _stop_, _restart_ jobs and display the current _status_.
+
+```shell
+$ mittnitectl --help
+This command can be used to control mittnite by command line.
+
+Usage:
+  mittnitectl [command]
+
+Available Commands:
+  help        Help about any command
+  job         Control a job via command line
+  version     Show extended information about the current version of mittnite
+
+Flags:
+      --api-address string   write mittnites process id to this file (default "unix:///tmp/mittnite/mittnite.sock")
+  -h, --help                 help for mittnitectl
+
+Use "mittnitectl [command] --help" for more information about a command.
+
+
+### job
+
+To control a job, it must have set the `controllable` flag:
+
+```hcl
+job webserver {
+  # ...
+  controllable = true
+  # ...
+}
+```

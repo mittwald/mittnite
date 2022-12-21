@@ -12,7 +12,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var ProcessWillBeRestartedError = errors.New("process will be restarted")
+var (
+	ProcessWillBeRestartedError = errors.New("process will be restarted")
+	ProcessWillBeStoppedError   = errors.New("process will be stopped")
+)
 
 func (job *baseJob) Signal(sig os.Signal) {
 	errFunc := func(err error) {
@@ -32,6 +35,18 @@ func (job *baseJob) Signal(sig os.Signal) {
 	errFunc(
 		job.cmd.Process.Signal(sig),
 	)
+}
+
+func (job *baseJob) MarkForRestart() {
+	job.restart = true
+}
+
+func (job *baseJob) IsControllable() bool {
+	return job.Config.Controllable
+}
+
+func (job *baseJob) GetName() string {
+	return job.Config.Name
 }
 
 func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) error {
@@ -73,6 +88,10 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 			return ProcessWillBeRestartedError
 		}
 
+		if job.stop {
+			return ProcessWillBeStoppedError
+		}
+
 		if err != nil {
 			l.WithError(err).Error("job exited with error")
 		}
@@ -94,8 +113,4 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 			return err
 		}
 	}
-}
-
-func (job *baseJob) MarkForRestart() {
-	job.restart = true
 }

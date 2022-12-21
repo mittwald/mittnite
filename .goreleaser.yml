@@ -3,17 +3,25 @@ before:
   hooks:
     - go mod download
     - go test ./...
+
 builds:
-- env:
-  - CGO_ENABLED=0
-  binary: mittnite
-  ldflags:
-  - -s -w -X github.com/mittwald/mittnite/cmd.Version={{ .Version }} -X github.com/mittwald/mittnite/cmd.Commit={{ .Commit }} -X github.com/mittwald/mittnite/cmd.BuiltAt={{ .Date }}
-  goos:
-  - darwin
-  - linux
-  goarch:
-  - amd64
+  - &defaultBuild
+    id: mittnite
+    binary: mittnite
+    main: main.go
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X github.com/mittwald/mittnite/cmd.Version={{ .Version }} -X github.com/mittwald/mittnite/cmd.Commit={{ .Commit }} -X github.com/mittwald/mittnite/cmd.BuiltAt={{ .Date }}
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+  - <<: *defaultBuild
+    id: mittnitectl
+    binary: mittnitectl
+    main: cmd/mittnitectl/main.go
 archives:
   - replacements:
       darwin: macos
@@ -21,6 +29,8 @@ archives:
       windows: windows
       386: i386
       amd64: x86_64
+    files:
+      - LICENSE
 nfpms:
   - vendor: Mittwald CM Service
     homepage: https://github.com/mittwald/mittnite

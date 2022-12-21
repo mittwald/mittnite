@@ -13,6 +13,7 @@ var (
 
 func init() {
 	rootCmd.AddCommand(version)
+	ctlCommand.AddCommand(version)
 }
 
 var version = &cobra.Command{
