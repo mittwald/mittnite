@@ -93,7 +93,7 @@ type BaseJobConfig struct {
 	Env              []string `hcl:"env"`
 	CanFail          bool     `hcl:"canFail"`
 	Controllable     bool     `hcl:"controllable" json:"controllable"`
-  WorkingDirectory string   `hcl:"workingDirectory"`	
+	WorkingDirectory string   `hcl:"workingDirectory"`
 }
 
 type Laziness struct {
