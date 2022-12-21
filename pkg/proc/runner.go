@@ -20,6 +20,10 @@ func NewRunner(ctx context.Context, api *Api, keepRunning bool, ignitionConfig *
 	}
 }
 
+func (r *Runner) startApi() error {
+	return r.startApiV1()
+}
+
 func waitGroupToChannel(wg *sync.WaitGroup) <-chan struct{} {
 	d := make(chan struct{})
 	go func() {
