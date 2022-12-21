@@ -87,11 +87,12 @@ type Listener struct {
 }
 
 type BaseJobConfig struct {
-	Name    string   `hcl:",key"`
-	Command string   `hcl:"command"`
-	Args    []string `hcl:"args"`
-	Env     []string `hcl:"env"`
-	CanFail bool     `hcl:"canFail"`
+	Name             string   `hcl:",key"`
+	Command          string   `hcl:"command"`
+	Args             []string `hcl:"args"`
+	Env              []string `hcl:"env"`
+	CanFail          bool     `hcl:"canFail"`
+	WorkingDirectory string   `hcl:"workingDirectory"`
 }
 
 type Laziness struct {
