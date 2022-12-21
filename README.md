@@ -115,6 +115,7 @@ job "foo" {
   args = ["bar"]
   maxAttempts = 3
   canFail = false
+  workingDirectory = "/some/path"
 }
 ```
 
