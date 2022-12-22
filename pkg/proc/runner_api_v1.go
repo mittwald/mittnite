@@ -23,7 +23,12 @@ func (r *Runner) startApiV1() error {
 
 			job := r.findCommonJobByName(jobName)
 			if job == nil {
-				job = r.findCommonIgnitionJobByName(jobName)
+				var err error
+				job, err = r.findCommonIgnitionJobByName(jobName)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
 			}
 			if r.jobExistsAndIsControllable(job) {
 				r.addJobIfNotExists(job)

@@ -2,6 +2,7 @@ package proc
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -137,13 +138,13 @@ func (r *Runner) exec() {
 		var job Job
 		// init non-lazy jobs
 		if r.IgnitionConfig.Jobs[j].Laziness == nil {
-			job = NewCommonJob(&r.IgnitionConfig.Jobs[j])
+			job, err = NewCommonJob(&r.IgnitionConfig.Jobs[j])
 		} else {
 			job, err = NewLazyJob(&r.IgnitionConfig.Jobs[j])
-			if err != nil {
-				r.errChan <- err
-				return
-			}
+		}
+		if err != nil {
+			r.errChan <- err
+			return
 		}
 		r.addAndStartJob(job)
 	}
@@ -206,11 +207,11 @@ func (r *Runner) findCommonJobByName(name string) *CommonJob {
 	return nil
 }
 
-func (r *Runner) findCommonIgnitionJobByName(name string) *CommonJob {
+func (r *Runner) findCommonIgnitionJobByName(name string) (*CommonJob, error) {
 	for i, ignJob := range r.IgnitionConfig.Jobs {
 		if ignJob.Name == name && ignJob.Laziness == nil {
 			return NewCommonJob(&r.IgnitionConfig.Jobs[i])
 		}
 	}
-	return nil
+	return nil, fmt.Errorf("can't find ignition config for job %q", name)
 }

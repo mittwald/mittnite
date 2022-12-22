@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"syscall"
 	"time"
 
@@ -51,12 +52,13 @@ func (job *baseJob) GetName() string {
 
 func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) error {
 	l := log.WithField("job.name", job.Config.Name)
+	defer job.closeStdFiles()
 
 	job.cmd = exec.Command(job.Config.Command, job.Config.Args...)
-	job.cmd.Stdout = os.Stdout
-	job.cmd.Stderr = os.Stderr
 	job.cmd.Env = os.Environ()
 	job.cmd.Dir = job.Config.WorkingDirectory
+	job.cmd.Stdout = job.stdout
+	job.cmd.Stderr = job.stderr
 
 	if job.Config.Env != nil {
 		job.cmd.Env = append(job.cmd.Env, job.Config.Env...)
@@ -113,4 +115,33 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 			return err
 		}
 	}
+}
+
+func (job *baseJob) closeStdFiles() {
+	hasStdout := len(job.Config.Stdout) > 0
+	hasStderr := len(job.Config.Stderr) > 0
+	if !hasStdout && !hasStderr {
+		return
+	}
+
+	if err := job.stdout.Close(); err != nil {
+		log.WithField("job.name", job.Config.Name).
+			WithField("job.stdout", job.Config.Stdout).
+			Warn("failed to close stdout file: %s", err.Error)
+	}
+
+	if hasStderr && job.Config.Stderr != job.Config.Stdout {
+		if err := job.stderr.Close(); err != nil {
+			log.WithField("job.name", job.Config.Name).
+				WithField("job.stdout", job.Config.Stdout).
+				Warn("failed to close stderr file: %s", err.Error)
+		}
+	}
+}
+
+func prepareStdFile(filePath string) (*os.File, error) {
+	if err := os.MkdirAll(path.Dir(filePath), 0o755); err != nil {
+		return nil, err
+	}
+	return os.Create(filePath)
 }
