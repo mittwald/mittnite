@@ -15,7 +15,7 @@ Usage:
 
 Arguments:
     name:   the name of the job
-    action: possible values are "start", "restart", "stop" and "status"
+    action: possible values are "start", "restart", "stop", "status" and "logs"
 
 Flags:
   {{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}

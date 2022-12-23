@@ -1,6 +1,7 @@
 package proc
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -48,6 +49,27 @@ func (job *baseJob) IsControllable() bool {
 
 func (job *baseJob) GetName() string {
 	return job.Config.Name
+}
+
+func (job *baseJob) StreamStdOut(ctx context.Context, outChan chan []byte, errChan chan error) {
+	if len(job.Config.Stdout) == 0 {
+		return
+	}
+	job.readStdFile(ctx, job.Config.Stdout, outChan, errChan)
+}
+
+func (job *baseJob) StreamStdErr(ctx context.Context, outChan chan []byte, errChan chan error) {
+	if len(job.Config.Stderr) == 0 {
+		return
+	}
+	job.readStdFile(ctx, job.Config.Stderr, outChan, errChan)
+}
+
+func (job *baseJob) StreamStdOutAndStdErr(ctx context.Context, outChan chan []byte, errChan chan error) {
+	job.StreamStdOut(ctx, outChan, errChan)
+	if job.Config.Stdout != job.Config.Stderr {
+		job.StreamStdErr(ctx, outChan, errChan)
+	}
 }
 
 func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) error {
@@ -139,9 +161,38 @@ func (job *baseJob) closeStdFiles() {
 	}
 }
 
+func (job *baseJob) readStdFile(ctx context.Context, filePath string, outChan chan []byte, errChan chan error) {
+	stdFile, err := os.OpenFile(filePath, os.O_RDONLY, 0o666)
+	if err != nil {
+		errChan <- err
+		return
+	}
+	defer stdFile.Close()
+
+	read := func() {
+		scanner := bufio.NewScanner(stdFile)
+		for scanner.Scan() {
+			outChan <- scanner.Bytes()
+		}
+		if err := scanner.Err(); err != nil {
+			errChan <- err
+			return
+		}
+	}
+
+	for {
+		select {
+		default:
+			read()
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
 func prepareStdFile(filePath string) (*os.File, error) {
 	if err := os.MkdirAll(path.Dir(filePath), 0o755); err != nil {
 		return nil, err
 	}
-	return os.Create(filePath)
+	return os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND|os.O_SYNC, 0o666)
 }

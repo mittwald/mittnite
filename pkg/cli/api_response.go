@@ -10,15 +10,21 @@ import (
 	"net/http"
 )
 
-type ApiResponse struct {
+type ApiResponse interface {
+	Print() error
+}
+
+var _ ApiResponse = &CommonApiResponse{}
+
+type CommonApiResponse struct {
 	StatusCode  int    `json:"statusCode"`
 	Body        string `json:"body"`
 	Error       error  `json:"error"`
 	contentType string
 }
 
-func NewApiResponse(resp *http.Response, err error) *ApiResponse {
-	apiRes := &ApiResponse{
+func NewApiResponse(resp *http.Response, err error) ApiResponse {
+	apiRes := &CommonApiResponse{
 		Error: err,
 	}
 	if resp == nil {
@@ -36,7 +42,7 @@ func NewApiResponse(resp *http.Response, err error) *ApiResponse {
 	return apiRes
 }
 
-func (resp *ApiResponse) Print() error {
+func (resp *CommonApiResponse) Print() error {
 	var out string
 	if resp.Error != nil {
 		fmt.Println(resp.Error.Error())

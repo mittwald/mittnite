@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 )
 
@@ -44,6 +46,7 @@ func (r *Runner) startApiV1() error {
 	r.api.RegisterHandler("/v1/job/{job}/restart", []string{http.MethodPost}, r.apiV1RestartJob)
 	r.api.RegisterHandler("/v1/job/{job}/stop", []string{http.MethodPost}, r.apiV1StopJob)
 	r.api.RegisterHandler("/v1/job/{job}/status", []string{http.MethodGet}, r.apiV1JobStatus)
+	r.api.RegisterHandler("/v1/job/{job}/logs", []string{http.MethodGet}, r.apiV1JobLogs)
 	return r.api.Start()
 }
 
@@ -82,4 +85,55 @@ func (r *Runner) apiV1JobStatus(writer http.ResponseWriter, req *http.Request) {
 	writer.Header().Set("Content-Type", "application/json")
 	writer.Write(out)
 	writer.WriteHeader(http.StatusOK)
+}
+
+func (r *Runner) apiV1JobLogs(writer http.ResponseWriter, req *http.Request) {
+	conn, err := r.api.upgrader.Upgrade(writer, req, nil)
+	if err != nil {
+		http.Error(writer, "failed to upgrade connection", http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+
+	job := req.Context().Value(contextKeyJob).(*CommonJob)
+	if len(job.Config.Stdout) == 0 && len(job.Config.Stderr) == 0 {
+		_ = conn.WriteMessage(websocket.TextMessage, []byte("neither stdout, nor stderr is defined for this job"))
+		return
+	}
+
+	streamCtx, cancel := context.WithCancel(context.Background())
+	outChan := make(chan []byte)
+	errChan := make(chan error)
+	defer func() {
+		cancel()
+		close(outChan)
+		close(errChan)
+	}()
+
+	// handle client disconnects
+	go func() {
+		_, _, err := conn.ReadMessage()
+		if err != nil {
+			cancel()
+		}
+	}()
+
+	go job.StreamStdOutAndStdErr(streamCtx, outChan, errChan)
+
+	for {
+		select {
+		case logLine := <-outChan:
+			if err := conn.WriteMessage(websocket.TextMessage, logLine); err != nil {
+				break
+			}
+
+		case err = <-errChan:
+			log.WithField("job.name", job.Config.Name).
+				Error(fmt.Sprintf("error during logs streaming: %s", err.Error()))
+			break
+
+		case <-streamCtx.Done():
+			return
+		}
+	}
 }

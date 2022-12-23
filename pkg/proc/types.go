@@ -3,6 +3,7 @@ package proc
 import (
 	"context"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 	"net/http"
 	"os"
 	"os/exec"
@@ -32,12 +33,17 @@ type Api struct {
 	listenAddr string
 	srv        *http.Server
 	router     *mux.Router
+	upgrader   websocket.Upgrader
 }
 
 func NewApi(listenAddress string) *Api {
 	return &Api{
 		router:     mux.NewRouter(),
 		listenAddr: listenAddress,
+		upgrader: websocket.Upgrader{
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+		},
 	}
 }
 
