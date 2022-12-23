@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"net/url"
 )
 
 var _ ApiResponse = &StreamingApiResponse{}
@@ -11,7 +12,7 @@ var _ ApiResponse = &StreamingApiResponse{}
 type StreamingApiResponseHandler func(ctx context.Context, conn *websocket.Conn, msg chan []byte, err chan error)
 
 type StreamingApiResponse struct {
-	url           string
+	url           *url.URL
 	streamContext context.Context
 	cancel        context.CancelFunc
 	messageChan   chan []byte
@@ -20,7 +21,7 @@ type StreamingApiResponse struct {
 	dialer        *websocket.Dialer
 }
 
-func NewStreamingApiResponse(url string, dialer *websocket.Dialer, streamingFunc StreamingApiResponseHandler) ApiResponse {
+func NewStreamingApiResponse(url *url.URL, dialer *websocket.Dialer, streamingFunc StreamingApiResponseHandler) ApiResponse {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &StreamingApiResponse{
 		url:           url,
@@ -34,7 +35,7 @@ func NewStreamingApiResponse(url string, dialer *websocket.Dialer, streamingFunc
 }
 
 func (resp *StreamingApiResponse) Print() error {
-	conn, _, err := resp.dialer.Dial(resp.url, nil)
+	conn, _, err := resp.dialer.Dial(resp.url.String(), nil)
 	if err != nil {
 		return err
 	}
