@@ -3,11 +3,15 @@ package proc
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
+	"io"
 	"net/http"
+	"strings"
+	"time"
 )
 
 func (r *Runner) startApiV1() error {
@@ -118,7 +122,8 @@ func (r *Runner) apiV1JobLogs(writer http.ResponseWriter, req *http.Request) {
 		}
 	}()
 
-	go job.StreamStdOutAndStdErr(streamCtx, outChan, errChan)
+	follow := strings.ToLower(req.FormValue("follow")) == "true"
+	go job.StreamStdOutAndStdErr(streamCtx, outChan, errChan, follow)
 
 	for {
 		select {
@@ -128,6 +133,16 @@ func (r *Runner) apiV1JobLogs(writer http.ResponseWriter, req *http.Request) {
 			}
 
 		case err = <-errChan:
+			if errors.Is(err, io.EOF) {
+				err = conn.WriteControl(
+					websocket.CloseMessage,
+					websocket.FormatCloseMessage(websocket.CloseNormalClosure, "EOF"),
+					time.Now().Add(time.Second),
+				)
+				if err == nil {
+					return
+				}
+			}
 			log.WithField("job.name", job.Config.Name).
 				Error(fmt.Sprintf("error during logs streaming: %s", err.Error()))
 			break

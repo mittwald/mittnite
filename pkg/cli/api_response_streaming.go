@@ -53,6 +53,9 @@ func (resp *StreamingApiResponse) Print() error {
 		case msg := <-resp.messageChan:
 			fmt.Println(string(msg))
 		case err := <-resp.errorChan:
+			if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
+				return nil
+			}
 			return err
 		case <-resp.streamContext.Done():
 			return nil

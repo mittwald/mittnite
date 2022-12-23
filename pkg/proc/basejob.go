@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path"
@@ -51,24 +52,24 @@ func (job *baseJob) GetName() string {
 	return job.Config.Name
 }
 
-func (job *baseJob) StreamStdOut(ctx context.Context, outChan chan []byte, errChan chan error) {
+func (job *baseJob) StreamStdOut(ctx context.Context, outChan chan []byte, errChan chan error, follow bool) {
 	if len(job.Config.Stdout) == 0 {
 		return
 	}
-	job.readStdFile(ctx, job.Config.Stdout, outChan, errChan)
+	job.readStdFile(ctx, job.Config.Stdout, outChan, errChan, follow)
 }
 
-func (job *baseJob) StreamStdErr(ctx context.Context, outChan chan []byte, errChan chan error) {
+func (job *baseJob) StreamStdErr(ctx context.Context, outChan chan []byte, errChan chan error, follow bool) {
 	if len(job.Config.Stderr) == 0 {
 		return
 	}
-	job.readStdFile(ctx, job.Config.Stderr, outChan, errChan)
+	job.readStdFile(ctx, job.Config.Stderr, outChan, errChan, follow)
 }
 
-func (job *baseJob) StreamStdOutAndStdErr(ctx context.Context, outChan chan []byte, errChan chan error) {
-	job.StreamStdOut(ctx, outChan, errChan)
+func (job *baseJob) StreamStdOutAndStdErr(ctx context.Context, outChan chan []byte, errChan chan error, follow bool) {
+	job.StreamStdOut(ctx, outChan, errChan, follow)
 	if job.Config.Stdout != job.Config.Stderr {
-		job.StreamStdErr(ctx, outChan, errChan)
+		job.StreamStdErr(ctx, outChan, errChan, follow)
 	}
 }
 
@@ -161,7 +162,7 @@ func (job *baseJob) closeStdFiles() {
 	}
 }
 
-func (job *baseJob) readStdFile(ctx context.Context, filePath string, outChan chan []byte, errChan chan error) {
+func (job *baseJob) readStdFile(ctx context.Context, filePath string, outChan chan []byte, errChan chan error, follow bool) {
 	stdFile, err := os.OpenFile(filePath, os.O_RDONLY, 0o666)
 	if err != nil {
 		errChan <- err
@@ -184,6 +185,10 @@ func (job *baseJob) readStdFile(ctx context.Context, filePath string, outChan ch
 		select {
 		default:
 			read()
+			if !follow {
+				errChan <- io.EOF
+				return
+			}
 		case <-ctx.Done():
 			return
 		}

@@ -92,6 +92,7 @@ func (api *ApiClient) JobLogs(job string) ApiResponse {
 	}
 
 	url.Path = fmt.Sprintf("/v1/job/%s/logs", job)
+	url.RawQuery = "follow=true"
 
 	handler := func(ctx context.Context, conn *websocket.Conn, msgChan chan []byte, errChan chan error) {
 		for {
