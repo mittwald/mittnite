@@ -150,14 +150,14 @@ func (job *baseJob) closeStdFiles() {
 	if err := job.stdout.Close(); err != nil {
 		log.WithField("job.name", job.Config.Name).
 			WithField("job.stdout", job.Config.Stdout).
-			Warn("failed to close stdout file: %s", err.Error)
+			Warn("failed to close stdout file:", err.Error())
 	}
 
 	if hasStderr && job.Config.Stderr != job.Config.Stdout {
 		if err := job.stderr.Close(); err != nil {
 			log.WithField("job.name", job.Config.Name).
 				WithField("job.stdout", job.Config.Stdout).
-				Warn("failed to close stderr file: %s", err.Error)
+				Warn("failed to close stderr file:", err.Error())
 		}
 	}
 }
