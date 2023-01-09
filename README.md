@@ -401,6 +401,30 @@ Flags:
   -h, --help                 help for mittnitectl
 
 Use "mittnitectl [command] --help" for more information about a command.
+```
+```shell
+$ mittnitectl job --help
+This command can be used to control a managed job.
+
+Usage:
+  mittnitectl job [command]
+
+Available Commands:
+  list        List jobs
+  logs        Get logs from job
+  restart     Restart a job
+  start       Start a job
+  status      Show job status
+  stop        Stop a job
+
+Flags:
+  -h, --help   help for job
+
+Global Flags:
+      --api-address string   write mittnites process id to this file (default "unix:///var/run/mittnite.sock")
+
+Use "mittnitectl job [command] --help" for more information about a command.
+```
 
 
 ### job
