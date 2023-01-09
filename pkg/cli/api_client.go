@@ -35,8 +35,6 @@ func (api *ApiClient) CallAction(job, action string) ApiResponse {
 		return api.JobStop(job)
 	case ApiActionJobStatus:
 		return api.JobStatus(job)
-	case ApiActionJobLogs:
-		return api.JobLogs(job, true)
 	default:
 		return &CommonApiResponse{
 			StatusCode: http.StatusBadRequest,
@@ -95,16 +93,22 @@ func (api *ApiClient) JobList() ApiResponse {
 	return NewApiResponse(client.Get(url.String()))
 }
 
-func (api *ApiClient) JobLogs(job string, follow bool) ApiResponse {
+func (api *ApiClient) JobLogs(job string, follow bool, tailLen int) ApiResponse {
 	dialer, url, err := api.buildWebsocketAddress()
 	if err != nil {
 		return &CommonApiResponse{Error: err}
 	}
 
-	url.Path = fmt.Sprintf("/v1/job/%s/logs", job)
+	qryValues := url.Query()
 	if follow {
-		url.RawQuery = "follow=true"
+		qryValues.Add("follow", "true")
 	}
+	if tailLen > 0 {
+		qryValues.Add("taillen", fmt.Sprintf("%d", tailLen))
+	}
+
+	url.RawQuery = qryValues.Encode()
+	url.Path = fmt.Sprintf("/v1/job/%s/logs", job)
 
 	handler := func(ctx context.Context, conn *websocket.Conn, msgChan chan []byte, errChan chan error) {
 		for {

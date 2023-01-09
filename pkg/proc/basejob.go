@@ -2,6 +2,7 @@ package proc
 
 import (
 	"bufio"
+	"container/list"
 	"context"
 	"errors"
 	"fmt"
@@ -52,24 +53,24 @@ func (job *baseJob) GetName() string {
 	return job.Config.Name
 }
 
-func (job *baseJob) StreamStdOut(ctx context.Context, outChan chan []byte, errChan chan error, follow bool) {
+func (job *baseJob) StreamStdOut(ctx context.Context, outChan chan []byte, errChan chan error, follow bool, tailLen int) {
 	if len(job.Config.Stdout) == 0 {
 		return
 	}
-	job.readStdFile(ctx, job.Config.Stdout, outChan, errChan, follow)
+	job.readStdFile(ctx, job.Config.Stdout, outChan, errChan, follow, tailLen)
 }
 
-func (job *baseJob) StreamStdErr(ctx context.Context, outChan chan []byte, errChan chan error, follow bool) {
+func (job *baseJob) StreamStdErr(ctx context.Context, outChan chan []byte, errChan chan error, follow bool, tailLen int) {
 	if len(job.Config.Stderr) == 0 {
 		return
 	}
-	job.readStdFile(ctx, job.Config.Stderr, outChan, errChan, follow)
+	job.readStdFile(ctx, job.Config.Stderr, outChan, errChan, follow, tailLen)
 }
 
-func (job *baseJob) StreamStdOutAndStdErr(ctx context.Context, outChan chan []byte, errChan chan error, follow bool) {
-	job.StreamStdOut(ctx, outChan, errChan, follow)
+func (job *baseJob) StreamStdOutAndStdErr(ctx context.Context, outChan chan []byte, errChan chan error, follow bool, tailLen int) {
+	job.StreamStdOut(ctx, outChan, errChan, follow, tailLen)
 	if job.Config.Stdout != job.Config.Stderr {
-		job.StreamStdErr(ctx, outChan, errChan, follow)
+		job.StreamStdErr(ctx, outChan, errChan, follow, tailLen)
 	}
 }
 
@@ -152,18 +153,20 @@ func (job *baseJob) closeStdFiles() {
 	}
 }
 
-func (job *baseJob) readStdFile(ctx context.Context, filePath string, outChan chan []byte, errChan chan error, follow bool) {
+func (job *baseJob) readStdFile(ctx context.Context, filePath string, outChan chan []byte, errChan chan error, follow bool, tailLen int) {
 	stdFile, err := os.OpenFile(filePath, os.O_RDONLY, 0o666)
 	if err != nil {
 		errChan <- err
 		return
 	}
 	defer stdFile.Close()
+	seekTail(tailLen, stdFile, outChan)
 
 	read := func() {
 		scanner := bufio.NewScanner(stdFile)
 		for scanner.Scan() {
-			outChan <- scanner.Bytes()
+			line := scanner.Bytes()
+			outChan <- line
 		}
 		if err := scanner.Err(); err != nil {
 			errChan <- err
@@ -182,6 +185,29 @@ func (job *baseJob) readStdFile(ctx context.Context, filePath string, outChan ch
 		case <-ctx.Done():
 			return
 		}
+	}
+}
+
+func seekTail(lines int, stdFile *os.File, outChan chan []byte) {
+	if lines <= 0 {
+		return
+	}
+	scanner := bufio.NewScanner(stdFile)
+	tailBuffer := list.New()
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if tailBuffer.Len() >= lines {
+			tailBuffer.Remove(tailBuffer.Front())
+		}
+		tailBuffer.PushBack(line)
+	}
+	for tailBuffer.Len() > 0 {
+		item := tailBuffer.Front()
+		line, ok := item.Value.([]byte)
+		if ok {
+			outChan <- line
+		}
+		tailBuffer.Remove(item)
 	}
 }
 

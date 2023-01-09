@@ -6,10 +6,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var follow bool
+var (
+	follow  bool
+	tailLen int
+)
 
 func init() {
 	jobLogsCommand.PersistentFlags().BoolVarP(&follow, "follow", "f", false, "output appended data as the file grows")
+	jobLogsCommand.PersistentFlags().IntVarP(&tailLen, "tail", "", 0, "output last n lines")
 	jobCommand.AddCommand(jobLogsCommand)
 }
 
@@ -21,7 +25,7 @@ var jobLogsCommand = &cobra.Command{
 		job := args[0]
 		apiClient := cli.NewApiClient(apiAddress)
 
-		resp := apiClient.JobLogs(job, follow)
+		resp := apiClient.JobLogs(job, follow, tailLen)
 		if err := resp.Print(); err != nil {
 			log.Errorf("failed to print output: %s", err.Error())
 		}

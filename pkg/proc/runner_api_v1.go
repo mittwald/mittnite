@@ -10,6 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -142,8 +143,14 @@ func (r *Runner) apiV1JobLogs(writer http.ResponseWriter, req *http.Request) {
 		}
 	}()
 
+	var tailLen int
 	follow := strings.ToLower(req.FormValue("follow")) == "true"
-	go job.StreamStdOutAndStdErr(streamCtx, outChan, errChan, follow)
+	tailLen, err = strconv.Atoi(req.FormValue("taillen"))
+	if err != nil {
+		tailLen = 0
+	}
+
+	go job.StreamStdOutAndStdErr(streamCtx, outChan, errChan, follow, tailLen)
 
 	for {
 		select {
