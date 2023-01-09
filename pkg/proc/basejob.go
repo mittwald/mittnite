@@ -142,23 +142,13 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 
 func (job *baseJob) closeStdFiles() {
 	hasStdout := len(job.Config.Stdout) > 0
-	hasStderr := len(job.Config.Stderr) > 0
-	if !hasStdout && !hasStderr {
-		return
+	hasStderr := len(job.Config.Stderr) > 0 && job.Config.Stderr != job.Config.Stdout
+	if hasStdout {
+		job.stdout.Close()
 	}
 
-	if err := job.stdout.Close(); err != nil {
-		log.WithField("job.name", job.Config.Name).
-			WithField("job.stdout", job.Config.Stdout).
-			Warn("failed to close stdout file:", err.Error())
-	}
-
-	if hasStderr && job.Config.Stderr != job.Config.Stdout {
-		if err := job.stderr.Close(); err != nil {
-			log.WithField("job.name", job.Config.Name).
-				WithField("job.stdout", job.Config.Stdout).
-				Warn("failed to close stderr file:", err.Error())
-		}
+	if hasStderr {
+		job.stderr.Close()
 	}
 }
 

@@ -19,39 +19,44 @@ func (r *Runner) startApiV1() error {
 		return nil
 	}
 
-	r.api.RegisterMiddlewareFuncs(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			jobName, ok := mux.Vars(req)["job"]
-			if !ok {
-				http.Error(w, "job parameter is missing", http.StatusBadRequest)
-				return
-			}
+	jobRouter := r.api.router.PathPrefix("/v1/job").Subrouter()
+	jobRouter.Use(r.apiV1JobMiddleware)
+	r.api.RegisterHandler(jobRouter, "/{job}/start", []string{http.MethodPost}, r.apiV1StartJob)
+	r.api.RegisterHandler(jobRouter, "/{job}/restart", []string{http.MethodPost}, r.apiV1RestartJob)
+	r.api.RegisterHandler(jobRouter, "/{job}/stop", []string{http.MethodPost}, r.apiV1StopJob)
+	r.api.RegisterHandler(jobRouter, "/{job}/status", []string{http.MethodGet}, r.apiV1JobStatus)
+	r.api.RegisterHandler(jobRouter, "/{job}/logs", []string{http.MethodGet}, r.apiV1JobLogs)
 
-			job := r.findCommonJobByName(jobName)
-			if job == nil {
-				var err error
-				job, err = r.findCommonIgnitionJobByName(jobName)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-			}
-			if r.jobExistsAndIsControllable(job) {
-				r.addJobIfNotExists(job)
-				next.ServeHTTP(w, req.WithContext(context.WithValue(req.Context(), contextKeyJob, job)))
-				return
-			}
+	r.api.RegisterHandler(r.api.router, "/v1/jobs", []string{http.MethodGet}, r.apiV1JobList)
 
-			http.Error(w, fmt.Sprintf("job %q not found or is not controllable", jobName), http.StatusNotFound)
-		})
-	})
-
-	r.api.RegisterHandler("/v1/job/{job}/start", []string{http.MethodPost}, r.apiV1StartJob)
-	r.api.RegisterHandler("/v1/job/{job}/restart", []string{http.MethodPost}, r.apiV1RestartJob)
-	r.api.RegisterHandler("/v1/job/{job}/stop", []string{http.MethodPost}, r.apiV1StopJob)
-	r.api.RegisterHandler("/v1/job/{job}/status", []string{http.MethodGet}, r.apiV1JobStatus)
-	r.api.RegisterHandler("/v1/job/{job}/logs", []string{http.MethodGet}, r.apiV1JobLogs)
 	return r.api.Start()
+}
+
+func (r *Runner) apiV1JobMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		jobName, ok := mux.Vars(req)["job"]
+		if !ok {
+			http.Error(w, "job parameter is missing", http.StatusBadRequest)
+			return
+		}
+
+		job := r.findCommonJobByName(jobName)
+		if job == nil {
+			var err error
+			job, err = r.findCommonIgnitionJobByName(jobName)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+		if r.jobExistsAndIsControllable(job) {
+			r.addJobIfNotExists(job)
+			next.ServeHTTP(w, req.WithContext(context.WithValue(req.Context(), contextKeyJob, job)))
+			return
+		}
+
+		http.Error(w, fmt.Sprintf("job %q not found or is not controllable", jobName), http.StatusNotFound)
+	})
 }
 
 func (r *Runner) apiV1StartJob(writer http.ResponseWriter, req *http.Request) {
@@ -84,6 +89,21 @@ func (r *Runner) apiV1JobStatus(writer http.ResponseWriter, req *http.Request) {
 	out, err := json.Marshal(job.Status())
 	if err != nil {
 		http.Error(writer, "failed to get job status", http.StatusInternalServerError)
+		return
+	}
+	writer.Header().Set("Content-Type", "application/json")
+	writer.Write(out)
+	writer.WriteHeader(http.StatusOK)
+}
+
+func (r *Runner) apiV1JobList(writer http.ResponseWriter, _ *http.Request) {
+	var jobs []string
+	for _, job := range r.jobs {
+		jobs = append(jobs, job.GetName())
+	}
+	out, err := json.Marshal(jobs)
+	if err != nil {
+		http.Error(writer, "failed to get job list", http.StatusInternalServerError)
 		return
 	}
 	writer.Header().Set("Content-Type", "application/json")

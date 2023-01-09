@@ -16,8 +16,8 @@ const (
 	contextKeyJob = "job"
 )
 
-func (api *Api) RegisterHandler(path string, methods []string, handler func(http.ResponseWriter, *http.Request)) {
-	api.router.
+func (api *Api) RegisterHandler(router *mux.Router, path string, methods []string, handler func(http.ResponseWriter, *http.Request)) {
+	router.
 		Path(path).
 		HandlerFunc(handler).
 		Methods(methods...)

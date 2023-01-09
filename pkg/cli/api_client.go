@@ -85,6 +85,16 @@ func (api *ApiClient) JobStatus(job string) ApiResponse {
 	return NewApiResponse(client.Get(url.String()))
 }
 
+func (api *ApiClient) JobList() ApiResponse {
+	client, url, err := api.buildHttpClientAndAddress()
+	if err != nil {
+		return &CommonApiResponse{Error: err}
+	}
+
+	url.Path = "/v1/jobs"
+	return NewApiResponse(client.Get(url.String()))
+}
+
 func (api *ApiClient) JobLogs(job string, follow bool) ApiResponse {
 	dialer, url, err := api.buildWebsocketAddress()
 	if err != nil {
