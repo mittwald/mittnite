@@ -131,6 +131,17 @@ job "foo" {
 }
 ```
 
+To redirect the output of a job to a separate file, `stdout` and/or `stderr` can be specified:
+
+```hcl
+job "foo" {
+  command = "/usr/local/bin/foo"
+  args = ["bar"]
+  stdout = "/tmp/foo.log"
+  stderr = "/tmp/foo-errors.log"
+}
+```
+
 You can configure a Job to watch files and to send a signal to the managed process if that file changes. This can be used, for example, to send a `SIGHUP` to a process to reload its configuration file when it changes.
   
 ```hcl
@@ -401,6 +412,30 @@ Flags:
   -h, --help                 help for mittnitectl
 
 Use "mittnitectl [command] --help" for more information about a command.
+```
+```shell
+$ mittnitectl job --help
+This command can be used to control a managed job.
+
+Usage:
+  mittnitectl job [command]
+
+Available Commands:
+  list        List jobs
+  logs        Get logs from job
+  restart     Restart a job
+  start       Start a job
+  status      Show job status
+  stop        Stop a job
+
+Flags:
+  -h, --help   help for job
+
+Global Flags:
+      --api-address string   write mittnites process id to this file (default "unix:///var/run/mittnite.sock")
+
+Use "mittnitectl job [command] --help" for more information about a command.
+```
 
 
 ### job

@@ -3,9 +3,8 @@ package cli
 import (
 	"context"
 	"fmt"
-	"net"
+	"github.com/gorilla/websocket"
 	"net/http"
-	"net/url"
 )
 
 const (
@@ -13,6 +12,7 @@ const (
 	ApiActionJobRestart = "restart"
 	ApiActionJobStop    = "stop"
 	ApiActionJobStatus  = "status"
+	ApiActionJobLogs    = "logs"
 )
 
 type ApiClient struct {
@@ -25,7 +25,7 @@ func NewApiClient(apiAddress string) *ApiClient {
 	}
 }
 
-func (api *ApiClient) CallAction(job, action string) *ApiResponse {
+func (api *ApiClient) CallAction(job, action string) ApiResponse {
 	switch action {
 	case ApiActionJobStart:
 		return api.JobStart(job)
@@ -36,7 +36,7 @@ func (api *ApiClient) CallAction(job, action string) *ApiResponse {
 	case ApiActionJobStatus:
 		return api.JobStatus(job)
 	default:
-		return &ApiResponse{
+		return &CommonApiResponse{
 			StatusCode: http.StatusBadRequest,
 			Body:       "",
 			Error:      fmt.Errorf("unknown action %s", action),
@@ -44,53 +44,84 @@ func (api *ApiClient) CallAction(job, action string) *ApiResponse {
 	}
 }
 
-func (api *ApiClient) JobStart(job string) *ApiResponse {
-	client, addr, err := api.buildHttpClientAndAddress()
+func (api *ApiClient) JobStart(job string) ApiResponse {
+	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
-		return &ApiResponse{Error: err}
+		return &CommonApiResponse{Error: err}
 	}
-	return NewApiResponse(client.Post(fmt.Sprintf("%s/v1/job/%s/start", addr, job), "application/json", nil))
+
+	url.Path = fmt.Sprintf("/v1/job/%s/start", job)
+	return NewApiResponse(client.Post(url.String(), "application/json", nil))
 }
 
-func (api *ApiClient) JobRestart(job string) *ApiResponse {
-	client, addr, err := api.buildHttpClientAndAddress()
+func (api *ApiClient) JobRestart(job string) ApiResponse {
+	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
-		return &ApiResponse{Error: err}
+		return &CommonApiResponse{Error: err}
 	}
-	return NewApiResponse(client.Post(fmt.Sprintf("%s/v1/job/%s/restart", addr, job), "application/json", nil))
+	url.Path = fmt.Sprintf("/v1/job/%s/restart", job)
+	return NewApiResponse(client.Post(url.String(), "application/json", nil))
 }
 
-func (api *ApiClient) JobStop(job string) *ApiResponse {
-	client, addr, err := api.buildHttpClientAndAddress()
+func (api *ApiClient) JobStop(job string) ApiResponse {
+	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
-		return &ApiResponse{Error: err}
+		return &CommonApiResponse{Error: err}
 	}
-	return NewApiResponse(client.Post(fmt.Sprintf("%s/v1/job/%s/stop", addr, job), "application/json", nil))
+
+	url.Path = fmt.Sprintf("/v1/job/%s/stop", job)
+	return NewApiResponse(client.Post(url.String(), "application/json", nil))
 }
 
-func (api *ApiClient) JobStatus(job string) *ApiResponse {
-	client, addr, err := api.buildHttpClientAndAddress()
+func (api *ApiClient) JobStatus(job string) ApiResponse {
+	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
-		return &ApiResponse{Error: err}
+		return &CommonApiResponse{Error: err}
 	}
 
-	return NewApiResponse(client.Get(fmt.Sprintf("%s/v1/job/%s/status", addr, job)))
+	url.Path = fmt.Sprintf("/v1/job/%s/status", job)
+	return NewApiResponse(client.Get(url.String()))
 }
 
-func (api *ApiClient) buildHttpClientAndAddress() (*http.Client, string, error) {
-	u, err := url.Parse(api.apiAddress)
+func (api *ApiClient) JobList() ApiResponse {
+	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
-		return nil, "", err
-	}
-	if u.Scheme != "unix" {
-		return &http.Client{}, api.apiAddress, nil
+		return &CommonApiResponse{Error: err}
 	}
 
-	return &http.Client{
-		Transport: &http.Transport{
-			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial("unix", u.Path)
-			},
-		},
-	}, "http://unix", nil
+	url.Path = "/v1/jobs"
+	return NewApiResponse(client.Get(url.String()))
+}
+
+func (api *ApiClient) JobLogs(job string, follow bool, tailLen int) ApiResponse {
+	dialer, url, err := api.buildWebsocketURL()
+	if err != nil {
+		return &CommonApiResponse{Error: err}
+	}
+
+	qryValues := url.Query()
+	qryValues.Add("taillen", fmt.Sprintf("%d", tailLen))
+	if follow {
+		qryValues.Add("follow", "true")
+	}
+
+	url.RawQuery = qryValues.Encode()
+	url.Path = fmt.Sprintf("/v1/job/%s/logs", job)
+
+	handler := func(ctx context.Context, conn *websocket.Conn, msgChan chan []byte, errChan chan error) {
+		for {
+			select {
+			default:
+				_, msg, err := conn.ReadMessage()
+				if err != nil {
+					errChan <- err
+					return
+				}
+				msgChan <- msg
+			case <-ctx.Done():
+				return
+			}
+		}
+	}
+	return NewStreamingApiResponse(url, dialer, handler)
 }

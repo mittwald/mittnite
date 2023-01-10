@@ -3,6 +3,7 @@ package proc
 import (
 	"context"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 	"net/http"
 	"os"
 	"os/exec"
@@ -32,12 +33,17 @@ type Api struct {
 	listenAddr string
 	srv        *http.Server
 	router     *mux.Router
+	upgrader   websocket.Upgrader
 }
 
 func NewApi(listenAddress string) *Api {
 	return &Api{
 		router:     mux.NewRouter(),
 		listenAddr: listenAddress,
+		upgrader: websocket.Upgrader{
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+		},
 	}
 }
 
@@ -47,6 +53,8 @@ type baseJob struct {
 	cmd     *exec.Cmd
 	restart bool
 	stop    bool
+	stdout  *os.File
+	stderr  *os.File
 }
 
 type BootJob struct {
@@ -90,20 +98,63 @@ type Job interface {
 	GetName() string
 }
 
-func NewCommonJob(c *config.JobConfig) *CommonJob {
-	j := CommonJob{
-		baseJob: baseJob{
-			Config: &c.BaseJobConfig,
-		},
-		Config: c,
+func newBaseJob(c *config.BaseJobConfig) (*baseJob, error) {
+	job := &baseJob{
+		Config:  c,
+		cmd:     nil,
+		restart: false,
+		stop:    false,
+		stdout:  os.Stdout,
+		stderr:  os.Stderr,
+	}
+	if len(c.Stdout) == 0 {
+		return job, nil
 	}
 
-	return &j
+	stdout, err := prepareStdFile(c.Stdout)
+	if err != nil {
+		return nil, err
+	}
+	job.stdout = stdout
+
+	if len(c.Stderr) == 0 {
+		return job, nil
+	}
+
+	if c.Stderr == c.Stdout {
+		job.stderr = job.stdout
+		return job, nil
+	}
+
+	stderr, err := prepareStdFile(c.Stderr)
+	if err != nil {
+		return nil, err
+	}
+	job.stderr = stderr
+
+	return job, nil
+}
+
+func NewCommonJob(c *config.JobConfig) (*CommonJob, error) {
+	job, err := newBaseJob(&c.BaseJobConfig)
+	if err != nil {
+		return nil, err
+	}
+	j := CommonJob{
+		baseJob: *job,
+		Config:  c,
+	}
+
+	return &j, nil
 }
 
 func NewLazyJob(c *config.JobConfig) (*LazyJob, error) {
+	commonJob, err := NewCommonJob(c)
+	if err != nil {
+		return nil, err
+	}
 	j := LazyJob{
-		CommonJob: *NewCommonJob(c),
+		CommonJob: *commonJob,
 	}
 
 	if c.Laziness.SpinUpTimeout != "" {
