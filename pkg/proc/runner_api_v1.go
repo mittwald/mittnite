@@ -143,11 +143,10 @@ func (r *Runner) apiV1JobLogs(writer http.ResponseWriter, req *http.Request) {
 		}
 	}()
 
-	var tailLen int
 	follow := strings.ToLower(req.FormValue("follow")) == "true"
-	tailLen, err = strconv.Atoi(req.FormValue("taillen"))
+	tailLen, err := strconv.Atoi(req.FormValue("taillen"))
 	if err != nil {
-		tailLen = 0
+		tailLen = -1
 	}
 
 	go job.StreamStdOutAndStdErr(streamCtx, outChan, errChan, follow, tailLen)

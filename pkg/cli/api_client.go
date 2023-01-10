@@ -100,11 +100,9 @@ func (api *ApiClient) JobLogs(job string, follow bool, tailLen int) ApiResponse 
 	}
 
 	qryValues := url.Query()
+	qryValues.Add("taillen", fmt.Sprintf("%d", tailLen))
 	if follow {
 		qryValues.Add("follow", "true")
-	}
-	if tailLen > 0 {
-		qryValues.Add("taillen", fmt.Sprintf("%d", tailLen))
 	}
 
 	url.RawQuery = qryValues.Encode()
