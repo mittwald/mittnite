@@ -100,6 +100,13 @@ func (r *Runner) apiV1JobStatus(writer http.ResponseWriter, req *http.Request) {
 func (r *Runner) apiV1JobList(writer http.ResponseWriter, _ *http.Request) {
 	var jobs []string
 	for _, job := range r.jobs {
+		commonJob, ok := job.(*CommonJob)
+		if !ok {
+			continue
+		}
+		if !commonJob.IsControllable() {
+			continue
+		}
 		jobs = append(jobs, job.GetName())
 	}
 	out, err := json.Marshal(jobs)
