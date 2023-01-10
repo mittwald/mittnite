@@ -45,7 +45,7 @@ func (api *ApiClient) CallAction(job, action string) ApiResponse {
 }
 
 func (api *ApiClient) JobStart(job string) ApiResponse {
-	client, url, err := api.buildHttpClientAndAddress()
+	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
 		return &CommonApiResponse{Error: err}
 	}
@@ -55,7 +55,7 @@ func (api *ApiClient) JobStart(job string) ApiResponse {
 }
 
 func (api *ApiClient) JobRestart(job string) ApiResponse {
-	client, url, err := api.buildHttpClientAndAddress()
+	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
 		return &CommonApiResponse{Error: err}
 	}
@@ -64,7 +64,7 @@ func (api *ApiClient) JobRestart(job string) ApiResponse {
 }
 
 func (api *ApiClient) JobStop(job string) ApiResponse {
-	client, url, err := api.buildHttpClientAndAddress()
+	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
 		return &CommonApiResponse{Error: err}
 	}
@@ -74,7 +74,7 @@ func (api *ApiClient) JobStop(job string) ApiResponse {
 }
 
 func (api *ApiClient) JobStatus(job string) ApiResponse {
-	client, url, err := api.buildHttpClientAndAddress()
+	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
 		return &CommonApiResponse{Error: err}
 	}
@@ -84,7 +84,7 @@ func (api *ApiClient) JobStatus(job string) ApiResponse {
 }
 
 func (api *ApiClient) JobList() ApiResponse {
-	client, url, err := api.buildHttpClientAndAddress()
+	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
 		return &CommonApiResponse{Error: err}
 	}
@@ -94,7 +94,7 @@ func (api *ApiClient) JobList() ApiResponse {
 }
 
 func (api *ApiClient) JobLogs(job string, follow bool, tailLen int) ApiResponse {
-	dialer, url, err := api.buildWebsocketAddress()
+	dialer, url, err := api.buildWebsocketURL()
 	if err != nil {
 		return &CommonApiResponse{Error: err}
 	}
