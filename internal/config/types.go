@@ -95,7 +95,7 @@ type BaseJobConfig struct {
 	Controllable     bool     `hcl:"controllable" json:"controllable"`
 	WorkingDirectory string   `hcl:"workingDirectory" json:"workingDirectory,omitempty"`
 	Stdout           string   `hcl:"stdout" json:"stdout,omitempty"`
-	Stderr           string   `hcl:"Stderr" json:"stderr,omitempty"`
+	Stderr           string   `hcl:"stderr" json:"stderr,omitempty"`
 }
 
 type Laziness struct {
