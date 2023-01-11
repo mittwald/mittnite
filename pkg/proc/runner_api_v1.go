@@ -133,6 +133,16 @@ func (r *Runner) apiV1JobLogs(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if !job.IsRunning() {
+		_ = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(
+			"Failed to get logs for job %q: job is not running", job.GetName(),
+		)))
+		_ = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(
+			"You can try to view the files directly:\n\tstdout: %q\n\tstderr: %q", job.Config.Stdout, job.Config.Stderr,
+		)))
+		return
+	}
+
 	streamCtx, cancel := context.WithCancel(context.Background())
 	outChan := make(chan []byte)
 	errChan := make(chan error)
