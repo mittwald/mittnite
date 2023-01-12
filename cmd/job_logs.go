@@ -18,9 +18,11 @@ func init() {
 }
 
 var jobLogsCommand = &cobra.Command{
-	Use:   "logs <job>",
-	Short: "Get logs from job",
-	Long:  "This command can be used to get the logs of a managed job.",
+	Use:        "logs <job>",
+	Args:       cobra.ExactArgs(1),
+	ArgAliases: []string{"job"},
+	Short:      "Get logs from job",
+	Long:       "This command can be used to get the logs of a managed job.",
 	Run: func(cmd *cobra.Command, args []string) {
 		job := args[0]
 		apiClient := cli.NewApiClient(apiAddress)
