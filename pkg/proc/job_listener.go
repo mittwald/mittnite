@@ -135,6 +135,7 @@ func (l *Listener) run(ctx context.Context) <-chan error {
 					log.WithError(err).Error("error while dialling upstream")
 					return
 				}
+				defer upstream.Close()
 
 				toUpstreamErrors := make(chan error)
 				fromUpstreamErrors := make(chan error)
@@ -156,7 +157,6 @@ func (l *Listener) run(ctx context.Context) <-chan error {
 				select {
 				case <-toUpstreamErrors:
 				case <-fromUpstreamErrors:
-					return
 				}
 			}()
 		}
