@@ -7,7 +7,7 @@ import (
 	"net/url"
 )
 
-var _ ApiResponse = &StreamingApiResponse{}
+var _ APIResponse = &StreamingApiResponse{}
 
 type StreamingApiResponseHandler func(ctx context.Context, conn *websocket.Conn, msg chan []byte, err chan error)
 
@@ -21,7 +21,7 @@ type StreamingApiResponse struct {
 	dialer        *websocket.Dialer
 }
 
-func NewStreamingApiResponse(url *url.URL, dialer *websocket.Dialer, streamingFunc StreamingApiResponseHandler) ApiResponse {
+func NewStreamingApiResponse(url *url.URL, dialer *websocket.Dialer, streamingFunc StreamingApiResponseHandler) APIResponse {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &StreamingApiResponse{
 		url:           url,
@@ -32,6 +32,10 @@ func NewStreamingApiResponse(url *url.URL, dialer *websocket.Dialer, streamingFu
 		streamingFunc: streamingFunc,
 		dialer:        dialer,
 	}
+}
+
+func (resp *StreamingApiResponse) Err() error {
+	return nil
 }
 
 func (resp *StreamingApiResponse) Print() error {

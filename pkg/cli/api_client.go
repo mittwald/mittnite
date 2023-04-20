@@ -25,7 +25,7 @@ func NewApiClient(apiAddress string) *ApiClient {
 	}
 }
 
-func (api *ApiClient) CallAction(job, action string) ApiResponse {
+func (api *ApiClient) CallAction(job, action string) APIResponse {
 	switch action {
 	case ApiActionJobStart:
 		return api.JobStart(job)
@@ -36,7 +36,7 @@ func (api *ApiClient) CallAction(job, action string) ApiResponse {
 	case ApiActionJobStatus:
 		return api.JobStatus(job)
 	default:
-		return &CommonApiResponse{
+		return &CommonAPIResponse{
 			StatusCode: http.StatusBadRequest,
 			Body:       "",
 			Error:      fmt.Errorf("unknown action %s", action),
@@ -44,59 +44,59 @@ func (api *ApiClient) CallAction(job, action string) ApiResponse {
 	}
 }
 
-func (api *ApiClient) JobStart(job string) ApiResponse {
+func (api *ApiClient) JobStart(job string) APIResponse {
 	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
-		return &CommonApiResponse{Error: err}
+		return &CommonAPIResponse{Error: err}
 	}
 
 	url.Path = fmt.Sprintf("/v1/job/%s/start", job)
-	return NewApiResponse(client.Post(url.String(), "application/json", nil))
+	return NewAPIResponse(client.Post(url.String(), "application/json", nil))
 }
 
-func (api *ApiClient) JobRestart(job string) ApiResponse {
+func (api *ApiClient) JobRestart(job string) APIResponse {
 	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
-		return &CommonApiResponse{Error: err}
+		return &CommonAPIResponse{Error: err}
 	}
 	url.Path = fmt.Sprintf("/v1/job/%s/restart", job)
-	return NewApiResponse(client.Post(url.String(), "application/json", nil))
+	return NewAPIResponse(client.Post(url.String(), "application/json", nil))
 }
 
-func (api *ApiClient) JobStop(job string) ApiResponse {
+func (api *ApiClient) JobStop(job string) APIResponse {
 	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
-		return &CommonApiResponse{Error: err}
+		return &CommonAPIResponse{Error: err}
 	}
 
 	url.Path = fmt.Sprintf("/v1/job/%s/stop", job)
-	return NewApiResponse(client.Post(url.String(), "application/json", nil))
+	return NewAPIResponse(client.Post(url.String(), "application/json", nil))
 }
 
-func (api *ApiClient) JobStatus(job string) ApiResponse {
+func (api *ApiClient) JobStatus(job string) APIResponse {
 	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
-		return &CommonApiResponse{Error: err}
+		return &CommonAPIResponse{Error: err}
 	}
 
 	url.Path = fmt.Sprintf("/v1/job/%s/status", job)
-	return NewApiResponse(client.Get(url.String()))
+	return NewAPIResponse(client.Get(url.String()))
 }
 
-func (api *ApiClient) JobList() ApiResponse {
+func (api *ApiClient) JobList() TypedAPIResponse[[]string] {
 	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
-		return &CommonApiResponse{Error: err}
+		return TypedAPIResponse[[]string]{Error: err}
 	}
 
 	url.Path = "/v1/jobs"
-	return NewApiResponse(client.Get(url.String()))
+	return *NewTypedAPIResponse(make([]string, 0))(client.Get(url.String()))
 }
 
-func (api *ApiClient) JobLogs(job string, follow bool, tailLen int) ApiResponse {
+func (api *ApiClient) JobLogs(job string, follow bool, tailLen int) APIResponse {
 	dialer, url, err := api.buildWebsocketURL()
 	if err != nil {
-		return &CommonApiResponse{Error: err}
+		return &CommonAPIResponse{Error: err}
 	}
 
 	qryValues := url.Query()
