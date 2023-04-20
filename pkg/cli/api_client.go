@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"github.com/mittwald/mittnite/pkg/proc"
 	"net/http"
 )
 
@@ -33,8 +34,8 @@ func (api *ApiClient) CallAction(job, action string) APIResponse {
 		return api.JobRestart(job)
 	case ApiActionJobStop:
 		return api.JobStop(job)
-	case ApiActionJobStatus:
-		return api.JobStatus(job)
+	//case ApiActionJobStatus:
+	//	return api.JobStatus(job)
 	default:
 		return &CommonAPIResponse{
 			StatusCode: http.StatusBadRequest,
@@ -73,14 +74,14 @@ func (api *ApiClient) JobStop(job string) APIResponse {
 	return NewAPIResponse(client.Post(url.String(), "application/json", nil))
 }
 
-func (api *ApiClient) JobStatus(job string) APIResponse {
+func (api *ApiClient) JobStatus(job string) TypedAPIResponse[proc.CommonJobStatus] {
 	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
-		return &CommonAPIResponse{Error: err}
+		return TypedAPIResponse[proc.CommonJobStatus]{Error: err}
 	}
 
 	url.Path = fmt.Sprintf("/v1/job/%s/status", job)
-	return NewAPIResponse(client.Get(url.String()))
+	return *NewTypedAPIResponse(proc.CommonJobStatus{})(client.Get(url.String()))
 }
 
 func (api *ApiClient) JobList() TypedAPIResponse[[]string] {

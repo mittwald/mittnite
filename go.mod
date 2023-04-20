@@ -1,6 +1,6 @@
 module github.com/mittwald/mittnite
 
-go 1.19
+go 1.20
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.2
@@ -23,6 +23,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.1.1 // indirect
 	github.com/aws/aws-sdk-go v1.34.28 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/fatih/color v1.15.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/go-cmp v0.5.4 // indirect
@@ -32,6 +33,8 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.9.5 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.0 // indirect
 	github.com/onsi/ginkgo v1.15.2 // indirect
@@ -47,7 +50,7 @@ require (
 	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9 // indirect
-	golang.org/x/sys v0.5.0 // indirect
+	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
 )
