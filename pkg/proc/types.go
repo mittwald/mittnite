@@ -50,11 +50,12 @@ func NewApi(listenAddress string) *Api {
 type baseJob struct {
 	Config *config.BaseJobConfig
 
-	cmd     *exec.Cmd
-	restart bool
-	stop    bool
-	stdout  *os.File
-	stderr  *os.File
+	cmd       *exec.Cmd
+	restart   bool
+	stop      bool
+	stdout    *os.File
+	stderr    *os.File
+	lastError error
 }
 
 type BootJob struct {

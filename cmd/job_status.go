@@ -43,21 +43,25 @@ var jobStatusCmd = cobra.Command{
 				return fmt.Errorf("failed to print output: %w", err)
 			}
 		} else {
-			c := color.New(color.FgHiBlue, color.Bold)
-			b := color.New(color.FgBlue).SprintFunc()
+			success := color.New(color.FgHiGreen, color.Bold).SprintFunc()
+			failed := color.New(color.FgHiRed, color.Bold).SprintFunc()
+			b := color.New(color.FgHiBlue).SprintFunc()
 
 			if resp.Body.Running {
-				c = color.New(color.FgHiGreen, color.Bold)
-				c.Printf("▶︎ RUNNING: %s (PID: %d)\n", job, resp.Body.Pid)
+				fmt.Printf("%s %s (%s; pid: %d)\n\n", success("▶︎"), b(job), success("running"), resp.Body.Pid)
 			} else {
-				c = color.New(color.FgHiRed, color.Bold)
-				c.Printf("◼︎ NOT RUNNING: %s\n", job)
+				fmt.Printf("%s %s (%s)\n\n", failed("◼︎"), b(job), failed("not running"))
 			}
 
 			fmt.Printf("  Command:           %s   Arguments: %s\n", b(resp.Body.Config.Command), b(resp.Body.Config.Args))
-			fmt.Printf("  Working directory: %s\n", b(resp.Body.Config.WorkingDirectory))
+			fmt.Printf("  Working directory: %s\n", wrapNotSet(resp.Body.Config.WorkingDirectory))
 			fmt.Printf("  Can Fail:          %s (Max restart attempts: %s)\n", b(resp.Body.Config.CanFail), b(resp.Body.Config.MaxAttempts))
 		}
+
+		fmt.Print("\nTo change the status of this process, you can use the following commands:\n\n")
+		fmt.Printf("  %s %s\n", colorCmd(cmd.Parent().CommandPath()+" start"), colorHighlight(job))
+		fmt.Printf("  %s %s\n", colorCmd(cmd.Parent().CommandPath()+" stop"), colorHighlight(job))
+		fmt.Printf("  %s %s\n", colorCmd(cmd.Parent().CommandPath()+" restart"), colorHighlight(job))
 
 		if !resp.Body.Running && exitWithStatus {
 			os.Exit(1)
@@ -65,6 +69,14 @@ var jobStatusCmd = cobra.Command{
 
 		return nil
 	},
+}
+
+func wrapNotSet(s string) string {
+	if s == "" {
+		return color.New(color.FgHiYellow).Sprint("<not set>")
+	}
+
+	return color.New(color.FgHiBlue).Sprintf(s)
 }
 
 func determineJobName(args []string, apiClient *cli.ApiClient) (string, error) {

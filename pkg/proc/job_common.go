@@ -82,7 +82,7 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 			return nil
 		}
 
-		return fmt.Errorf("reached max retries for job %s", job.Config.Name)
+		return fmt.Errorf("reached max retries for job %s; last error: %w", job.Config.Name, err)
 	}
 }
 

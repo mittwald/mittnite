@@ -78,22 +78,24 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 	l := log.WithField("job.name", job.Config.Name)
 	defer job.closeStdFiles()
 
-	job.cmd = exec.Command(job.Config.Command, job.Config.Args...)
-	job.cmd.Env = os.Environ()
-	job.cmd.Dir = job.Config.WorkingDirectory
-	job.cmd.Stdout = job.stdout
-	job.cmd.Stderr = job.stderr
+	cmd := exec.Command(job.Config.Command, job.Config.Args...)
+	cmd.Env = os.Environ()
+	cmd.Dir = job.Config.WorkingDirectory
+	cmd.Stdout = job.stdout
+	cmd.Stderr = job.stderr
 
 	if job.Config.Env != nil {
-		job.cmd.Env = append(job.cmd.Env, job.Config.Env...)
+		cmd.Env = append(cmd.Env, job.Config.Env...)
 	}
 
 	l.Info("starting job")
 
-	err := job.cmd.Start()
-	if err != nil {
+	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed to start job %s: %s", job.Config.Name, err.Error())
 	}
+
+	// Only set job.cmd if cmd.Start() was successful
+	job.cmd = cmd
 
 	if process != nil {
 		process <- job.cmd.Process

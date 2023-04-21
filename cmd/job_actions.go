@@ -7,6 +7,7 @@ import (
 	"github.com/mittwald/mittnite/pkg/cli"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"os"
 	"time"
 )
 
@@ -15,27 +16,27 @@ func init() {
 		"start",
 		"Start a job",
 		"This command can be used to start a managed job.",
-		"▶️  Starting job %s",
-		"🕑 Waiting for job %s to start",
-		"🚀 Job %s started",
+		"▶️  starting job %s",
+		"🕑 waiting for job %s to start",
+		"🚀 job %s started",
 		testRunning,
 	))
 	jobCommand.AddCommand(buildJobActionCommand(
 		"restart",
 		"Restart a job",
 		"This command can be used to restart a managed job.",
-		"🔄  Restarting job %s",
-		"🕑 Waiting for job %s to restart",
-		"🥳 Job %s restarted",
+		"🔄  restarting job %s",
+		"🕑 waiting for job %s to restart",
+		"🥳 job %s restarted",
 		testRunning,
 	))
 	jobCommand.AddCommand(buildJobActionCommand(
 		"stop",
 		"Stop a job",
 		"This command can be used to stop a managed job.",
-		"⏸️  Stopping job %s",
-		"🕑 Waiting for job %s to stop",
-		"😵 Job %s stopped",
+		"⏸️  stopping job %s",
+		"🕑 waiting for job %s to stop",
+		"😵 job %s stopped",
 		testStopped,
 	))
 	//jobCommand.AddCommand(buildJobActionCommand("status", "Show job status", "This command can be used to show the status of a managed job."))
@@ -63,6 +64,8 @@ func waitForCondition(job string, client *cli.ApiClient, waitTimeout time.Durati
 	waitStart := time.Now()
 
 	for {
+		time.Sleep(100 * time.Millisecond)
+
 		ok, err := waitFunc(job, client)
 		if err != nil {
 			return err
@@ -75,8 +78,6 @@ func waitForCondition(job string, client *cli.ApiClient, waitTimeout time.Durati
 		if time.Since(waitStart) > waitTimeout {
 			return fmt.Errorf("timeout waiting for job %s to reach desired state", job)
 		}
-
-		time.Sleep(100 * time.Millisecond)
 	}
 }
 
@@ -124,7 +125,8 @@ func buildJobActionCommand(
 				fmt.Printf(waitMsg+"\n", bold(job))
 
 				if err := waitForCondition(job, apiClient, duration, waitFunc); err != nil {
-					return err
+					color.New(color.FgHiRed).Printf("❌ %s\n", err.Error())
+					os.Exit(1)
 				}
 
 				fmt.Printf(doneMsg+"\n", bold(job))
@@ -135,7 +137,7 @@ func buildJobActionCommand(
 	}
 
 	cmd.Flags().BoolP("wait", "w", false, "wait for the job to have reached the desired state before completing.")
-	cmd.Flags().Duration("wait-for", 10*time.Second, "maximum time to wait for the job to have reached the desired state before completing.")
+	cmd.Flags().Duration("wait-for", 5*time.Second, "maximum time to wait for the job to have reached the desired state before completing.")
 
 	return &cmd
 }
