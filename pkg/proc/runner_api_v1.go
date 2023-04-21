@@ -93,8 +93,8 @@ func (r *Runner) apiV1JobStatus(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 	writer.Header().Set("Content-Type", "application/json")
-	writer.Write(out)
 	writer.WriteHeader(http.StatusOK)
+	writer.Write(out)
 }
 
 func (r *Runner) apiV1JobList(writer http.ResponseWriter, _ *http.Request) {
@@ -115,8 +115,8 @@ func (r *Runner) apiV1JobList(writer http.ResponseWriter, _ *http.Request) {
 		return
 	}
 	writer.Header().Set("Content-Type", "application/json")
-	writer.Write(out)
 	writer.WriteHeader(http.StatusOK)
+	writer.Write(out)
 }
 
 func (r *Runner) apiV1JobLogs(writer http.ResponseWriter, req *http.Request) {
