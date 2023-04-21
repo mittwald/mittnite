@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"github.com/mittwald/mittnite/pkg/cli"

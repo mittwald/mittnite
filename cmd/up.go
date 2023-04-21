@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	defaultAPIAddress = "unix:///var/run/mittnite.sock"
+	DefaultAPIAddress = "unix:///var/run/mittnite.sock"
 )
 
 var (
@@ -39,7 +39,7 @@ func init() {
 	up.PersistentFlags().IntVarP(&probeListenPort, "probe-listen-port", "p", 9102, "set the port to listen for probe requests")
 	up.PersistentFlags().StringVarP(&pidFile, "pidfile", "", "", "write mittnites process id to this file")
 	up.PersistentFlags().BoolVarP(&apiEnabled, "api", "", false, "enables the api for remote or cli controlling")
-	up.PersistentFlags().StringVarP(&apiListenAddress, "api-listen-address", "", defaultAPIAddress, fmt.Sprintf("listen address for the api. Defaults to %q", defaultAPIAddress))
+	up.PersistentFlags().StringVarP(&apiListenAddress, "api-listen-address", "", DefaultAPIAddress, fmt.Sprintf("listen address for the api. Defaults to %q", DefaultAPIAddress))
 	up.PersistentFlags().BoolVarP(&keepRunning, "keep-running", "k", false, "keep mittnite running even if no job is running anymore")
 }
 
