@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/mittwald/mittnite/pkg/cli"
+	"github.com/mittwald/mittnite/pkg/proc"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -41,9 +42,11 @@ var jobListCommand = &cobra.Command{
 			}
 
 			if status.Body.Running {
-				fmt.Printf("%s %s (%s; pid: %d)\n", colorRunning("▶︎"), colorHighlight(job), colorRunning("running"), status.Body.Pid)
+				fmt.Printf("%s %s (%s; reason: %s; pid: %d)\n", colorRunning("▶︎"), colorHighlight(job), colorRunning("running"), colorHighlight(status.Body.Phase.Reason), status.Body.Pid)
+			} else if status.Body.Phase.Reason == proc.JobPhaseReasonStopped {
+				fmt.Printf("%s %s (%s)\n", colorStopped("◼︎"), colorHighlight(job), colorStopped("stopped"))
 			} else {
-				fmt.Printf("%s %s (%s)\n", colorStopped("◼︎"), colorHighlight(job), colorStopped("not running"))
+				fmt.Printf("%s %s (%s; reason: %s)\n", colorFailed("◼︎"), colorHighlight(job), colorFailed("not running"), colorHighlight(status.Body.Phase.Reason))
 			}
 		}
 

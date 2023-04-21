@@ -52,12 +52,22 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 		maxAttempts = 3
 	}
 
+	p := make(chan *os.Process)
+	defer close(p)
+
+	go func() {
+		for range p {
+			job.phase.Set(JobPhaseReasonStarted)
+		}
+	}()
+
 	for { // restart failed jobs as long mittnite is running
-		err := job.startOnce(ctx, nil)
+		err := job.startOnce(ctx, p)
 		switch err {
 		case nil:
 			if job.Config.OneTime {
 				l.Info("one-time job has ended successfully")
+				job.phase.Set(JobPhaseReasonCompleted)
 				return nil
 			}
 			l.Warn("job exited without errors")
@@ -66,6 +76,7 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 			continue
 		case ProcessWillBeStoppedError:
 			l.Info("stop process")
+			job.phase.Set(JobPhaseReasonStopped)
 			return nil
 		default:
 			l.WithError(err).Error("job exited with error")
@@ -73,9 +84,12 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 
 		attempts++
 		if attempts < maxAttempts {
+			job.phase.Set(JobPhaseReasonCrashLooping)
 			l.WithField("job.maxAttempts", maxAttempts).WithField("job.usedAttempts", attempts).Info("remaining attempts")
 			continue
 		}
+
+		job.phase.Set(JobPhaseReasonFailed)
 
 		if job.Config.CanFail {
 			l.WithField("job.maxAttempts", maxAttempts).Warn("reached max retries")
@@ -179,6 +193,7 @@ func (job *CommonJob) Status() *CommonJobStatus {
 	return &CommonJobStatus{
 		Pid:     pid,
 		Running: job.IsRunning(),
+		Phase:   job.phase,
 		Config:  job.Config,
 	}
 }

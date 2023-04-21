@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-func (r *Runner) startApiV1() error {
+func (r *Runner) startAPIV1() error {
 	if r.api == nil {
 		return nil
 	}

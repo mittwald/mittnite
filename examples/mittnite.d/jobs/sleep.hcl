@@ -15,6 +15,11 @@ job sleep2 {
    controllable = false
 }
 
+#probe foo {
+#    wait = true
+#    filesystem = "/Users/mhelmich/Git/Github/mittnite/test"
+#}
+
 #boot hello {
 #  command = "cowsay"
 #  args = ["moo"]

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/mittwald/mittnite/pkg/cli"
+	"github.com/mittwald/mittnite/pkg/proc"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -43,14 +44,14 @@ var jobStatusCmd = cobra.Command{
 				return fmt.Errorf("failed to print output: %w", err)
 			}
 		} else {
-			success := color.New(color.FgHiGreen, color.Bold).SprintFunc()
-			failed := color.New(color.FgHiRed, color.Bold).SprintFunc()
 			b := color.New(color.FgHiBlue).SprintFunc()
 
 			if resp.Body.Running {
-				fmt.Printf("%s %s (%s; pid: %d)\n\n", success("▶︎"), b(job), success("running"), resp.Body.Pid)
+				fmt.Printf("%s %s (%s; pid: %d)\n\n", colorRunning("▶︎"), b(job), colorRunning("running"), resp.Body.Pid)
+			} else if resp.Body.Phase.Reason == proc.JobPhaseReasonStopped {
+				fmt.Printf("%s %s (%s)\n", colorStopped("◼︎"), colorHighlight(job), colorStopped("stopped"))
 			} else {
-				fmt.Printf("%s %s (%s)\n\n", failed("◼︎"), b(job), failed("not running"))
+				fmt.Printf("%s %s (%s)\n\n", colorFailed("◼︎"), b(job), colorFailed("not running"))
 			}
 
 			fmt.Printf("  Command:           %s   Arguments: %s\n", b(resp.Body.Config.Command), b(resp.Body.Config.Args))

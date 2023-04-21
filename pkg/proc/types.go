@@ -70,11 +70,13 @@ type CommonJob struct {
 	Config *config.JobConfig
 
 	watchingFiles map[string]time.Time
+	phase         JobPhase
 }
 
 type CommonJobStatus struct {
 	Pid     int               `json:"pid,omitempty"`
 	Running bool              `json:"running"`
+	Phase   JobPhase          `json:"phase"`
 	Config  *config.JobConfig `json:"config"`
 }
 
@@ -141,9 +143,14 @@ func NewCommonJob(c *config.JobConfig) (*CommonJob, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	phase := JobPhase{}
+	phase.Set(JobPhaseReasonAwaitingReadiness)
+
 	j := CommonJob{
 		baseJob: *job,
 		Config:  c,
+		phase:   phase,
 	}
 
 	return &j, nil
@@ -154,6 +161,9 @@ func NewLazyJob(c *config.JobConfig) (*LazyJob, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	commonJob.phase.Set(JobPhaseReasonAwaitingReadiness)
+
 	j := LazyJob{
 		CommonJob: *commonJob,
 	}
