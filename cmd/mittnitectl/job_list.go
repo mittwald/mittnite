@@ -42,7 +42,7 @@ var jobListCommand = &cobra.Command{
 			}
 
 			if status.Body.Running {
-				fmt.Printf("%s %s (%s; reason: %s; pid: %d)\n", colorRunning("▶︎"), colorHighlight(job), colorRunning("running"), colorHighlight(status.Body.Phase.Reason), status.Body.Pid)
+				fmt.Printf("%s %s (%s; reason=%s; pid=%s)\n", colorRunning("▶︎"), colorHighlight(job), colorRunning("running"), colorHighlight(status.Body.Phase.Reason), colorHighlight(status.Body.Pid))
 			} else if status.Body.Phase.Reason == proc.JobPhaseReasonStopped {
 				fmt.Printf("%s %s (%s)\n", colorStopped("◼︎"), colorHighlight(job), colorStopped("stopped"))
 			} else {

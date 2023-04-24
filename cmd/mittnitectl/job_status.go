@@ -47,7 +47,7 @@ var jobStatusCmd = cobra.Command{
 			b := color.New(color.FgHiBlue).SprintFunc()
 
 			if resp.Body.Running {
-				fmt.Printf("%s %s (%s; pid: %d)\n\n", colorRunning("▶︎"), b(job), colorRunning("running"), resp.Body.Pid)
+				fmt.Printf("%s %s (%s; pid=%d)\n\n", colorRunning("▶︎"), b(job), colorRunning("running"), colorHighlight(resp.Body.Pid))
 			} else if resp.Body.Phase.Reason == proc.JobPhaseReasonStopped {
 				fmt.Printf("%s %s (%s)\n", colorStopped("◼︎"), colorHighlight(job), colorStopped("stopped"))
 			} else {
