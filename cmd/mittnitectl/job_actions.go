@@ -3,11 +3,8 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/fatih/color"
 	"github.com/mittwald/mittnite/pkg/cli"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"os"
 	"time"
 )
 
@@ -39,7 +36,6 @@ func init() {
 		"😵 job %s stopped",
 		testStopped,
 	))
-	//jobCommand.AddCommand(buildJobActionCommand("status", "Show job status", "This command can be used to show the status of a managed job."))
 }
 
 func testRunning(job string, client *cli.ApiClient) (bool, error) {
@@ -90,8 +86,6 @@ func buildJobActionCommand(
 	doneMsg string,
 	waitFunc func(string, *cli.ApiClient) (bool, error),
 ) *cobra.Command {
-	bold := color.New(color.FgBlue, color.Bold).SprintFunc()
-
 	cmd := cobra.Command{
 		Use:        fmt.Sprintf("%s [--wait] <job>", action),
 		Args:       cobra.MaximumNArgs(1),
@@ -107,11 +101,11 @@ func buildJobActionCommand(
 				return err
 			}
 
-			fmt.Printf(startMsg+"\n", bold(job))
+			fmt.Printf(startMsg+"\n", styleHighlight.Render(job))
 
 			resp := apiClient.CallAction(job, action)
 			if err := resp.Print(); err != nil {
-				log.Errorf("failed to print output: %s", err.Error())
+				return err
 			}
 
 			wait, waitErr := cmd.Flags().GetBool("wait")
@@ -122,21 +116,22 @@ func buildJobActionCommand(
 			}
 
 			if wait {
-				fmt.Printf(waitMsg+"\n", bold(job))
+				fmt.Printf(waitMsg+"\n", styleHighlight.Render(job))
 
 				if err := waitForCondition(job, apiClient, duration, waitFunc); err != nil {
-					color.New(color.FgHiRed).Printf("❌ %s\n", err.Error())
-					os.Exit(1)
+					return err
 				}
 
-				fmt.Printf(doneMsg+"\n", bold(job))
+				fmt.Println(styleSuccessBox.Render(
+					fmt.Sprintf(doneMsg, styleHighlight.Render(job)),
+				))
 			}
 
 			return nil
 		},
 	}
 
-	cmd.Flags().BoolP("wait", "w", false, "wait for the job to have reached the desired state before completing.")
+	cmd.Flags().BoolP("wait", "w", true, "wait for the job to have reached the desired state before completing.")
 	cmd.Flags().Duration("wait-for", 5*time.Second, "maximum time to wait for the job to have reached the desired state before completing.")
 
 	return &cmd

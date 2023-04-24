@@ -8,6 +8,7 @@ import (
 	"github.com/tidwall/pretty"
 	"io"
 	"net/http"
+	"strings"
 )
 
 var _ APIResponse = &TypedAPIResponse[struct{}]{}
@@ -37,12 +38,15 @@ func NewTypedAPIResponse[TBody any](body TBody) func(resp *http.Response, err er
 			return &apiRes
 		}
 
-		switch resp.Header.Get("Content-Type") {
+		switch strings.Split(resp.Header.Get("Content-Type"), ";")[0] {
 		case "application/json":
 			if err := json.Unmarshal(out, &body); err != nil {
 				apiRes.Error = errors.Wrapf(err, "failed to parse body as JSON")
 				return &apiRes
 			}
+		case "text/plain":
+			apiRes.Error = fmt.Errorf(strings.TrimSpace(string(out)))
+			return &apiRes
 		default:
 			apiRes.Error = fmt.Errorf("unknown content type %s", resp.Header.Get("Content-Type"))
 			return &apiRes

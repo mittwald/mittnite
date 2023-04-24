@@ -3,9 +3,8 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/fatih/color"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/mittwald/mittnite/pkg/cli"
-	"github.com/mittwald/mittnite/pkg/proc"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -16,6 +15,11 @@ func init() {
 
 	jobCommand.AddCommand(&jobStatusCmd)
 }
+
+var styleStatusMainLine = lipgloss.NewStyle().Margin(1, 0)
+var styleStatusDetails = lipgloss.NewStyle().PaddingLeft(2)
+var styleStatusLeftColumn = lipgloss.NewStyle().Width(20)
+var styleStatusAddendum = lipgloss.NewStyle().PaddingLeft(3)
 
 var jobStatusCmd = cobra.Command{
 	Use:        "status <job>",
@@ -44,25 +48,50 @@ var jobStatusCmd = cobra.Command{
 				return fmt.Errorf("failed to print output: %w", err)
 			}
 		} else {
-			b := color.New(color.FgHiBlue).SprintFunc()
-
-			if resp.Body.Running {
-				fmt.Printf("%s %s (%s; pid=%d)\n\n", colorRunning("▶︎"), b(job), colorRunning("running"), colorHighlight(resp.Body.Pid))
-			} else if resp.Body.Phase.Reason == proc.JobPhaseReasonStopped {
-				fmt.Printf("%s %s (%s)\n", colorStopped("◼︎"), colorHighlight(job), colorStopped("stopped"))
-			} else {
-				fmt.Printf("%s %s (%s)\n\n", colorFailed("◼︎"), b(job), colorFailed("not running"))
-			}
-
-			fmt.Printf("  Command:           %s   Arguments: %s\n", b(resp.Body.Config.Command), b(resp.Body.Config.Args))
-			fmt.Printf("  Working directory: %s\n", wrapNotSet(resp.Body.Config.WorkingDirectory))
-			fmt.Printf("  Can Fail:          %s (Max restart attempts: %s)\n", b(resp.Body.Config.CanFail), b(resp.Body.Config.MaxAttempts))
+			fmt.Println(styleStatusMainLine.Render(jobStatusLine(job, resp.Body)))
+			fmt.Println(styleStatusDetails.Render(lipgloss.JoinVertical(lipgloss.Left,
+				lipgloss.JoinHorizontal(
+					lipgloss.Left,
+					styleStatusLeftColumn.Render("command:"),
+					styleHighlight.Render(resp.Body.Config.Command),
+					styleStatusAddendum.Render("(args: "), styleHighlight.Render(fmt.Sprintf("%v", resp.Body.Config.Args)), ")",
+				),
+				lipgloss.JoinHorizontal(lipgloss.Left, styleStatusLeftColumn.Render("working directory:"), wrapNotSet(resp.Body.Config.WorkingDirectory)),
+				lipgloss.JoinHorizontal(
+					lipgloss.Left,
+					styleStatusLeftColumn.Render("allowed to fail:"),
+					styleHighlight.Render(fmt.Sprintf("%t", resp.Body.Config.CanFail)),
+					styleStatusAddendum.Render("(max restart attempts: "), styleHighlight.Render(fmt.Sprintf("%d", resp.Body.Config.MaxAttempts)), ")",
+				),
+				lipgloss.JoinHorizontal(
+					lipgloss.Left,
+					styleStatusLeftColumn.Render("stdout log file:"),
+					wrapNotSet(resp.Body.Config.Stdout),
+				),
+				lipgloss.JoinHorizontal(
+					lipgloss.Left,
+					styleStatusLeftColumn.Render("stderr log file:"),
+					wrapNotSet(resp.Body.Config.Stderr),
+				),
+			)))
 		}
 
-		fmt.Print("\nTo change the status of this process, you can use the following commands:\n\n")
-		fmt.Printf("  %s %s\n", colorCmd(cmd.Parent().CommandPath()+" start"), colorHighlight(job))
-		fmt.Printf("  %s %s\n", colorCmd(cmd.Parent().CommandPath()+" stop"), colorHighlight(job))
-		fmt.Printf("  %s %s\n", colorCmd(cmd.Parent().CommandPath()+" restart"), colorHighlight(job))
+		fmt.Println(styleInfoBox.Render(
+			lipgloss.JoinVertical(
+				lipgloss.Left,
+				"To change the status of this processes, you can use the following commands:",
+				styleCommandBlock.Render(lipgloss.JoinVertical(lipgloss.Left,
+					styleCommand.Render(cmd.Parent().CommandPath()+" start")+styleParam.Render(" "+job),
+					styleCommand.Render(cmd.Parent().CommandPath()+" stop")+styleParam.Render(" "+job),
+					styleCommand.Render(cmd.Parent().CommandPath()+" restart")+styleParam.Render(" "+job),
+				)),
+				"To view the process output, you can use the following command:",
+				styleCommandBlock.Render(lipgloss.JoinVertical(lipgloss.Left,
+					styleCommand.Render(cmd.Parent().CommandPath()+" logs")+styleParam.Render(" "+job),
+				)),
+				"Visit https://github.com/mittwald/mittnite to learn more about using the mittnite init system.",
+			),
+		))
 
 		if !resp.Body.Running && exitWithStatus {
 			os.Exit(1)
@@ -74,10 +103,10 @@ var jobStatusCmd = cobra.Command{
 
 func wrapNotSet(s string) string {
 	if s == "" {
-		return color.New(color.FgHiYellow).Sprint("<not set>")
+		return styleNotSet.Render("<not set>")
 	}
 
-	return color.New(color.FgHiBlue).Sprintf(s)
+	return styleHighlight.Render(s)
 }
 
 func determineJobName(args []string, apiClient *cli.ApiClient) (string, error) {

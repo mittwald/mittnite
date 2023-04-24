@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/mittwald/mittnite/pkg/cli"
-	"github.com/mittwald/mittnite/pkg/proc"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -41,19 +41,21 @@ var jobListCommand = &cobra.Command{
 				return fmt.Errorf("failed to get status of job %s: %w", job, status.Err())
 			}
 
-			if status.Body.Running {
-				fmt.Printf("%s %s (%s; reason=%s; pid=%s)\n", colorRunning("▶︎"), colorHighlight(job), colorRunning("running"), colorHighlight(status.Body.Phase.Reason), colorHighlight(status.Body.Pid))
-			} else if status.Body.Phase.Reason == proc.JobPhaseReasonStopped {
-				fmt.Printf("%s %s (%s)\n", colorStopped("◼︎"), colorHighlight(job), colorStopped("stopped"))
-			} else {
-				fmt.Printf("%s %s (%s; reason: %s)\n", colorFailed("◼︎"), colorHighlight(job), colorFailed("not running"), colorHighlight(status.Body.Phase.Reason))
-			}
+			fmt.Println(styleListItem.Render(jobStatusLine(job, status.Body)))
 		}
 
-		fmt.Print("\nTo change the status of one of these processes, you can use the following commands:\n\n")
-		fmt.Printf("  %s %s\n", colorCmd(cmd.Parent().CommandPath()+" start"), colorHighlight("<job>"))
-		fmt.Printf("  %s %s\n", colorCmd(cmd.Parent().CommandPath()+" stop"), colorHighlight("<job>"))
-		fmt.Printf("  %s %s\n", colorCmd(cmd.Parent().CommandPath()+" restart"), colorHighlight("<job>"))
+		fmt.Println(styleInfoBox.Render(
+			lipgloss.JoinVertical(
+				lipgloss.Left,
+				"To change the status of one of these processes, you can use the following commands:",
+				styleCommandBlock.Render(lipgloss.JoinVertical(lipgloss.Left,
+					styleCommand.Render(cmd.Parent().CommandPath()+" start")+styleParam.Render(" <job>"),
+					styleCommand.Render(cmd.Parent().CommandPath()+" stop")+styleParam.Render(" <job>"),
+					styleCommand.Render(cmd.Parent().CommandPath()+" restart")+styleParam.Render(" <job>"),
+				)),
+				"Visit https://github.com/mittwald/mittnite to learn more about using the mittnite init system.",
+			),
+		))
 
 		return nil
 	},

@@ -1,9 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"github.com/mittwald/mittnite/cmd"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 var (
@@ -16,13 +17,16 @@ func init() {
 }
 
 var ctlCommand = &cobra.Command{
-	Use:   "mittnitectl",
-	Short: "control mittnite (with --api) from cli",
-	Long:  "This command can be used to control mittnite by command line.",
+	Use:           "mittnitectl",
+	Short:         "control mittnite (with --api) from cli",
+	Long:          "This command can be used to control mittnite by command line.",
+	SilenceUsage:  true,
+	SilenceErrors: true,
 }
 
 func Execute() {
 	if err := ctlCommand.Execute(); err != nil {
-		log.Fatal(err)
+		fmt.Println(renderError(err))
+		os.Exit(1)
 	}
 }

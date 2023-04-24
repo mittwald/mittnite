@@ -8,6 +8,7 @@ import (
 	"github.com/tidwall/pretty"
 	"io"
 	"net/http"
+	"strings"
 )
 
 type APIResponse interface {
@@ -40,6 +41,11 @@ func NewAPIResponse(resp *http.Response, err error) APIResponse {
 	}
 	apiRes.Body = string(out)
 	apiRes.contentType = resp.Header.Get("Content-Type")
+
+	if err == nil && apiRes.StatusCode >= 400 {
+		apiRes.Error = fmt.Errorf("unexpected status code %d: %s", apiRes.StatusCode, strings.TrimSpace(apiRes.Body))
+	}
+
 	return apiRes
 }
 
@@ -50,9 +56,9 @@ func (resp *CommonAPIResponse) Err() error {
 func (resp *CommonAPIResponse) Print() error {
 	var out string
 	if resp.Error != nil {
-		fmt.Println(resp.Error.Error())
-		return nil
+		return resp.Error
 	}
+
 	if len(resp.Body) == 0 {
 		return nil
 	}

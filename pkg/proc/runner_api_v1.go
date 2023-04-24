@@ -46,7 +46,7 @@ func (r *Runner) apiV1JobMiddleware(next http.Handler) http.Handler {
 			var err error
 			job, err = r.findCommonIgnitionJobByName(jobName)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
 		}
