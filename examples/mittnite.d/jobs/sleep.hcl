@@ -1,6 +1,6 @@
 job sleep {
-  command = "/bin/sleep"
-  args = ["500"]
+  command = "/bin/bash"
+  args = ["-c", "while true ; do sleep 10; echo 'hello' ; done"]
   canFail = true
   oneTime = false
   controllable = true

@@ -125,11 +125,17 @@ func (r *Runner) apiV1JobLogs(writer http.ResponseWriter, req *http.Request) {
 		http.Error(writer, "failed to upgrade connection", http.StatusInternalServerError)
 		return
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Printf("failed to close connection: %v", err)
+		}
+	}()
 
 	job := req.Context().Value(contextKeyJob).(*CommonJob)
 	if len(job.Config.Stdout) == 0 && len(job.Config.Stderr) == 0 {
-		_ = conn.WriteMessage(websocket.TextMessage, []byte("neither stdout, nor stderr is defined for this job"))
+		if err := conn.WriteMessage(websocket.TextMessage, []byte("neither stdout, nor stderr is defined for this job")); err != nil {
+			log.Printf("failed to write message: %v", err)
+		}
 		return
 	}
 
@@ -154,8 +160,7 @@ func (r *Runner) apiV1JobLogs(writer http.ResponseWriter, req *http.Request) {
 
 	// handle client disconnects
 	go func() {
-		_, _, err := conn.ReadMessage()
-		if err != nil {
+		if _, _, err := conn.ReadMessage(); err != nil {
 			cancel()
 		}
 	}()

@@ -41,7 +41,7 @@ func (resp *StreamingApiResponse) Err() error {
 func (resp *StreamingApiResponse) Print() error {
 	conn, _, err := resp.dialer.Dial(resp.url.String(), nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("error dialing to %s: %w", resp.url.String(), err)
 	}
 	defer func() {
 		resp.cancel()
@@ -57,7 +57,7 @@ func (resp *StreamingApiResponse) Print() error {
 		case msg := <-resp.messageChan:
 			fmt.Println(string(msg))
 		case err := <-resp.errorChan:
-			if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
+			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseAbnormalClosure) {
 				return nil
 			}
 			return err

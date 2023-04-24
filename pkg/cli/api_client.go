@@ -97,7 +97,7 @@ func (api *ApiClient) JobList() TypedAPIResponse[[]string] {
 func (api *ApiClient) JobLogs(job string, follow bool, tailLen int) APIResponse {
 	dialer, url, err := api.buildWebsocketURL()
 	if err != nil {
-		return &CommonAPIResponse{Error: err}
+		return &CommonAPIResponse{Error: fmt.Errorf("error building websocket url: %w", err)}
 	}
 
 	qryValues := url.Query()
