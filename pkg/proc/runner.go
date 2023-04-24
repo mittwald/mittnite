@@ -81,15 +81,6 @@ func (r *Runner) Boot() error {
 }
 
 func (r *Runner) Run() error {
-	//go func() {
-	//	if err := r.StartAPI(); err != nil {
-	//		r.errChan <- err
-	//	}
-	//}()
-	//if r.api != nil {
-	//	defer r.api.Shutdown()
-	//}
-
 	r.errChan = make(chan error)
 	r.waitGroup = &sync.WaitGroup{}
 	if r.keepRunning {
