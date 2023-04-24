@@ -127,7 +127,7 @@ var up = &cobra.Command{
 			// start the API BEFORE waiting for readiness signals, so that the API is available
 			// even if we're still waiting on some probes to become ready
 			if err := runner.StartAPI(); err != nil {
-				log.Fatalf("error while starting API: %w", err)
+				log.Fatalf("error while starting API: %v", err)
 			}
 		}()
 
