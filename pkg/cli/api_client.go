@@ -34,8 +34,6 @@ func (api *ApiClient) CallAction(job, action string) APIResponse {
 		return api.JobRestart(job)
 	case ApiActionJobStop:
 		return api.JobStop(job)
-	//case ApiActionJobStatus:
-	//	return api.JobStatus(job)
 	default:
 		return &CommonAPIResponse{
 			StatusCode: http.StatusBadRequest,
