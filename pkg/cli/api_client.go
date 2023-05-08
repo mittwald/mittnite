@@ -16,17 +16,17 @@ const (
 	ApiActionJobLogs    = "logs"
 )
 
-type ApiClient struct {
+type APIClient struct {
 	apiAddress string
 }
 
-func NewApiClient(apiAddress string) *ApiClient {
-	return &ApiClient{
+func NewApiClient(apiAddress string) *APIClient {
+	return &APIClient{
 		apiAddress: apiAddress,
 	}
 }
 
-func (api *ApiClient) CallAction(job, action string) APIResponse {
+func (api *APIClient) CallAction(job, action string) APIResponse {
 	switch action {
 	case ApiActionJobStart:
 		return api.JobStart(job)
@@ -43,7 +43,7 @@ func (api *ApiClient) CallAction(job, action string) APIResponse {
 	}
 }
 
-func (api *ApiClient) JobStart(job string) APIResponse {
+func (api *APIClient) JobStart(job string) APIResponse {
 	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
 		return &CommonAPIResponse{Error: err}
@@ -53,7 +53,7 @@ func (api *ApiClient) JobStart(job string) APIResponse {
 	return NewAPIResponse(client.Post(url.String(), "application/json", nil))
 }
 
-func (api *ApiClient) JobRestart(job string) APIResponse {
+func (api *APIClient) JobRestart(job string) APIResponse {
 	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
 		return &CommonAPIResponse{Error: err}
@@ -62,7 +62,7 @@ func (api *ApiClient) JobRestart(job string) APIResponse {
 	return NewAPIResponse(client.Post(url.String(), "application/json", nil))
 }
 
-func (api *ApiClient) JobStop(job string) APIResponse {
+func (api *APIClient) JobStop(job string) APIResponse {
 	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
 		return &CommonAPIResponse{Error: err}
@@ -72,7 +72,7 @@ func (api *ApiClient) JobStop(job string) APIResponse {
 	return NewAPIResponse(client.Post(url.String(), "application/json", nil))
 }
 
-func (api *ApiClient) JobStatus(job string) TypedAPIResponse[proc.CommonJobStatus] {
+func (api *APIClient) JobStatus(job string) TypedAPIResponse[proc.CommonJobStatus] {
 	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
 		return TypedAPIResponse[proc.CommonJobStatus]{Error: err}
@@ -82,7 +82,7 @@ func (api *ApiClient) JobStatus(job string) TypedAPIResponse[proc.CommonJobStatu
 	return *NewTypedAPIResponse(proc.CommonJobStatus{})(client.Get(url.String()))
 }
 
-func (api *ApiClient) JobList() TypedAPIResponse[[]string] {
+func (api *APIClient) JobList() TypedAPIResponse[[]string] {
 	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
 		return TypedAPIResponse[[]string]{Error: err}
@@ -92,7 +92,7 @@ func (api *ApiClient) JobList() TypedAPIResponse[[]string] {
 	return *NewTypedAPIResponse(make([]string, 0))(client.Get(url.String()))
 }
 
-func (api *ApiClient) JobLogs(job string, follow bool, tailLen int) APIResponse {
+func (api *APIClient) JobLogs(job string, follow bool, tailLen int) APIResponse {
 	dialer, url, err := api.buildWebsocketURL()
 	if err != nil {
 		return &CommonAPIResponse{Error: fmt.Errorf("error building websocket url: %w", err)}
@@ -122,5 +122,5 @@ func (api *ApiClient) JobLogs(job string, follow bool, tailLen int) APIResponse 
 			}
 		}
 	}
-	return NewStreamingApiResponse(url, dialer, handler)
+	return NewStreamingAPIResponse(url, dialer, handler)
 }

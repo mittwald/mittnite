@@ -38,7 +38,7 @@ func init() {
 	))
 }
 
-func testRunning(job string, client *cli.ApiClient) (bool, error) {
+func testRunning(job string, client *cli.APIClient) (bool, error) {
 	status := client.JobStatus(job)
 	if err := status.Err(); err != nil {
 		return false, fmt.Errorf("failed to get status of job %s: %w", job, err)
@@ -47,7 +47,7 @@ func testRunning(job string, client *cli.ApiClient) (bool, error) {
 	return status.Body.Running, nil
 }
 
-func testStopped(job string, client *cli.ApiClient) (bool, error) {
+func testStopped(job string, client *cli.APIClient) (bool, error) {
 	status := client.JobStatus(job)
 	if err := status.Err(); err != nil {
 		return false, fmt.Errorf("failed to get status of job %s: %w", job, err)
@@ -56,7 +56,7 @@ func testStopped(job string, client *cli.ApiClient) (bool, error) {
 	return !status.Body.Running, nil
 }
 
-func waitForCondition(job string, client *cli.ApiClient, waitTimeout time.Duration, waitFunc func(string, *cli.ApiClient) (bool, error)) error {
+func waitForCondition(job string, client *cli.APIClient, waitTimeout time.Duration, waitFunc func(string, *cli.APIClient) (bool, error)) error {
 	waitStart := time.Now()
 
 	for {
@@ -84,7 +84,7 @@ func buildJobActionCommand(
 	startMsg,
 	waitMsg,
 	doneMsg string,
-	waitFunc func(string, *cli.ApiClient) (bool, error),
+	waitFunc func(string, *cli.APIClient) (bool, error),
 ) *cobra.Command {
 	cmd := cobra.Command{
 		Use:        fmt.Sprintf("%s [--wait] <job>", action),

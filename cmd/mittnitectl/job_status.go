@@ -109,7 +109,7 @@ func wrapNotSet(s string) string {
 	return styleHighlight.Render(s)
 }
 
-func determineJobName(args []string, apiClient *cli.ApiClient) (string, error) {
+func determineJobName(args []string, apiClient *cli.APIClient) (string, error) {
 	if len(args) != 0 {
 		return args[0], nil
 	}
