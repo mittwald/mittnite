@@ -48,7 +48,7 @@ func NewTypedAPIResponse[TBody any](body TBody) func(resp *http.Response, err er
 			apiRes.Error = fmt.Errorf(strings.TrimSpace(string(out)))
 			return &apiRes
 		default:
-			apiRes.Error = fmt.Errorf("unknown content type %s", resp.Header.Get("Content-Type"))
+			apiRes.Error = fmt.Errorf("unknown content type %s", strings.Split(resp.Header.Get("Content-Type"), ";")[0])
 			return &apiRes
 		}
 
