@@ -81,7 +81,6 @@ func (r *Runner) apiV1RestartJob(writer http.ResponseWriter, req *http.Request) 
 func (r *Runner) apiV1StopJob(writer http.ResponseWriter, req *http.Request) {
 	job := req.Context().Value(contextKeyJob).(*CommonJob)
 	job.Stop()
-	//r.removeJob(job)
 	writer.WriteHeader(http.StatusOK)
 }
 
