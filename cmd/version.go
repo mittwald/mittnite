@@ -12,11 +12,10 @@ var (
 )
 
 func init() {
-	rootCmd.AddCommand(version)
-	ctlCommand.AddCommand(version)
+	rootCmd.AddCommand(VersionCmd)
 }
 
-var version = &cobra.Command{
+var VersionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Show extended information about the current version of mittnite",
 	Long:  "All software has versions. This is mittnite's",

@@ -21,8 +21,8 @@ func NewRunner(ctx context.Context, api *Api, keepRunning bool, ignitionConfig *
 	}
 }
 
-func (r *Runner) startApi() error {
-	return r.startApiV1()
+func (r *Runner) StartAPI() error {
+	return r.startAPIV1()
 }
 
 func waitGroupToChannel(wg *sync.WaitGroup) <-chan struct{} {
@@ -81,15 +81,6 @@ func (r *Runner) Boot() error {
 }
 
 func (r *Runner) Run() error {
-	go func() {
-		if err := r.startApi(); err != nil {
-			r.errChan <- err
-		}
-	}()
-	if r.api != nil {
-		defer r.api.Shutdown()
-	}
-
 	r.errChan = make(chan error)
 	r.waitGroup = &sync.WaitGroup{}
 	if r.keepRunning {
@@ -132,10 +123,11 @@ func (r *Runner) Run() error {
 	}
 }
 
-func (r *Runner) exec() {
-	var err error
+func (r *Runner) Init() error {
 	for j := range r.IgnitionConfig.Jobs {
 		var job Job
+		var err error
+
 		// init non-lazy jobs
 		if r.IgnitionConfig.Jobs[j].Laziness == nil {
 			job, err = NewCommonJob(&r.IgnitionConfig.Jobs[j])
@@ -143,10 +135,17 @@ func (r *Runner) exec() {
 			job, err = NewLazyJob(&r.IgnitionConfig.Jobs[j])
 		}
 		if err != nil {
-			r.errChan <- err
-			return
+			return fmt.Errorf("error initializing job %s: %w", r.IgnitionConfig.Jobs[j].Name, err)
 		}
-		r.addAndStartJob(job)
+		r.addJobIfNotExists(job)
+	}
+
+	return nil
+}
+
+func (r *Runner) exec() {
+	for i := range r.jobs {
+		r.startJob(r.jobs[i])
 	}
 }
 

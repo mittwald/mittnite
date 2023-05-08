@@ -8,23 +8,25 @@ import (
 	"github.com/tidwall/pretty"
 	"io"
 	"net/http"
+	"strings"
 )
 
-type ApiResponse interface {
+type APIResponse interface {
 	Print() error
+	Err() error
 }
 
-var _ ApiResponse = &CommonApiResponse{}
+var _ APIResponse = &CommonAPIResponse{}
 
-type CommonApiResponse struct {
+type CommonAPIResponse struct {
 	StatusCode  int    `json:"statusCode"`
 	Body        string `json:"body"`
 	Error       error  `json:"error"`
 	contentType string
 }
 
-func NewApiResponse(resp *http.Response, err error) ApiResponse {
-	apiRes := &CommonApiResponse{
+func NewAPIResponse(resp *http.Response, err error) APIResponse {
+	apiRes := &CommonAPIResponse{
 		Error: err,
 	}
 	if resp == nil {
@@ -39,15 +41,24 @@ func NewApiResponse(resp *http.Response, err error) ApiResponse {
 	}
 	apiRes.Body = string(out)
 	apiRes.contentType = resp.Header.Get("Content-Type")
+
+	if err == nil && apiRes.StatusCode >= 400 {
+		apiRes.Error = fmt.Errorf("unexpected status code %d: %s", apiRes.StatusCode, strings.TrimSpace(apiRes.Body))
+	}
+
 	return apiRes
 }
 
-func (resp *CommonApiResponse) Print() error {
+func (resp *CommonAPIResponse) Err() error {
+	return resp.Error
+}
+
+func (resp *CommonAPIResponse) Print() error {
 	var out string
 	if resp.Error != nil {
-		fmt.Println(resp.Error.Error())
-		return nil
+		return resp.Error
 	}
+
 	if len(resp.Body) == 0 {
 		return nil
 	}

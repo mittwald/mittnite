@@ -41,6 +41,10 @@ func (api *Api) Start() error {
 }
 
 func (api *Api) Shutdown() error {
+	if api.srv == nil {
+		return nil
+	}
+
 	log.Info("shutting down remote api")
 	return api.srv.Shutdown(context.Background())
 }

@@ -21,7 +21,7 @@ builds:
   - <<: *defaultBuild
     id: mittnitectl
     binary: mittnitectl
-    main: cmd/mittnitectl/main.go
+    main: ./cmd/mittnitectl
 archives:
   - replacements:
       darwin: macos

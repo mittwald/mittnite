@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-func (r *Runner) startApiV1() error {
+func (r *Runner) startAPIV1() error {
 	if r.api == nil {
 		return nil
 	}
@@ -46,7 +46,7 @@ func (r *Runner) apiV1JobMiddleware(next http.Handler) http.Handler {
 			var err error
 			job, err = r.findCommonIgnitionJobByName(jobName)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
 		}
@@ -81,7 +81,6 @@ func (r *Runner) apiV1RestartJob(writer http.ResponseWriter, req *http.Request) 
 func (r *Runner) apiV1StopJob(writer http.ResponseWriter, req *http.Request) {
 	job := req.Context().Value(contextKeyJob).(*CommonJob)
 	job.Stop()
-	r.removeJob(job)
 	writer.WriteHeader(http.StatusOK)
 }
 
@@ -93,8 +92,8 @@ func (r *Runner) apiV1JobStatus(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 	writer.Header().Set("Content-Type", "application/json")
-	writer.Write(out)
 	writer.WriteHeader(http.StatusOK)
+	writer.Write(out)
 }
 
 func (r *Runner) apiV1JobList(writer http.ResponseWriter, _ *http.Request) {
@@ -115,8 +114,8 @@ func (r *Runner) apiV1JobList(writer http.ResponseWriter, _ *http.Request) {
 		return
 	}
 	writer.Header().Set("Content-Type", "application/json")
-	writer.Write(out)
 	writer.WriteHeader(http.StatusOK)
+	writer.Write(out)
 }
 
 func (r *Runner) apiV1JobLogs(writer http.ResponseWriter, req *http.Request) {
@@ -125,11 +124,17 @@ func (r *Runner) apiV1JobLogs(writer http.ResponseWriter, req *http.Request) {
 		http.Error(writer, "failed to upgrade connection", http.StatusInternalServerError)
 		return
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Printf("failed to close connection: %v", err)
+		}
+	}()
 
 	job := req.Context().Value(contextKeyJob).(*CommonJob)
 	if len(job.Config.Stdout) == 0 && len(job.Config.Stderr) == 0 {
-		_ = conn.WriteMessage(websocket.TextMessage, []byte("neither stdout, nor stderr is defined for this job"))
+		if err := conn.WriteMessage(websocket.TextMessage, []byte("neither stdout, nor stderr is defined for this job")); err != nil {
+			log.Printf("failed to write message: %v", err)
+		}
 		return
 	}
 
@@ -154,8 +159,7 @@ func (r *Runner) apiV1JobLogs(writer http.ResponseWriter, req *http.Request) {
 
 	// handle client disconnects
 	go func() {
-		_, _, err := conn.ReadMessage()
-		if err != nil {
+		if _, _, err := conn.ReadMessage(); err != nil {
 			cancel()
 		}
 	}()

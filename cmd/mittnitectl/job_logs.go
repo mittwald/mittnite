@@ -1,8 +1,8 @@
-package cmd
+package main
 
 import (
+	"fmt"
 	"github.com/mittwald/mittnite/pkg/cli"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -19,20 +19,26 @@ func init() {
 
 var jobLogsCommand = &cobra.Command{
 	Use:        "logs <job>",
-	Args:       cobra.ExactArgs(1),
+	Args:       cobra.MaximumNArgs(1),
 	ArgAliases: []string{"job"},
 	Short:      "Get logs from job",
 	Long:       "This command can be used to get the logs of a managed job.",
-	Run: func(cmd *cobra.Command, args []string) {
-		job := args[0]
+	RunE: func(cmd *cobra.Command, args []string) error {
 		apiClient := cli.NewApiClient(apiAddress)
+
+		job, err := determineJobName(args, apiClient)
+		if err != nil {
+			return err
+		}
 
 		if tailLen < -1 {
 			tailLen = -1
 		}
 		resp := apiClient.JobLogs(job, follow, tailLen)
 		if err := resp.Print(); err != nil {
-			log.Errorf("failed to print output: %s", err.Error())
+			return fmt.Errorf("failed to print output: %w", err)
 		}
+
+		return nil
 	},
 }

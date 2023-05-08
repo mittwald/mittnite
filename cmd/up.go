@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	defaultAPIAddress = "unix:///var/run/mittnite.sock"
+	DefaultAPIAddress = "unix:///var/run/mittnite.sock"
 )
 
 var (
@@ -39,7 +39,7 @@ func init() {
 	up.PersistentFlags().IntVarP(&probeListenPort, "probe-listen-port", "p", 9102, "set the port to listen for probe requests")
 	up.PersistentFlags().StringVarP(&pidFile, "pidfile", "", "", "write mittnites process id to this file")
 	up.PersistentFlags().BoolVarP(&apiEnabled, "api", "", false, "enables the api for remote or cli controlling")
-	up.PersistentFlags().StringVarP(&apiListenAddress, "api-listen-address", "", defaultAPIAddress, fmt.Sprintf("listen address for the api. Defaults to %q", defaultAPIAddress))
+	up.PersistentFlags().StringVarP(&apiListenAddress, "api-listen-address", "", DefaultAPIAddress, fmt.Sprintf("listen address for the api. Defaults to %q", DefaultAPIAddress))
 	up.PersistentFlags().BoolVarP(&keepRunning, "keep-running", "k", false, "keep mittnite running even if no job is running anymore")
 }
 
@@ -47,7 +47,7 @@ var up = &cobra.Command{
 	Use:   "up",
 	Short: "Render config files, start probes and processes",
 	Long:  "This sub-command renders the configuration files, starts the probes and launches all configured processes",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		ignitionConfig := &config.Ignition{
 			Probes: nil,
 			Files:  nil,
@@ -57,7 +57,7 @@ var up = &cobra.Command{
 		pidFileHandle := pidfile.New(pidFile)
 
 		if err := pidFileHandle.Acquire(); err != nil {
-			log.Fatalf("failed to write pid file to %q: %s", pidFile, err)
+			return fmt.Errorf("failed to write pid file to %q: %w", pidFile, err)
 		}
 
 		defer func() {
@@ -67,11 +67,11 @@ var up = &cobra.Command{
 		}()
 
 		if err := ignitionConfig.GenerateFromConfigDir(configDir); err != nil {
-			log.Fatalf("failed while trying to generate ignition config from dir '%+v', err: '%+v'", configDir, err)
+			return fmt.Errorf("failed while trying to generate ignition config from dir '%s': %w", configDir, err)
 		}
 
 		if err := files.RenderFiles(ignitionConfig.Files); err != nil {
-			log.Fatalf("failed while rendering files from ignition config, err: '%+v'", err)
+			return fmt.Errorf("failed while rendering files from ignition config, err: %w", err)
 		}
 
 		signals := make(chan os.Signal)
@@ -97,17 +97,13 @@ var up = &cobra.Command{
 
 		go func() {
 			log.Infof("probeServer listens on port %d", probeListenPort)
-			err := probe.RunProbeServer(probeHandler, probeSignals, probeListenPort)
-			if err != nil {
+
+			if err := probe.RunProbeServer(probeHandler, probeSignals, probeListenPort); err != nil {
 				log.Fatalf("probe server stopped with error: %s", err)
 			} else {
 				log.Info("probe server stopped without error")
 			}
 		}()
-
-		if err := probeHandler.Wait(readinessSignals); err != nil {
-			log.Fatalf("probe handler failed while waiting for readiness signals: '%+v'", err)
-		}
 
 		go proc.ReapChildren()
 
@@ -117,8 +113,28 @@ var up = &cobra.Command{
 		var api *proc.Api
 		if apiEnabled {
 			api = proc.NewApi(apiListenAddress)
+
+			defer api.Shutdown()
 		}
+
 		runner := proc.NewRunner(ctx, api, keepRunning, ignitionConfig)
+
+		if err := runner.Init(); err != nil {
+			return fmt.Errorf("runner failed to initialize: %w", err)
+		}
+
+		go func() {
+			// start the API BEFORE waiting for readiness signals, so that the API is available
+			// even if we're still waiting on some probes to become ready
+			if err := runner.StartAPI(); err != nil {
+				log.Fatalf("error while starting API: %v", err)
+			}
+		}()
+
+		if err := probeHandler.Wait(readinessSignals); err != nil {
+			return fmt.Errorf("probe handler failed while waiting for readiness signals: %w", err)
+		}
+
 		go func() {
 			<-procSignals
 			cancel()
@@ -135,5 +151,7 @@ var up = &cobra.Command{
 		} else {
 			log.Print("service runner stopped without error")
 		}
+
+		return nil
 	},
 }

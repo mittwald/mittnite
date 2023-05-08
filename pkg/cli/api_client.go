@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"github.com/mittwald/mittnite/pkg/proc"
 	"net/http"
 )
 
@@ -15,17 +16,17 @@ const (
 	ApiActionJobLogs    = "logs"
 )
 
-type ApiClient struct {
+type APIClient struct {
 	apiAddress string
 }
 
-func NewApiClient(apiAddress string) *ApiClient {
-	return &ApiClient{
+func NewApiClient(apiAddress string) *APIClient {
+	return &APIClient{
 		apiAddress: apiAddress,
 	}
 }
 
-func (api *ApiClient) CallAction(job, action string) ApiResponse {
+func (api *APIClient) CallAction(job, action string) APIResponse {
 	switch action {
 	case ApiActionJobStart:
 		return api.JobStart(job)
@@ -33,10 +34,8 @@ func (api *ApiClient) CallAction(job, action string) ApiResponse {
 		return api.JobRestart(job)
 	case ApiActionJobStop:
 		return api.JobStop(job)
-	case ApiActionJobStatus:
-		return api.JobStatus(job)
 	default:
-		return &CommonApiResponse{
+		return &CommonAPIResponse{
 			StatusCode: http.StatusBadRequest,
 			Body:       "",
 			Error:      fmt.Errorf("unknown action %s", action),
@@ -44,59 +43,59 @@ func (api *ApiClient) CallAction(job, action string) ApiResponse {
 	}
 }
 
-func (api *ApiClient) JobStart(job string) ApiResponse {
+func (api *APIClient) JobStart(job string) APIResponse {
 	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
-		return &CommonApiResponse{Error: err}
+		return &CommonAPIResponse{Error: err}
 	}
 
 	url.Path = fmt.Sprintf("/v1/job/%s/start", job)
-	return NewApiResponse(client.Post(url.String(), "application/json", nil))
+	return NewAPIResponse(client.Post(url.String(), "application/json", nil))
 }
 
-func (api *ApiClient) JobRestart(job string) ApiResponse {
+func (api *APIClient) JobRestart(job string) APIResponse {
 	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
-		return &CommonApiResponse{Error: err}
+		return &CommonAPIResponse{Error: err}
 	}
 	url.Path = fmt.Sprintf("/v1/job/%s/restart", job)
-	return NewApiResponse(client.Post(url.String(), "application/json", nil))
+	return NewAPIResponse(client.Post(url.String(), "application/json", nil))
 }
 
-func (api *ApiClient) JobStop(job string) ApiResponse {
+func (api *APIClient) JobStop(job string) APIResponse {
 	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
-		return &CommonApiResponse{Error: err}
+		return &CommonAPIResponse{Error: err}
 	}
 
 	url.Path = fmt.Sprintf("/v1/job/%s/stop", job)
-	return NewApiResponse(client.Post(url.String(), "application/json", nil))
+	return NewAPIResponse(client.Post(url.String(), "application/json", nil))
 }
 
-func (api *ApiClient) JobStatus(job string) ApiResponse {
+func (api *APIClient) JobStatus(job string) TypedAPIResponse[proc.CommonJobStatus] {
 	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
-		return &CommonApiResponse{Error: err}
+		return TypedAPIResponse[proc.CommonJobStatus]{Error: err}
 	}
 
 	url.Path = fmt.Sprintf("/v1/job/%s/status", job)
-	return NewApiResponse(client.Get(url.String()))
+	return *NewTypedAPIResponse(proc.CommonJobStatus{})(client.Get(url.String()))
 }
 
-func (api *ApiClient) JobList() ApiResponse {
+func (api *APIClient) JobList() TypedAPIResponse[[]string] {
 	client, url, err := api.buildHTTPClientAndURL()
 	if err != nil {
-		return &CommonApiResponse{Error: err}
+		return TypedAPIResponse[[]string]{Error: err}
 	}
 
 	url.Path = "/v1/jobs"
-	return NewApiResponse(client.Get(url.String()))
+	return *NewTypedAPIResponse(make([]string, 0))(client.Get(url.String()))
 }
 
-func (api *ApiClient) JobLogs(job string, follow bool, tailLen int) ApiResponse {
+func (api *APIClient) JobLogs(job string, follow bool, tailLen int) APIResponse {
 	dialer, url, err := api.buildWebsocketURL()
 	if err != nil {
-		return &CommonApiResponse{Error: err}
+		return &CommonAPIResponse{Error: fmt.Errorf("error building websocket url: %w", err)}
 	}
 
 	qryValues := url.Query()
@@ -123,5 +122,5 @@ func (api *ApiClient) JobLogs(job string, follow bool, tailLen int) ApiResponse 
 			}
 		}
 	}
-	return NewStreamingApiResponse(url, dialer, handler)
+	return NewStreamingAPIResponse(url, dialer, handler)
 }

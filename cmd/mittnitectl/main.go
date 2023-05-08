@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/mittwald/mittnite/cmd"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -13,5 +12,5 @@ func init() {
 }
 
 func main() {
-	cmd.ExecuteCTL()
+	Execute()
 }

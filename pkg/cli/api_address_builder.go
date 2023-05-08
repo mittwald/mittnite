@@ -8,7 +8,7 @@ import (
 	"net/url"
 )
 
-func (api *ApiClient) buildHTTPClientAndURL() (*http.Client, *url.URL, error) {
+func (api *APIClient) buildHTTPClientAndURL() (*http.Client, *url.URL, error) {
 	u, err := url.Parse(api.apiAddress)
 	if err != nil {
 		return nil, nil, err
@@ -29,7 +29,7 @@ func (api *ApiClient) buildHTTPClientAndURL() (*http.Client, *url.URL, error) {
 	}, u, nil
 }
 
-func (api *ApiClient) buildWebsocketURL() (*websocket.Dialer, *url.URL, error) {
+func (api *APIClient) buildWebsocketURL() (*websocket.Dialer, *url.URL, error) {
 	u, err := url.Parse(api.apiAddress)
 	if err != nil {
 		return nil, nil, err
