@@ -270,24 +270,29 @@ secret = {{ randAlphaNum 16 }}
 Possible directives to use in a probe definition.
 
 ```hcl
-probe "probe-name" {
+probe "redis" {
   wait = true
-
   redis {
     host = {
       hostname = "localhost"
       port = 6379
     }
-    password = ""
+    password = "secret"
   }
-  
+}
+
+probe "smtp" {
+  wait = true
   smtp {
     host = {
       hostname = "localhost"
       port = 25
     }
   }
+}
 
+probe "mysql" {
+  wait = true
   mysql {
     host = {
       hostname = "localhost"
@@ -298,7 +303,10 @@ probe "probe-name" {
       password = "bar"
     }
   }
-  
+}
+ 
+probe "amqp" { 
+  wait = true
   amqp {
     host = {
       hostname = "localhost"
@@ -310,11 +318,17 @@ probe "probe-name" {
     }
     virtualhost = "amqp.localhost.com"
   }
-  
+}
+ 
+probe "mongodb" {
+  wait = true 
   mongodb {
     url = "mongodb://localhost:27017/mongo"
   }
+}
   
+probe "http" {
+  wait = true
   http {
     scheme = "http"
     host = {
@@ -324,6 +338,11 @@ probe "probe-name" {
     path = "/status"
     timeout = "5s"
   }
+}
+
+probe "some-file" {
+  wait = true
+  filesystem = "/path/to/some/dir"
 }
 ```
 
