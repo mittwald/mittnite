@@ -21,6 +21,24 @@ var (
 	ProcessWillBeStoppedError   = errors.New("process will be stopped")
 )
 
+func (job *baseJob) SignalAll(sig syscall.Signal) {
+	errFunc := func(err error) {
+		if err != nil {
+			log.Warnf("failed to send signal %d to job %s: %s", sig, job.Config.Name, err.Error())
+		}
+	}
+
+	if job.cmd == nil || job.cmd.Process == nil {
+		errFunc(
+			fmt.Errorf("job is not running"),
+		)
+		return
+	}
+
+	log.WithField("job.name", job.Config.Name).Infof("sending signal %d to process group", sig)
+	errFunc(syscall.Kill(-job.cmd.Process.Pid, sig))
+}
+
 func (job *baseJob) Signal(sig os.Signal) {
 	errFunc := func(err error) {
 		if err != nil {
@@ -83,6 +101,9 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 	cmd.Dir = job.Config.WorkingDirectory
 	cmd.Stdout = job.stdout
 	cmd.Stderr = job.stderr
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
 
 	if job.Config.Env != nil {
 		cmd.Env = append(cmd.Env, job.Config.Env...)
@@ -111,12 +132,22 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 	select {
 	// job errChan or failed
 	case err := <-errChan:
+		if err := syscall.Kill(-job.cmd.Process.Pid, syscall.SIGTERM); err != nil {
+			if e, ok := err.(syscall.Errno); ok && e == 3 {
+				// this is fine; error 3 means that the process group does not exist anymore
+			} else {
+				l.WithError(err).Error("failed to send SIGTERM to job's process group")
+			}
+		}
+
 		if job.restart {
+			l.Info("job stopped for restart")
 			job.restart = false
 			return ProcessWillBeRestartedError
 		}
 
 		if job.stop {
+			l.Info("job stopped")
 			return ProcessWillBeStoppedError
 		}
 
@@ -126,13 +157,13 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 		return err
 	case <-ctx.Done():
 		// ctx canceled, try to terminate job
-		_ = job.cmd.Process.Signal(syscall.SIGTERM)
-		l.WithField("job.name", job.Config.Name).Info("sent SIGTERM to job")
+		_ = syscall.Kill(-job.cmd.Process.Pid, syscall.SIGTERM)
+		l.WithField("job.name", job.Config.Name).Info("sent SIGTERM to job's process group")
 
 		select {
 		case <-time.After(time.Second * ShutdownWaitingTimeSeconds):
 			// process seems to hang, kill process
-			_ = job.cmd.Process.Kill()
+			_ = syscall.Kill(-job.cmd.Process.Pid, syscall.SIGKILL)
 			l.WithField("job.name", job.Config.Name).Error("forcefully killed job")
 			return nil
 
