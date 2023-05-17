@@ -176,12 +176,12 @@ func (job *CommonJob) IsRunning() bool {
 
 func (job *CommonJob) Restart() {
 	job.restart = true
-	job.Signal(syscall.SIGTERM)
+	job.SignalAll(syscall.SIGTERM)
 }
 
 func (job *CommonJob) Stop() {
 	job.stop = true
-	job.Signal(syscall.SIGTERM)
+	job.SignalAll(syscall.SIGTERM)
 }
 
 func (job *CommonJob) Status() *CommonJobStatus {
