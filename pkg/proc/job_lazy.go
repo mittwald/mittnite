@@ -11,7 +11,10 @@ import (
 )
 
 func (job *LazyJob) AssertStarted(ctx context.Context) error {
+	l := log.WithField("job.name", job.Config.Name)
+
 	if job.process != nil {
+		l.Info("process already running")
 		return nil
 	}
 
@@ -29,11 +32,15 @@ func (job *LazyJob) AssertStarted(ctx context.Context) error {
 
 	go func() {
 		if err := job.startOnce(ctx, p); err != nil {
+			l.WithError(err).Error("process terminated with error")
+
 			select {
 			case e <- err:
 			default:
 			}
 		}
+
+		l.Info("process terminated")
 
 		job.process = nil
 	}()
