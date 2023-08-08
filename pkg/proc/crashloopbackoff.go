@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// calculates the backOff based on the current backOff
+// calculates the next backOff based on the current backOff
 func calculateNextBackOff(currBackOff, maxBackoff time.Duration) time.Duration {
 	if currBackOff.Seconds() <= 1 {
 		return 2 * time.Second
