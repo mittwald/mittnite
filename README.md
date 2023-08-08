@@ -119,6 +119,18 @@ job "foo" {
 }
 ```
 
+Set `maxAttempts` to `-1` will restart the process "forever".
+
+```hcl
+job "foo" {
+  command = "/usr/local/bin/foo"
+  args = ["bar"]
+  maxAttempts = -1
+  canFail = false
+  workingDirectory = "/some/path"
+}
+```
+
 You can append a custom environment to the process by setting `env`:
 
 ```hcl

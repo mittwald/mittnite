@@ -14,6 +14,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	// longest duration between two restarts
+	maxBackOff = 300 * time.Second
+	// retries before next backOff interval is used
+	maxBackOffRetries = 5
+)
+
 func (job *CommonJob) Init() {
 	job.restart = false
 	job.stop = false
@@ -48,8 +55,15 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 	attempts := 0
 	maxAttempts := job.Config.MaxAttempts
 
-	if maxAttempts <= 0 {
+	backOff := 1 * time.Second
+	backOffRetries := 0
+
+	if maxAttempts == 0 {
 		maxAttempts = 3
+	}
+
+	if maxAttempts < 0 {
+		maxAttempts = -1
 	}
 
 	p := make(chan *os.Process)
@@ -83,9 +97,22 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 		}
 
 		attempts++
-		if attempts < maxAttempts {
+		if maxAttempts == -1 || attempts < maxAttempts {
+			currBackOff := backOff
+			backOffRetries++
+			if backOffRetries > maxBackOffRetries {
+				backOff = calculateNextBackOff(currBackOff, maxBackOff)
+				backOffRetries = 0
+			}
+
 			job.phase.Set(JobPhaseReasonCrashLooping)
-			l.WithField("job.maxAttempts", maxAttempts).WithField("job.usedAttempts", attempts).Info("remaining attempts")
+			l.
+				WithField("job.maxAttempts", maxAttempts).
+				WithField("job.usedAttempts", attempts).
+				WithField("job.nextRestartIn", currBackOff.String()).
+				Info("remaining attempts")
+
+			time.Sleep(currBackOff)
 			continue
 		}
 
