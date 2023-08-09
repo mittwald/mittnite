@@ -55,10 +55,6 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 
 	backOff := 1 * time.Second
 
-	if maxAttempts == 0 {
-		maxAttempts = 3
-	}
-
 	if maxAttempts < 0 {
 		maxAttempts = -1
 	}
