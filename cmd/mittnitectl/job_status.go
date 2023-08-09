@@ -61,7 +61,7 @@ var jobStatusCmd = cobra.Command{
 					lipgloss.Left,
 					styleStatusLeftColumn.Render("allowed to fail:"),
 					styleHighlight.Render(fmt.Sprintf("%t", resp.Body.Config.CanFail)),
-					styleStatusAddendum.Render("(max restart attempts: "), styleHighlight.Render(fmt.Sprintf("%d", resp.Body.Config.MaxAttempts)), ")",
+					styleStatusAddendum.Render("(max restart attempts: "), styleHighlight.Render(fmt.Sprintf("%d", resp.Body.Config.GetMaxAttempts())), ")",
 				),
 				lipgloss.JoinHorizontal(
 					lipgloss.Left,

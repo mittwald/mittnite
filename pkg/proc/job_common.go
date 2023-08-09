@@ -50,14 +50,9 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 
 	l := log.WithField("job.name", job.Config.Name)
 
-	attempts := 0
-	maxAttempts := job.Config.MaxAttempts
-
 	backOff := 1 * time.Second
-
-	if maxAttempts < 0 {
-		maxAttempts = -1
-	}
+	attempts := 0
+	maxAttempts := job.Config.GetMaxAttempts()
 
 	p := make(chan *os.Process)
 	defer close(p)
