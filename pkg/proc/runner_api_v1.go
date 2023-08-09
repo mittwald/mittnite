@@ -63,7 +63,7 @@ func (r *Runner) apiV1JobMiddleware(next http.Handler) http.Handler {
 func (r *Runner) apiV1StartJob(writer http.ResponseWriter, req *http.Request) {
 	job := req.Context().Value(contextKeyJob).(*CommonJob)
 	if !job.IsRunning() {
-		r.startJob(job)
+		r.startJob(job, JobPhaseReasonUnknown)
 	}
 	writer.WriteHeader(http.StatusOK)
 }
@@ -71,7 +71,7 @@ func (r *Runner) apiV1StartJob(writer http.ResponseWriter, req *http.Request) {
 func (r *Runner) apiV1RestartJob(writer http.ResponseWriter, req *http.Request) {
 	job := req.Context().Value(contextKeyJob).(*CommonJob)
 	if !job.IsRunning() {
-		r.startJob(job)
+		r.startJob(job, JobPhaseReasonUnknown)
 	} else {
 		job.Restart()
 	}

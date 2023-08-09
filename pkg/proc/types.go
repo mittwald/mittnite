@@ -50,6 +50,9 @@ func NewApi(listenAddress string) *Api {
 type baseJob struct {
 	Config *config.BaseJobConfig
 
+	ctx       context.Context
+	interrupt context.CancelFunc
+
 	cmd       *exec.Cmd
 	restart   bool
 	stop      bool
@@ -97,6 +100,7 @@ type Job interface {
 	Init()
 	Run(context.Context, chan<- error) error
 	Watch()
+	Reset()
 
 	GetPhase() *JobPhase
 	GetName() string

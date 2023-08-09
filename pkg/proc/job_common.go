@@ -76,6 +76,11 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 	}()
 
 	for { // restart failed jobs as long mittnite is running
+		if job.stop {
+			return nil
+		}
+
+		job.ctx, job.interrupt = context.WithCancel(context.Background())
 		err := job.startOnce(ctx, p)
 		switch err {
 		case nil:
@@ -98,7 +103,7 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 		if maxAttempts == -1 || attempts < maxAttempts {
 			currBackOff := backOff
 			backOffRetries++
-			if backOffRetries > maxBackOffRetries {
+			if backOffRetries >= maxBackOffRetries {
 				backOff = calculateNextBackOff(currBackOff, maxBackOff)
 				backOffRetries = 0
 			}
@@ -110,7 +115,7 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 				WithField("job.nextRestartIn", currBackOff.String()).
 				Info("remaining attempts")
 
-			time.Sleep(currBackOff)
+			job.crashLoopSleep(currBackOff)
 			continue
 		}
 
@@ -202,11 +207,13 @@ func (job *CommonJob) IsRunning() bool {
 func (job *CommonJob) Restart() {
 	job.restart = true
 	job.SignalAll(syscall.SIGTERM)
+	job.interrupt()
 }
 
 func (job *CommonJob) Stop() {
 	job.stop = true
 	job.SignalAll(syscall.SIGTERM)
+	job.interrupt()
 }
 
 func (job *CommonJob) Status() *CommonJobStatus {
@@ -239,4 +246,23 @@ func (job *CommonJob) executeWatchCommand(watchCmd *config.WatchCommand) error {
 	log.WithField("job.name", job.Config.Name).
 		Info("executing watch command")
 	return cmd.Run()
+}
+
+func (job *CommonJob) crashLoopSleep(duration time.Duration) {
+	timeout := make(chan bool)
+
+	go func() {
+		defer close(timeout)
+		<-time.After(duration)
+		timeout <- true
+	}()
+
+	for {
+		select {
+		case <-timeout:
+			return
+		case <-job.ctx.Done():
+			return
+		}
+	}
 }
