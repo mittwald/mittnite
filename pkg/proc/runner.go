@@ -168,6 +168,11 @@ func (r *Runner) addJobIfNotExists(job Job) {
 }
 
 func (r *Runner) startJob(job Job) {
+	phase := job.GetPhase()
+	if phase.Is(JobPhaseReasonStopped) || phase.Is(JobPhaseReasonFailed) {
+		return
+	}
+
 	job.Init()
 
 	r.waitGroup.Add(1)

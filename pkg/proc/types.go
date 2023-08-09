@@ -56,6 +56,7 @@ type baseJob struct {
 	stdout    *os.File
 	stderr    *os.File
 	lastError error
+	phase     JobPhase
 }
 
 type BootJob struct {
@@ -70,7 +71,6 @@ type CommonJob struct {
 	Config *config.JobConfig
 
 	watchingFiles map[string]time.Time
-	phase         JobPhase
 }
 
 type CommonJobStatus struct {
@@ -98,6 +98,7 @@ type Job interface {
 	Run(context.Context, chan<- error) error
 	Watch()
 
+	GetPhase() *JobPhase
 	GetName() string
 }
 
@@ -110,6 +111,7 @@ func newBaseJob(c *config.BaseJobConfig) (*baseJob, error) {
 		stdout:  os.Stdout,
 		stderr:  os.Stderr,
 	}
+	job.phase.Set(JobPhaseReasonAwaitingReadiness)
 	if len(c.Stdout) == 0 {
 		return job, nil
 	}
@@ -144,13 +146,9 @@ func NewCommonJob(c *config.JobConfig) (*CommonJob, error) {
 		return nil, err
 	}
 
-	phase := JobPhase{}
-	phase.Set(JobPhaseReasonAwaitingReadiness)
-
 	j := CommonJob{
 		baseJob: *job,
 		Config:  c,
-		phase:   phase,
 	}
 
 	return &j, nil

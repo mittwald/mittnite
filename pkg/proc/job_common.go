@@ -78,8 +78,6 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 			l.Info("stop process")
 			job.phase.Set(JobPhaseReasonStopped)
 			return nil
-		default:
-			l.WithError(err).Error("job exited with error")
 		}
 
 		attempts++
