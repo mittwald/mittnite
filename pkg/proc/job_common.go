@@ -17,8 +17,6 @@ import (
 const (
 	// longest duration between two restarts
 	maxBackOff = 300 * time.Second
-	// retries before next backOff interval is used
-	maxBackOffRetries = 5
 )
 
 func (job *CommonJob) Init() {
@@ -56,7 +54,6 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 	maxAttempts := job.Config.MaxAttempts
 
 	backOff := 1 * time.Second
-	backOffRetries := 0
 
 	if maxAttempts == 0 {
 		maxAttempts = 3
@@ -102,11 +99,7 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 		attempts++
 		if maxAttempts == -1 || attempts < maxAttempts {
 			currBackOff := backOff
-			backOffRetries++
-			if backOffRetries >= maxBackOffRetries {
-				backOff = calculateNextBackOff(currBackOff, maxBackOff)
-				backOffRetries = 0
-			}
+			backOff = calculateNextBackOff(currBackOff, maxBackOff)
 
 			job.phase.Set(JobPhaseReasonCrashLooping)
 			l.
