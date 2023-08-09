@@ -17,6 +17,8 @@ import (
 )
 
 var (
+	_ Job = &CommonJob{}
+
 	ProcessWillBeRestartedError = errors.New("process will be restarted")
 	ProcessWillBeStoppedError   = errors.New("process will be stopped")
 )
@@ -65,6 +67,10 @@ func (job *baseJob) MarkForRestart() {
 
 func (job *baseJob) IsControllable() bool {
 	return job.Config.Controllable
+}
+
+func (job *baseJob) GetPhase() *JobPhase {
+	return &job.phase
 }
 
 func (job *baseJob) GetName() string {
