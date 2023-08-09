@@ -21,10 +21,20 @@ type JobPhase struct {
 }
 
 func (p *JobPhase) Set(reason JobPhaseReason) {
+	if p == nil {
+		p = &JobPhase{}
+	}
 	if p.Reason == reason {
 		return
 	}
 
 	p.LastChange = time.Now()
 	p.Reason = reason
+}
+
+func (p *JobPhase) Is(reason JobPhaseReason) bool {
+	if p == nil {
+		return false
+	}
+	return p.Reason == reason
 }
