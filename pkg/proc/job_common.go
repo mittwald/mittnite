@@ -162,6 +162,7 @@ func (job *CommonJob) Watch() {
 			}
 		}
 
+		job.Reset()
 		if watch.Restart {
 			job.MarkForRestart()
 		}
