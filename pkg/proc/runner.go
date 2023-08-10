@@ -145,7 +145,7 @@ func (r *Runner) Init() error {
 
 func (r *Runner) exec() {
 	for i := range r.jobs {
-		r.startJob(r.jobs[i])
+		r.startJob(r.jobs[i], JobPhaseReasonUnknown)
 	}
 }
 
@@ -155,7 +155,7 @@ func (r *Runner) jobExistsAndIsControllable(job *CommonJob) bool {
 
 func (r *Runner) addAndStartJob(job Job) {
 	r.addJobIfNotExists(job)
-	r.startJob(job)
+	r.startJob(job, job.GetPhase().Reason)
 }
 
 func (r *Runner) addJobIfNotExists(job Job) {
@@ -167,9 +167,10 @@ func (r *Runner) addJobIfNotExists(job Job) {
 	r.jobs = append(r.jobs, job)
 }
 
-func (r *Runner) startJob(job Job) {
+func (r *Runner) startJob(job Job, initialPhase JobPhaseReason) {
+	job.GetPhase().Set(initialPhase)
 	phase := job.GetPhase()
-	if phase.Is(JobPhaseReasonStopped) || phase.Is(JobPhaseReasonFailed) {
+	if phase.Is(JobPhaseReasonStopped) || phase.Is(JobPhaseReasonFailed) || phase.Is(JobPhaseReasonCrashLooping) {
 		return
 	}
 

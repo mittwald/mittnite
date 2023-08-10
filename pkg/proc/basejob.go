@@ -61,6 +61,10 @@ func (job *baseJob) Signal(sig os.Signal) {
 	)
 }
 
+func (job *baseJob) Reset() {
+	job.phase = JobPhase{}
+}
+
 func (job *baseJob) MarkForRestart() {
 	job.restart = true
 }

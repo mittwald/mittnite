@@ -14,6 +14,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	// longest duration between two restarts
+	maxBackOff = 300 * time.Second
+)
+
 func (job *CommonJob) Init() {
 	job.restart = false
 	job.stop = false
@@ -45,12 +50,9 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 
 	l := log.WithField("job.name", job.Config.Name)
 
+	backOff := 1 * time.Second
 	attempts := 0
-	maxAttempts := job.Config.MaxAttempts
-
-	if maxAttempts <= 0 {
-		maxAttempts = 3
-	}
+	maxAttempts := job.Config.GetMaxAttempts()
 
 	p := make(chan *os.Process)
 	defer close(p)
@@ -62,6 +64,11 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 	}()
 
 	for { // restart failed jobs as long mittnite is running
+		if job.stop {
+			return nil
+		}
+
+		job.ctx, job.interrupt = context.WithCancel(context.Background())
 		err := job.startOnce(ctx, p)
 		switch err {
 		case nil:
@@ -81,9 +88,18 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 		}
 
 		attempts++
-		if attempts < maxAttempts {
+		if maxAttempts == -1 || attempts < maxAttempts {
+			currBackOff := backOff
+			backOff = calculateNextBackOff(currBackOff, maxBackOff)
+
 			job.phase.Set(JobPhaseReasonCrashLooping)
-			l.WithField("job.maxAttempts", maxAttempts).WithField("job.usedAttempts", attempts).Info("remaining attempts")
+			l.
+				WithField("job.maxAttempts", maxAttempts).
+				WithField("job.usedAttempts", attempts).
+				WithField("job.nextRestartIn", currBackOff.String()).
+				Info("remaining attempts")
+
+			job.crashLoopSleep(currBackOff)
 			continue
 		}
 
@@ -175,11 +191,13 @@ func (job *CommonJob) IsRunning() bool {
 func (job *CommonJob) Restart() {
 	job.restart = true
 	job.SignalAll(syscall.SIGTERM)
+	job.interrupt()
 }
 
 func (job *CommonJob) Stop() {
 	job.stop = true
 	job.SignalAll(syscall.SIGTERM)
+	job.interrupt()
 }
 
 func (job *CommonJob) Status() *CommonJobStatus {
@@ -212,4 +230,23 @@ func (job *CommonJob) executeWatchCommand(watchCmd *config.WatchCommand) error {
 	log.WithField("job.name", job.Config.Name).
 		Info("executing watch command")
 	return cmd.Run()
+}
+
+func (job *CommonJob) crashLoopSleep(duration time.Duration) {
+	timeout := make(chan bool)
+
+	go func() {
+		defer close(timeout)
+		<-time.After(duration)
+		timeout <- true
+	}()
+
+	for {
+		select {
+		case <-timeout:
+			return
+		case <-job.ctx.Done():
+			return
+		}
+	}
 }

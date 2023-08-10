@@ -109,13 +109,26 @@ type JobConfig struct {
 	// optional fields for "normal" jobs
 	// these will be ignored if fields for lazy jobs are set
 	Watches      []Watch `hcl:"watch" json:"watch"`
-	MaxAttempts_ int     `hcl:"max_attempts" json:"-"` // deprecated
-	MaxAttempts  int     `hcl:"maxAttempts" json:"maxAttempts"`
+	MaxAttempts_ *int    `hcl:"max_attempts" json:"-,omitempty"` // deprecated
+	MaxAttempts  *int    `hcl:"maxAttempts" json:"maxAttempts,omitempty"`
 	OneTime      bool    `hcl:"oneTime" json:"oneTime"`
 
 	// fields required for lazy activation
 	Laziness  *Laziness  `hcl:"lazy" json:"lazy"`
 	Listeners []Listener `hcl:"listen" json:"listen"`
+}
+
+func (jc *JobConfig) GetMaxAttempts() int {
+	maxAttempts := 3
+	if jc.MaxAttempts == nil {
+		return maxAttempts
+	}
+
+	maxAttempts = *jc.MaxAttempts
+	if maxAttempts < 0 {
+		maxAttempts = -1
+	}
+	return maxAttempts
 }
 
 type BootJobConfig struct {
