@@ -61,11 +61,12 @@ func renderFile(cfg *config.File) error {
 
 	log.Infof("creating configuration file %s from template %s", cfg.Target, cfg.Template)
 
-	tpl, err := newTemplate(cfg.Target).ParseFiles(cfg.Template)
+	tplContents, err := os.ReadFile(cfg.Template)
 	if err != nil {
 		return err
 	}
 
+	tpl, err := template.New(cfg.Target).Parse(string(tplContents))
 	folderPath, err := filepath.Abs(filepath.Dir(cfg.Target))
 	if err != nil {
 		return err
