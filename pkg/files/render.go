@@ -67,6 +67,10 @@ func renderFile(cfg *config.File) error {
 	}
 
 	tpl, err := template.New(cfg.Target).Parse(string(tplContents))
+	if err != nil {
+		return err
+	}
+
 	folderPath, err := filepath.Abs(filepath.Dir(cfg.Target))
 	if err != nil {
 		return err
