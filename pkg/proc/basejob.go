@@ -209,7 +209,13 @@ func (job *baseJob) readStdFile(ctx context.Context, filePath string, outChan ch
 		scanner := bufio.NewScanner(stdFile)
 		for scanner.Scan() {
 			line := scanner.Bytes()
-			outChan <- line
+			select {
+			case outChan <- line:
+			default:
+				log.WithField("job.name", job.Config.Name).
+					Warnf("failed to read logs for job %s: log streaming channel is closed.", job.Config.Name)
+				return
+			}
 		}
 		if err := scanner.Err(); err != nil {
 			errChan <- err
