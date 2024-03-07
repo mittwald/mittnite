@@ -103,59 +103,6 @@ func (job *baseJob) StreamStdOutAndStdErr(ctx context.Context, outChan chan []by
 	}
 }
 
-func (job *baseJob) readStdFile(ctx context.Context, wg *sync.WaitGroup, filePath string, outChan chan []byte, errChan chan error, follow bool, tailLen int) {
-	stdFile, err := os.OpenFile(filePath, os.O_RDONLY, 0o666)
-	if err != nil {
-		errChan <- err
-		return
-	}
-
-	defer stdFile.Close()
-
-	seekTail(ctx, wg, tailLen, stdFile, outChan)
-
-	read := func() {
-		scanner := bufio.NewScanner(stdFile)
-
-		for scanner.Scan() {
-			select {
-			case <-ctx.Done():
-				return
-			case outChan <- scanner.Bytes():
-			default:
-				if follow {
-					continue
-				}
-				return
-			}
-		}
-
-		if err := scanner.Err(); err != nil {
-			select {
-			case <-ctx.Done():
-				return
-			case errChan <- err:
-			default:
-				return
-			}
-		}
-	}
-	for {
-		select {
-		default:
-			read()
-			if !follow {
-				errChan <- io.EOF
-				return
-			}
-
-			continue
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
 func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) error {
 	l := log.WithField("job.name", job.Config.Name)
 	defer job.closeStdFiles()
@@ -247,6 +194,59 @@ func (job *baseJob) closeStdFiles() {
 
 	if hasStderr {
 		job.stderr.Close()
+	}
+}
+
+func (job *baseJob) readStdFile(ctx context.Context, wg *sync.WaitGroup, filePath string, outChan chan []byte, errChan chan error, follow bool, tailLen int) {
+	stdFile, err := os.OpenFile(filePath, os.O_RDONLY, 0o666)
+	if err != nil {
+		errChan <- err
+		return
+	}
+
+	defer stdFile.Close()
+
+	seekTail(ctx, wg, tailLen, stdFile, outChan)
+
+	read := func() {
+		scanner := bufio.NewScanner(stdFile)
+
+		for scanner.Scan() {
+			select {
+			case <-ctx.Done():
+				return
+			case outChan <- scanner.Bytes():
+			default:
+				if follow {
+					continue
+				}
+				return
+			}
+		}
+
+		if err := scanner.Err(); err != nil {
+			select {
+			case <-ctx.Done():
+				return
+			case errChan <- err:
+			default:
+				return
+			}
+		}
+	}
+	for {
+		select {
+		default:
+			read()
+			if !follow {
+				errChan <- io.EOF
+				return
+			}
+
+			continue
+		case <-ctx.Done():
+			return
+		}
 	}
 }
 
