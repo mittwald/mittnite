@@ -173,12 +173,9 @@ func (r *Runner) apiV1JobLogs(writer http.ResponseWriter, req *http.Request) {
 		tailLen = -1
 	}
 
-	wg := &sync.WaitGroup{}
+	go job.StreamStdOutAndStdErr(streamCtx, outChan, stdOutErrChan, stdErrErrChan, follow, tailLen)
 
-	go job.StreamStdOutAndStdErr(streamCtx, wg, outChan, stdOutErrChan, stdErrErrChan, follow, tailLen)
-
-	handleErr := func(err error) {
-		wg.Wait()
+	handleErr := func(err error, wg *sync.WaitGroup) {
 		if errors.Is(err, io.EOF) {
 			if !follow {
 				err := conn.WriteControl(
@@ -205,9 +202,9 @@ func (r *Runner) apiV1JobLogs(writer http.ResponseWriter, req *http.Request) {
 			}
 
 		case err := <-stdOutErrChan:
-			handleErr(err)
+			handleErr(err, &job.stdOutWg)
 		case err := <-stdErrErrChan:
-			handleErr(err)
+			handleErr(err, &job.stdErrWg)
 
 		case <-streamCtx.Done():
 			return

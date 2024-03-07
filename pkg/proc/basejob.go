@@ -82,24 +82,24 @@ func (job *baseJob) GetName() string {
 	return job.Config.Name
 }
 
-func (job *baseJob) StreamStdOut(ctx context.Context, wg *sync.WaitGroup, outChan chan []byte, errChan chan error, follow bool, tailLen int) {
+func (job *baseJob) StreamStdOut(ctx context.Context, outChan chan []byte, errChan chan error, follow bool, tailLen int) {
 	if len(job.Config.Stdout) == 0 {
 		return
 	}
-	job.streamLogFile(ctx, wg, job.Config.Stdout, outChan, errChan, follow, tailLen)
+	job.streamLogFile(ctx, &job.stdOutWg, job.Config.Stdout, outChan, errChan, follow, tailLen)
 }
 
-func (job *baseJob) StreamStdErr(ctx context.Context, wg *sync.WaitGroup, outChan chan []byte, errChan chan error, follow bool, tailLen int) {
+func (job *baseJob) StreamStdErr(ctx context.Context, outChan chan []byte, errChan chan error, follow bool, tailLen int) {
 	if len(job.Config.Stderr) == 0 {
 		return
 	}
-	job.streamLogFile(ctx, wg, job.Config.Stderr, outChan, errChan, follow, tailLen)
+	job.streamLogFile(ctx, &job.stdErrWg, job.Config.Stderr, outChan, errChan, follow, tailLen)
 }
 
-func (job *baseJob) StreamStdOutAndStdErr(ctx context.Context, wg *sync.WaitGroup, outChan chan []byte, stdOutErrChan, stdErrErrChan chan error, follow bool, tailLen int) {
-	job.StreamStdOut(ctx, wg, outChan, stdOutErrChan, follow, tailLen)
+func (job *baseJob) StreamStdOutAndStdErr(ctx context.Context, outChan chan []byte, stdOutErrChan, stdErrErrChan chan error, follow bool, tailLen int) {
+	job.StreamStdOut(ctx, outChan, stdOutErrChan, follow, tailLen)
 	if job.Config.Stdout != job.Config.Stderr {
-		job.StreamStdErr(ctx, wg, outChan, stdErrErrChan, follow, tailLen)
+		job.StreamStdErr(ctx, outChan, stdErrErrChan, follow, tailLen)
 	}
 }
 
@@ -140,7 +140,6 @@ func (job *baseJob) streamLogFile(ctx context.Context, wg *sync.WaitGroup, fileP
 	defer stdFile.Close()
 
 	seekTail(ctx, wg, tailLen, stdFile, outChan)
-	wg.Wait()
 
 	for {
 		select {

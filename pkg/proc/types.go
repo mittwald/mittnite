@@ -52,6 +52,8 @@ type baseJob struct {
 
 	ctx       context.Context
 	interrupt context.CancelFunc
+	stdErrWg  sync.WaitGroup
+	stdOutWg  sync.WaitGroup
 
 	cmd       *exec.Cmd
 	restart   bool
