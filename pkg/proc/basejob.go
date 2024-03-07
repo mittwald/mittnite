@@ -107,6 +107,10 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 	l := log.WithField("job.name", job.Config.Name)
 	defer job.closeStdFiles()
 
+	if err := job.CreateAndOpenStdFile(job.Config); err != nil {
+		return nil
+	}
+
 	cmd := exec.Command(job.Config.Command, job.Config.Args...)
 	cmd.Env = os.Environ()
 	cmd.Dir = job.Config.WorkingDirectory
