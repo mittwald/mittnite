@@ -296,19 +296,16 @@ func (job *baseJob) readStdFile(ctx context.Context, filePath string, outChan ch
 
 func seekTail(ctx context.Context, wg *sync.WaitGroup, lines int, stdFile *os.File, outChan chan []byte) {
 	wg.Add(1)
+	defer wg.Done()
 
 	if lines < 0 {
-		wg.Done()
 		return
 	}
 
 	if lines == 0 {
 		_, _ = stdFile.Seek(0, io.SeekEnd)
-		wg.Done()
 		return
 	}
-
-	defer wg.Done()
 
 	scanner := bufio.NewScanner(stdFile)
 	tailBuffer := list.New()
