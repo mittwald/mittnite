@@ -86,14 +86,14 @@ func (job *baseJob) StreamStdOut(ctx context.Context, outChan chan []byte, errCh
 	if len(job.Config.Stdout) == 0 {
 		return
 	}
-	job.streamLogFile(ctx, &job.stdOutWg, job.Config.Stdout, outChan, errChan, follow, tailLen)
+	job.readStdFile(ctx, &job.stdOutWg, job.Config.Stdout, outChan, errChan, follow, tailLen)
 }
 
 func (job *baseJob) StreamStdErr(ctx context.Context, outChan chan []byte, errChan chan error, follow bool, tailLen int) {
 	if len(job.Config.Stderr) == 0 {
 		return
 	}
-	job.streamLogFile(ctx, &job.stdErrWg, job.Config.Stderr, outChan, errChan, follow, tailLen)
+	job.readStdFile(ctx, &job.stdErrWg, job.Config.Stderr, outChan, errChan, follow, tailLen)
 }
 
 func (job *baseJob) StreamStdOutAndStdErr(ctx context.Context, outChan chan []byte, stdOutErrChan, stdErrErrChan chan error, follow bool, tailLen int) {
@@ -103,34 +103,7 @@ func (job *baseJob) StreamStdOutAndStdErr(ctx context.Context, outChan chan []by
 	}
 }
 
-func (job *baseJob) readLog(ctx context.Context, wg *sync.WaitGroup, outChan chan []byte, errChan chan error, fileHandle *os.File, follow bool, tailLen int) {
-	scanner := bufio.NewScanner(fileHandle)
-
-	for scanner.Scan() {
-		select {
-		case <-ctx.Done():
-			return
-		case outChan <- scanner.Bytes():
-		default:
-			if follow {
-				continue
-			}
-			return
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		select {
-		case <-ctx.Done():
-			return
-		case errChan <- err:
-		default:
-			return
-		}
-	}
-}
-
-func (job *baseJob) streamLogFile(ctx context.Context, wg *sync.WaitGroup, filePath string, outChan chan []byte, errChan chan error, follow bool, tailLen int) {
+func (job *baseJob) readStdFile(ctx context.Context, wg *sync.WaitGroup, filePath string, outChan chan []byte, errChan chan error, follow bool, tailLen int) {
 	stdFile, err := os.OpenFile(filePath, os.O_RDONLY, 0o666)
 	if err != nil {
 		errChan <- err
@@ -141,10 +114,36 @@ func (job *baseJob) streamLogFile(ctx context.Context, wg *sync.WaitGroup, fileP
 
 	seekTail(ctx, wg, tailLen, stdFile, outChan)
 
+	read := func() {
+		scanner := bufio.NewScanner(stdFile)
+
+		for scanner.Scan() {
+			select {
+			case <-ctx.Done():
+				return
+			case outChan <- scanner.Bytes():
+			default:
+				if follow {
+					continue
+				}
+				return
+			}
+		}
+
+		if err := scanner.Err(); err != nil {
+			select {
+			case <-ctx.Done():
+				return
+			case errChan <- err:
+			default:
+				return
+			}
+		}
+	}
 	for {
 		select {
 		default:
-			job.readLog(ctx, wg, outChan, errChan, stdFile, follow, tailLen)
+			read()
 			if !follow {
 				errChan <- io.EOF
 				return
@@ -248,48 +247,6 @@ func (job *baseJob) closeStdFiles() {
 
 	if hasStderr {
 		job.stderr.Close()
-	}
-}
-
-func (job *baseJob) readStdFile(ctx context.Context, filePath string, outChan chan []byte, errChan chan error, follow bool, tailLen int) {
-	stdFile, err := os.OpenFile(filePath, os.O_RDONLY, 0o666)
-	if err != nil {
-		errChan <- err
-		return
-	}
-	defer stdFile.Close()
-	wg := sync.WaitGroup{}
-	seekTail(ctx, &wg, tailLen, stdFile, outChan)
-
-	read := func() {
-		scanner := bufio.NewScanner(stdFile)
-		for scanner.Scan() {
-			line := scanner.Bytes()
-			select {
-			case outChan <- line:
-			default:
-				log.WithField("job.name", job.Config.Name).
-					Warnf("failed to read logs for job %s: log streaming channel is closed.", job.Config.Name)
-				return
-			}
-		}
-		if err := scanner.Err(); err != nil {
-			errChan <- err
-			return
-		}
-	}
-
-	for {
-		select {
-		default:
-			read()
-			if !follow {
-				errChan <- io.EOF
-				return
-			}
-		case <-ctx.Done():
-			return
-		}
 	}
 }
 
