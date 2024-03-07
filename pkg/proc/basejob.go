@@ -320,19 +320,17 @@ func seekTail(ctx context.Context, wg *sync.WaitGroup, lines int, stdFile *os.Fi
 		tailBuffer.PushBack(line)
 	}
 	for tailBuffer.Len() > 0 {
-		item := tailBuffer.Front()
-		line, ok := item.Value.([]byte)
-		if ok {
-			select {
-			case <-ctx.Done():
-				return
-			case <-outChan:
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			item := tailBuffer.Front()
+			line, ok := item.Value.([]byte)
+			if ok {
 				outChan <- line
-			default:
-				return
 			}
+			tailBuffer.Remove(item)
 		}
-		tailBuffer.Remove(item)
 	}
 }
 
