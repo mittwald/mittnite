@@ -130,26 +130,26 @@ func newBaseJob(jobConfig *config.BaseJobConfig) (*baseJob, error) {
 }
 
 func (job *baseJob) CreateAndOpenStdFile(jobConfig *config.BaseJobConfig) error {
-	stdout, err := prepareStdFile(jobConfig.Stdout)
-	if err != nil {
-		return err
-	}
-	job.stdout = stdout
-
-	if len(jobConfig.Stderr) == 0 {
-		return nil
+	if jobConfig.Stdout != "" {
+		stdout, err := prepareStdFile(jobConfig.Stdout)
+		if err != nil {
+			return err
+		}
+		job.stdout = stdout
 	}
 
-	if jobConfig.Stderr == jobConfig.Stdout {
-		job.stderr = job.stdout
-		return nil
-	}
+	if jobConfig.Stderr != "" {
+		if jobConfig.Stderr == jobConfig.Stdout {
+			job.stderr = job.stdout
+			return nil
+		}
 
-	stderr, err := prepareStdFile(jobConfig.Stderr)
-	if err != nil {
-		return err
+		stderr, err := prepareStdFile(jobConfig.Stderr)
+		if err != nil {
+			return err
+		}
+		job.stderr = stderr
 	}
-	job.stderr = stderr
 
 	return nil
 }
