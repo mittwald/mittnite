@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -150,11 +151,13 @@ func (r *Runner) apiV1JobLogs(writer http.ResponseWriter, req *http.Request) {
 
 	streamCtx, cancel := context.WithCancel(context.Background())
 	outChan := make(chan []byte)
-	errChan := make(chan error)
+	stdOutErrChan := make(chan error)
+	stdErrErrChan := make(chan error)
 	defer func() {
 		cancel()
 		close(outChan)
-		close(errChan)
+		close(stdOutErrChan)
+		close(stdErrErrChan)
 	}()
 
 	// handle client disconnects
@@ -170,18 +173,12 @@ func (r *Runner) apiV1JobLogs(writer http.ResponseWriter, req *http.Request) {
 		tailLen = -1
 	}
 
-	go job.StreamStdOutAndStdErr(streamCtx, outChan, errChan, follow, tailLen)
+	go job.StreamStdOutAndStdErr(streamCtx, outChan, stdOutErrChan, stdErrErrChan, follow, tailLen)
 
-	for {
-		select {
-		case logLine := <-outChan:
-			if err := conn.WriteMessage(websocket.TextMessage, logLine); err != nil {
-				break
-			}
-
-		case err = <-errChan:
-			if errors.Is(err, io.EOF) {
-				err = conn.WriteControl(
+	handleErr := func(err error, wg *sync.WaitGroup) {
+		if errors.Is(err, io.EOF) {
+			if !follow {
+				err := conn.WriteControl(
 					websocket.CloseMessage,
 					websocket.FormatCloseMessage(websocket.CloseNormalClosure, "EOF"),
 					time.Now().Add(time.Second),
@@ -190,9 +187,24 @@ func (r *Runner) apiV1JobLogs(writer http.ResponseWriter, req *http.Request) {
 					return
 				}
 			}
+			return
+		} else {
 			log.WithField("job.name", job.Config.Name).
-				Error(fmt.Sprintf("error during logs streaming: %s", err.Error()))
-			break
+				Error(fmt.Sprintf("error while streaming logs from stdout: %s", err.Error()))
+		}
+	}
+
+	for {
+		select {
+		case logLine := <-outChan:
+			if err := conn.WriteMessage(websocket.TextMessage, logLine); err != nil {
+				break
+			}
+
+		case err := <-stdOutErrChan:
+			handleErr(err, &job.stdOutWg)
+		case err := <-stdErrErrChan:
+			handleErr(err, &job.stdErrWg)
 
 		case <-streamCtx.Done():
 			return

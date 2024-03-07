@@ -3,3 +3,4 @@
 /mittnitectl
 /dist
 examples/mittnite.d/local.hcl
+cmd/mittnitectl/mittnitectl

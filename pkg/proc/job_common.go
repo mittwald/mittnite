@@ -145,7 +145,7 @@ func (job *CommonJob) Watch() {
 		for p := range job.watchingFiles {
 			_, err := os.Stat(p)
 			if os.IsNotExist(err) {
-				log.Infof("file %s changed, signalling process %s", p, job.Config.Name)
+				log.Infof("file %s not found, signalling process %s", p, job.Config.Name)
 				delete(job.watchingFiles, p)
 				signal = true
 			}

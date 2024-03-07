@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"sync"
 	"syscall"
 	"time"
 
@@ -85,20 +86,20 @@ func (job *baseJob) StreamStdOut(ctx context.Context, outChan chan []byte, errCh
 	if len(job.Config.Stdout) == 0 {
 		return
 	}
-	job.readStdFile(ctx, job.Config.Stdout, outChan, errChan, follow, tailLen)
+	job.readStdFile(ctx, &job.stdOutWg, job.Config.Stdout, outChan, errChan, follow, tailLen)
 }
 
 func (job *baseJob) StreamStdErr(ctx context.Context, outChan chan []byte, errChan chan error, follow bool, tailLen int) {
 	if len(job.Config.Stderr) == 0 {
 		return
 	}
-	job.readStdFile(ctx, job.Config.Stderr, outChan, errChan, follow, tailLen)
+	job.readStdFile(ctx, &job.stdErrWg, job.Config.Stderr, outChan, errChan, follow, tailLen)
 }
 
-func (job *baseJob) StreamStdOutAndStdErr(ctx context.Context, outChan chan []byte, errChan chan error, follow bool, tailLen int) {
-	job.StreamStdOut(ctx, outChan, errChan, follow, tailLen)
+func (job *baseJob) StreamStdOutAndStdErr(ctx context.Context, outChan chan []byte, stdOutErrChan, stdErrErrChan chan error, follow bool, tailLen int) {
+	job.StreamStdOut(ctx, outChan, stdOutErrChan, follow, tailLen)
 	if job.Config.Stdout != job.Config.Stderr {
-		job.StreamStdErr(ctx, outChan, errChan, follow, tailLen)
+		job.StreamStdErr(ctx, outChan, stdErrErrChan, follow, tailLen)
 	}
 }
 
@@ -196,27 +197,43 @@ func (job *baseJob) closeStdFiles() {
 	}
 }
 
-func (job *baseJob) readStdFile(ctx context.Context, filePath string, outChan chan []byte, errChan chan error, follow bool, tailLen int) {
+func (job *baseJob) readStdFile(ctx context.Context, wg *sync.WaitGroup, filePath string, outChan chan []byte, errChan chan error, follow bool, tailLen int) {
 	stdFile, err := os.OpenFile(filePath, os.O_RDONLY, 0o666)
 	if err != nil {
 		errChan <- err
 		return
 	}
+
 	defer stdFile.Close()
-	seekTail(tailLen, stdFile, outChan)
+
+	seekTail(ctx, wg, tailLen, stdFile, outChan)
 
 	read := func() {
 		scanner := bufio.NewScanner(stdFile)
+
 		for scanner.Scan() {
-			line := scanner.Bytes()
-			outChan <- line
+			select {
+			case <-ctx.Done():
+				return
+			case outChan <- scanner.Bytes():
+			default:
+				if follow {
+					continue
+				}
+				return
+			}
 		}
+
 		if err := scanner.Err(); err != nil {
-			errChan <- err
-			return
+			select {
+			case <-ctx.Done():
+				return
+			case errChan <- err:
+			default:
+				return
+			}
 		}
 	}
-
 	for {
 		select {
 		default:
@@ -225,13 +242,18 @@ func (job *baseJob) readStdFile(ctx context.Context, filePath string, outChan ch
 				errChan <- io.EOF
 				return
 			}
+
+			continue
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func seekTail(lines int, stdFile *os.File, outChan chan []byte) {
+func seekTail(ctx context.Context, wg *sync.WaitGroup, lines int, stdFile *os.File, outChan chan []byte) {
+	wg.Add(1)
+	defer wg.Done()
+
 	if lines < 0 {
 		return
 	}
@@ -251,12 +273,17 @@ func seekTail(lines int, stdFile *os.File, outChan chan []byte) {
 		tailBuffer.PushBack(line)
 	}
 	for tailBuffer.Len() > 0 {
-		item := tailBuffer.Front()
-		line, ok := item.Value.([]byte)
-		if ok {
-			outChan <- line
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			item := tailBuffer.Front()
+			line, ok := item.Value.([]byte)
+			if ok {
+				outChan <- line
+			}
+			tailBuffer.Remove(item)
 		}
-		tailBuffer.Remove(item)
 	}
 }
 
