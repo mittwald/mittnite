@@ -108,9 +108,9 @@ type Job interface {
 	GetName() string
 }
 
-func newBaseJob(c *config.BaseJobConfig) (*baseJob, error) {
+func newBaseJob(jobConfig *config.BaseJobConfig) (*baseJob, error) {
 	job := &baseJob{
-		Config:  c,
+		Config:  jobConfig,
 		cmd:     nil,
 		restart: false,
 		stop:    false,
@@ -118,32 +118,40 @@ func newBaseJob(c *config.BaseJobConfig) (*baseJob, error) {
 		stderr:  os.Stderr,
 	}
 	job.phase.Set(JobPhaseReasonAwaitingReadiness)
-	if len(c.Stdout) == 0 {
+	if len(jobConfig.Stdout) == 0 {
 		return job, nil
 	}
 
-	stdout, err := prepareStdFile(c.Stdout)
+	if err := job.CreateAndOpenStdFile(jobConfig); err != nil {
+		return job, nil
+	}
+
+	return job, nil
+}
+
+func (job *baseJob) CreateAndOpenStdFile(jobConfig *config.BaseJobConfig) error {
+	stdout, err := prepareStdFile(jobConfig.Stdout)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	job.stdout = stdout
 
-	if len(c.Stderr) == 0 {
-		return job, nil
+	if len(jobConfig.Stderr) == 0 {
+		return nil
 	}
 
-	if c.Stderr == c.Stdout {
+	if jobConfig.Stderr == jobConfig.Stdout {
 		job.stderr = job.stdout
-		return job, nil
+		return nil
 	}
 
-	stderr, err := prepareStdFile(c.Stderr)
+	stderr, err := prepareStdFile(jobConfig.Stderr)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	job.stderr = stderr
 
-	return job, nil
+	return nil
 }
 
 func NewCommonJob(c *config.JobConfig) (*CommonJob, error) {
