@@ -108,7 +108,7 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 	defer job.closeStdFiles()
 
 	if err := job.CreateAndOpenStdFile(job.Config); err != nil {
-		return nil
+		return err
 	}
 
 	cmd := exec.Command(job.Config.Command, job.Config.Args...)
