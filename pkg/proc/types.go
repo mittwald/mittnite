@@ -122,11 +122,7 @@ func newBaseJob(jobConfig *config.BaseJobConfig) (*baseJob, error) {
 		return job, nil
 	}
 
-	if err := job.CreateAndOpenStdFile(jobConfig); err != nil {
-		return job, nil
-	}
-
-	return job, nil
+	return job, job.CreateAndOpenStdFile(jobConfig)
 }
 
 func (job *baseJob) CreateAndOpenStdFile(jobConfig *config.BaseJobConfig) error {
