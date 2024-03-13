@@ -42,6 +42,8 @@ func (job *LazyJob) AssertStarted(ctx context.Context) error {
 
 		l.Info("process terminated")
 
+		job.lazyStartLock.Lock()
+		defer job.lazyStartLock.Unlock()
 		job.process = nil
 	}()
 
