@@ -1,6 +1,8 @@
 module github.com/mittwald/mittnite
 
-go 1.20
+go 1.22
+
+toolchain go1.22.3
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.2
@@ -11,9 +13,9 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/hashicorp/hcl v1.0.0
 	github.com/pkg/errors v0.9.1
+	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.1.3
-	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
 	github.com/stretchr/testify v1.8.0
 	github.com/tidwall/pretty v1.0.0
 	go.mongodb.org/mongo-driver v1.5.1
