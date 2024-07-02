@@ -26,9 +26,9 @@ archives:
   - name_template: >-
       {{- .ProjectName }}_
       {{- .Version }}_
-      {{- if eq .Os "Linux" }}linux_
-      {{- else if eq .Os "Darwin" }}macos_
-      {{- else }}{{ .Os }}{{ end }}
+      {{- if eq .Os "Linux" }}linux
+      {{- else if eq .Os "darwin" }}macos
+      {{- else }}{{ .Os }}{{ end }}_
       {{- if eq  .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
