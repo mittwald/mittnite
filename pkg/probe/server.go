@@ -36,6 +36,7 @@ func (h *Handler) Wait(interrupt chan os.Signal) error {
 				var pathErr *os.PathError
 				if errors.As(err, &pathErr) {
 					log.WithFields(log.Fields{"kind": "probe", "name": i, "err": err}).Fatal("path does not exist")
+					return nil
 				}
 				if err != nil {
 					log.WithFields(log.Fields{"kind": "probe", "name": i, "err": err}).Warn("not ready yet")
