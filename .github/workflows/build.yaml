@@ -17,6 +17,11 @@ jobs:
         with:
           go-version: "1.22"
 
+      - name: Set up ARM environment variables
+        run: |
+          echo "GOARCH=arm64" >> $GITHUB_ENV
+          echo "GOOS=linux" >> $GITHUB_ENV
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
