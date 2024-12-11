@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: Build and release image and binaries
+    name: Build and release binaries
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -27,21 +27,24 @@ jobs:
 
       - name: Build binaries for ${{ matrix.arch }}
         run: |
-          go build -o output-${{ matrix.arch }}
+          mkdir -p dist
+          go build -o dist/myapp-${{ matrix.arch }} .
 
-      - name: Set up Docker Buildx
-        if: ${{ matrix.arch == 'amd64' }}
-        uses: docker/setup-buildx-action@v2
+      - name: Upload binaries
+        uses: actions/upload-artifact@v3
+        with:
+          name: binaries-${{ matrix.arch }}
+          path: dist/myapp-${{ matrix.arch }}
 
-      - name: Build and Push Multi-Arch Image
-        if: ${{ matrix.arch == 'amd64' }}
-        run: |
-          docker buildx create --use
-          docker buildx build \
-            --platform linux/amd64,linux/arm64 \
-            --tag quay.io/your_repo/your_image:${GITHUB_REF_NAME} \
-            --tag quay.io/your_repo/your_image:latest \
-            --push .
+  release:
+    name: Release binaries
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: dist
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
