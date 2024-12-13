@@ -18,6 +18,7 @@ builds:
       - linux
     goarch:
       - amd64
+      - arm64
   - <<: *defaultBuild
     id: mittnitectl
     binary: mittnitectl
