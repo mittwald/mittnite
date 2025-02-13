@@ -114,8 +114,26 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 	cmd := exec.Command(job.Config.Command, job.Config.Args...)
 	cmd.Env = os.Environ()
 	cmd.Dir = job.Config.WorkingDirectory
-	cmd.Stdout = job.stdout
-	cmd.Stderr = job.stderr
+
+	// pipe stdout and stderr through timestamp function if they are enabled
+	if job.Config.EnableTimestamps {
+		stdoutPipe, err := cmd.StdoutPipe()
+		if err != nil {
+			return fmt.Errorf("failed to create stdout pipe for process: %s", err.Error())
+		}
+
+		stderrPipe, _ := cmd.StderrPipe()
+		if err != nil {
+			return fmt.Errorf("failed to create stderr pipe for process: %s", err.Error())
+		}
+
+		go job.logWithTimestamp(stdoutPipe, job.stdout)
+		go job.logWithTimestamp(stderrPipe, job.stderr)
+	} else {
+		cmd.Stdout = job.stdout
+		cmd.Stderr = job.stderr
+	}
+
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}
@@ -198,6 +216,20 @@ func (job *baseJob) closeStdFiles() {
 
 	if hasStderr {
 		job.stderr.Close()
+	}
+}
+
+func (job *baseJob) logWithTimestamp(r io.Reader, w io.Writer) {
+	l := log.WithField("job.name", job.Config.Name)
+
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		timestamp := time.Now().Format(time.RFC3339)
+		line := fmt.Sprintf("[%s] %s\n", timestamp, scanner.Text())
+		w.Write([]byte(line))
+	}
+	if err := scanner.Err(); err != nil {
+		l.Info(os.Stderr, "error reading from process: %v\n", err)
 	}
 }
 

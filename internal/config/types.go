@@ -96,6 +96,7 @@ type BaseJobConfig struct {
 	WorkingDirectory string   `hcl:"workingDirectory" json:"workingDirectory,omitempty"`
 	Stdout           string   `hcl:"stdout" json:"stdout,omitempty"`
 	Stderr           string   `hcl:"stderr" json:"stderr,omitempty"`
+	EnableTimestamps bool     `hcl:"enableTimestamps" json:"enableTimestamps"`
 }
 
 type Laziness struct {
