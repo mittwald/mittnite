@@ -229,7 +229,7 @@ func (job *baseJob) logWithTimestamp(r io.Reader, w io.Writer) {
 		w.Write([]byte(line))
 	}
 	if err := scanner.Err(); err != nil {
-		l.Info(os.Stderr, "error reading from process: %v\n", err)
+		l.Errorf("error reading from process: %v\n", err)
 	}
 }
 
