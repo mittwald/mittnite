@@ -6,6 +6,6 @@ job "echoloop" {
   ]
 
   stdout = "test.log"
-  stdout = "test_error.log"
+  stderr = "test_error.log"
   enableTimestamps = true
 }

@@ -121,11 +121,13 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 		if err != nil {
 			return fmt.Errorf("failed to create stdout pipe for process: %s", err.Error())
 		}
+		defer stdoutPipe.Close()
 
-		stderrPipe, _ := cmd.StderrPipe()
+		stderrPipe, err := cmd.StderrPipe()
 		if err != nil {
 			return fmt.Errorf("failed to create stderr pipe for process: %s", err.Error())
 		}
+		defer stderrPipe.Close()
 
 		go job.logWithTimestamp(stdoutPipe, job.stdout)
 		go job.logWithTimestamp(stderrPipe, job.stderr)
