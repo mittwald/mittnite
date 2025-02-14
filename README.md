@@ -154,6 +154,23 @@ job "foo" {
 }
 ```
 
+Additionally, you can enable timestamps for the output of a job using `enableTimestamps` and specify a custom format using `timestampFormat`.
+
+Formats are named after their constant name in the Golang [`time` package](https://pkg.go.dev/time#pkg-constants) (lookup table at the bottom).
+
+You can also specify your own format by setting `timestampFormat` to a custom format string like "2006-01-02 15:04:05".
+
+```hcl
+job "foo" {
+  command = "/usr/local/bin/foo"
+  args = ["bar"]
+  stdout = "/tmp/foo.log"
+  stderr = "/tmp/foo-errors.log"
+  enableTimestamps = true
+  timestampFormat = "RFC3339"  # default
+}
+```
+
 You can configure a Job to watch files and to send a signal to the managed process if that file changes. This can be used, for example, to send a `SIGHUP` to a process to reload its configuration file when it changes.
   
 ```hcl
@@ -480,3 +497,27 @@ job webserver {
   # ...
 }
 ```
+
+### Timestamp Formats
+
+| Name        | Format                              |
+|-------------|-------------------------------------|
+| Layout      | 01/02 03:04:05PM '06 -0700          |
+| ANSIC       | Mon Jan _2 15:04:05 2006            |                                             
+| UnixDate    | Mon Jan _2 15:04:05 MST 2006        |                                         
+| RubyDate    | Mon Jan 02 15:04:05 -0700 2006      |                                       
+| RFC822      | 02 Jan 06 15:04 MST                 |                                                  
+| RFC822Z     | 02 Jan 06 15:04 -0700               |                    
+| RFC850      | Monday, 02-Jan-06 15:04:05 MST      |                                       
+| RFC1123     | Mon, 02 Jan 2006 15:04:05 MST       |                                        
+| RFC1123Z    | Mon, 02 Jan 2006 15:04:05 -0700     |         
+| RFC3339     | 2006-01-02T15:04:05Z07:00           |                                            
+| RFC3339Nano | 2006-01-02T15:04:05.999999999Z07:00 |                                  
+| Kitchen     | 3:04PM                              |                                                               
+| Stamp       | Jan _2 15:04:05                     |                                                       
+| StampMilli  | Jan _2 15:04:05.000                 |                                                   
+| StampMicro  | Jan _2 15:04:05.000000              |                                                
+| StampNano   | Jan _2 15:04:05.000000000           |                                             
+| DateTime    | 2006-01-02 15:04:05                 |                                                   
+| DateOnly    | 2006-01-02                          |                                                            
+| TimeOnly    | 15:04:05                            |         
