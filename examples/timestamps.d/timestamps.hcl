@@ -8,4 +8,5 @@ job "echoloop" {
   stdout = "test.log"
   stderr = "test_error.log"
   enableTimestamps = true
+  timestampFormat = "test"
 }

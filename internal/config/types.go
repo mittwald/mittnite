@@ -94,9 +94,12 @@ type BaseJobConfig struct {
 	CanFail          bool     `hcl:"canFail" json:"canFail"`
 	Controllable     bool     `hcl:"controllable" json:"controllable"`
 	WorkingDirectory string   `hcl:"workingDirectory" json:"workingDirectory,omitempty"`
-	Stdout           string   `hcl:"stdout" json:"stdout,omitempty"`
-	Stderr           string   `hcl:"stderr" json:"stderr,omitempty"`
-	EnableTimestamps bool     `hcl:"enableTimestamps" json:"enableTimestamps"`
+
+	// log config
+	Stdout           string `hcl:"stdout" json:"stdout,omitempty"`
+	Stderr           string `hcl:"stderr" json:"stderr,omitempty"`
+	EnableTimestamps bool   `hcl:"enableTimestamps" json:"enableTimestamps"`
+	TimestampFormat  string `hcl:"timestampFormat" json:"timestampFormat"` // defaults to RFC3339
 }
 
 type Laziness struct {

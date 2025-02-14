@@ -115,7 +115,8 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 	cmd.Env = os.Environ()
 	cmd.Dir = job.Config.WorkingDirectory
 
-	// pipe stdout and stderr through timestamp function if they are enabled
+	// pipe command's stdout and stderr through timestamp function if timestamps are enabled
+	// otherwise just redirect stdout and err to job.stdout and job.stderr
 	if job.Config.EnableTimestamps {
 		stdoutPipe, err := cmd.StdoutPipe()
 		if err != nil {
@@ -224,12 +225,21 @@ func (job *baseJob) closeStdFiles() {
 func (job *baseJob) logWithTimestamp(r io.Reader, w io.Writer) {
 	l := log.WithField("job.name", job.Config.Name)
 
+	formatString, exists := TimeFormats[job.Config.TimestampFormat]
+	if !exists {
+		l.Warningf("unknown timestamp format %s, defaulting to RFC3339", job.Config.TimestampFormat)
+		formatString = time.RFC3339
+	}
+
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		timestamp := time.Now().Format(time.RFC3339)
+		timestamp := time.Now().Format(formatString)
 		line := fmt.Sprintf("[%s] %s\n", timestamp, scanner.Text())
-		w.Write([]byte(line))
+		if _, err := w.Write([]byte(line)); err != nil {
+			l.Errorf("error writing log for process: %v\n", err)
+		}
 	}
+
 	if err := scanner.Err(); err != nil {
 		l.Errorf("error reading from process: %v\n", err)
 	}
