@@ -158,7 +158,7 @@ Additionally, you can enable timestamps for the output of a job using `enableTim
 
 Formats are named after their constant name in the Golang [`time` package](https://pkg.go.dev/time#pkg-constants) (lookup table at the bottom).
 
-You can also specify your own format by setting `timestampFormat` to a custom format string like "2006-01-02 15:04:05".
+You can also specify your own format by setting `customTimestampFormat` to a custom format string like "2006-01-02 15:04:05". Whatever is set in `timestampFormat` will be ignored in that case.
 
 ```hcl
 job "foo" {
@@ -168,6 +168,7 @@ job "foo" {
   stderr = "/tmp/foo-errors.log"
   enableTimestamps = true
   timestampFormat = "RFC3339"  # default
+  customTimestampFormat = ""  # default
 }
 ```
 

@@ -18,7 +18,7 @@ const (
 	ShutdownWaitingTimeSeconds = 10
 )
 
-var TimeFormats = map[string]string{
+var TimeLayouts = map[string]string{
 	"RFC3339":     time.RFC3339,
 	"RFC3339Nano": time.RFC3339Nano,
 	"RFC1123":     time.RFC1123,

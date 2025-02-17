@@ -225,15 +225,26 @@ func (job *baseJob) closeStdFiles() {
 func (job *baseJob) logWithTimestamp(r io.Reader, w io.Writer) {
 	l := log.WithField("job.name", job.Config.Name)
 
-	formatString, exists := TimeFormats[job.Config.TimestampFormat]
-	if !exists {
-		l.Warningf("unknown timestamp format %s, defaulting to RFC3339", job.Config.TimestampFormat)
-		formatString = time.RFC3339
+	var layout string
+
+	// has custom timestamp layout?
+	if job.Config.CustomTimestampFormat != "" {
+		layout = job.Config.CustomTimestampFormat
+		l.Infof("using custom timestamp layout '%s'", layout)
+	} else {
+		existingLayout, exists := TimeLayouts[job.Config.TimestampFormat]
+		if !exists {
+			layout = time.RFC3339
+			l.Warningf("unknown timestamp layout '%s', defaulting to RFC3339", job.Config.TimestampFormat)
+		} else {
+			layout = existingLayout
+			l.Infof("logging with timestamp layout '%s'", job.Config.TimestampFormat)
+		}
 	}
 
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		timestamp := time.Now().Format(formatString)
+		timestamp := time.Now().Format(layout)
 		line := fmt.Sprintf("[%s] %s\n", timestamp, scanner.Text())
 		if _, err := w.Write([]byte(line)); err != nil {
 			l.Errorf("error writing log for process: %v\n", err)

@@ -96,10 +96,11 @@ type BaseJobConfig struct {
 	WorkingDirectory string   `hcl:"workingDirectory" json:"workingDirectory,omitempty"`
 
 	// log config
-	Stdout           string `hcl:"stdout" json:"stdout,omitempty"`
-	Stderr           string `hcl:"stderr" json:"stderr,omitempty"`
-	EnableTimestamps bool   `hcl:"enableTimestamps" json:"enableTimestamps"`
-	TimestampFormat  string `hcl:"timestampFormat" json:"timestampFormat"` // defaults to RFC3339
+	Stdout                string `hcl:"stdout" json:"stdout,omitempty"`
+	Stderr                string `hcl:"stderr" json:"stderr,omitempty"`
+	EnableTimestamps      bool   `hcl:"enableTimestamps" json:"enableTimestamps"`
+	TimestampFormat       string `hcl:"timestampFormat" json:"timestampFormat"` // defaults to RFC3339
+	CustomTimestampFormat string `hcl:"customTimestampFormat" json:"customTimestampFormat"`
 }
 
 type Laziness struct {
