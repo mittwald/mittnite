@@ -148,29 +148,15 @@ func filterWaitProbes(cfg *config.Ignition, probes map[string]Probe) map[string]
 }
 
 func buildProbesFromConfig(cfg *config.Ignition) (map[string]Probe, error) {
-	result := make(map[string]Probe)
-
 	var errs []error
 
+	result := make(map[string]Probe)
 	for i := range cfg.Probes {
-		if cfg.Probes[i].Filesystem != "" {
-			result[cfg.Probes[i].Name] = &filesystemProbe{cfg.Probes[i].Filesystem}
-		} else if cfg.Probes[i].MySQL != nil {
-			result[cfg.Probes[i].Name] = NewMySQLProbe(cfg.Probes[i].MySQL)
-		} else if cfg.Probes[i].Redis != nil {
-			result[cfg.Probes[i].Name] = NewRedisProbe(cfg.Probes[i].Redis)
-		} else if cfg.Probes[i].MongoDB != nil {
-			var err error
-			result[cfg.Probes[i].Name], err = NewMongoDBProbe(cfg.Probes[i].MongoDB)
-			if err != nil {
-				errs = append(errs, err)
-			}
-		} else if cfg.Probes[i].Amqp != nil {
-			result[cfg.Probes[i].Name] = NewAmqpProbe(cfg.Probes[i].Amqp)
-		} else if cfg.Probes[i].HTTP != nil {
-			result[cfg.Probes[i].Name] = NewHttpProbe(cfg.Probes[i].HTTP)
-		} else if cfg.Probes[i].SMTP != nil {
-			result[cfg.Probes[i].Name] = NewSmtpProbe(cfg.Probes[i].SMTP)
+		p, err := newProbe(cfg.Probes[i])
+		if err != nil {
+			errs = append(errs, err)
+		} else if p != nil {
+			result[cfg.Probes[i].Name] = p
 		}
 	}
 
@@ -180,4 +166,24 @@ func buildProbesFromConfig(cfg *config.Ignition) (map[string]Probe, error) {
 	}
 
 	return result, err
+}
+
+func newProbe(p config.Probe) (Probe, error) {
+	if p.Filesystem != "" {
+		return &filesystemProbe{p.Filesystem}, nil
+	} else if p.MySQL != nil {
+		return NewMySQLProbe(p.MySQL), nil
+	} else if p.Redis != nil {
+		return NewRedisProbe(p.Redis), nil
+	} else if p.MongoDB != nil {
+		return NewMongoDBProbe(p.MongoDB)
+	} else if p.Amqp != nil {
+		return NewAmqpProbe(p.Amqp), nil
+	} else if p.HTTP != nil {
+		return NewHttpProbe(p.HTTP)
+	} else if p.SMTP != nil {
+		return NewSmtpProbe(p.SMTP), nil
+	}
+
+	return nil, nil
 }
