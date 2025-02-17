@@ -114,8 +114,29 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 	cmd := exec.Command(job.Config.Command, job.Config.Args...)
 	cmd.Env = os.Environ()
 	cmd.Dir = job.Config.WorkingDirectory
-	cmd.Stdout = job.stdout
-	cmd.Stderr = job.stderr
+
+	// pipe command's stdout and stderr through timestamp function if timestamps are enabled
+	// otherwise just redirect stdout and err to job.stdout and job.stderr
+	if job.Config.EnableTimestamps {
+		stdoutPipe, err := cmd.StdoutPipe()
+		if err != nil {
+			return fmt.Errorf("failed to create stdout pipe for process: %s", err.Error())
+		}
+		defer stdoutPipe.Close()
+
+		stderrPipe, err := cmd.StderrPipe()
+		if err != nil {
+			return fmt.Errorf("failed to create stderr pipe for process: %s", err.Error())
+		}
+		defer stderrPipe.Close()
+
+		go job.logWithTimestamp(stdoutPipe, job.stdout)
+		go job.logWithTimestamp(stderrPipe, job.stderr)
+	} else {
+		cmd.Stdout = job.stdout
+		cmd.Stderr = job.stderr
+	}
+
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}
@@ -198,6 +219,40 @@ func (job *baseJob) closeStdFiles() {
 
 	if hasStderr {
 		job.stderr.Close()
+	}
+}
+
+func (job *baseJob) logWithTimestamp(r io.Reader, w io.Writer) {
+	l := log.WithField("job.name", job.Config.Name)
+
+	var layout string
+
+	// has custom timestamp layout?
+	if job.Config.CustomTimestampFormat != "" {
+		layout = job.Config.CustomTimestampFormat
+		l.Infof("using custom timestamp layout '%s'", layout)
+	} else {
+		existingLayout, exists := TimeLayouts[job.Config.TimestampFormat]
+		if !exists {
+			layout = time.RFC3339
+			l.Warningf("unknown timestamp layout '%s', defaulting to RFC3339", job.Config.TimestampFormat)
+		} else {
+			layout = existingLayout
+			l.Infof("logging with timestamp layout '%s'", job.Config.TimestampFormat)
+		}
+	}
+
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		timestamp := time.Now().Format(layout)
+		line := fmt.Sprintf("[%s] %s\n", timestamp, scanner.Text())
+		if _, err := w.Write([]byte(line)); err != nil {
+			l.Errorf("error writing log for process: %v\n", err)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		l.Errorf("error reading from process: %v\n", err)
 	}
 }
 

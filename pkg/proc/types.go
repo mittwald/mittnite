@@ -2,13 +2,14 @@ package proc
 
 import (
 	"context"
-	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
 	"net/http"
 	"os"
 	"os/exec"
 	"sync"
 	"time"
+
+	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 
 	"github.com/mittwald/mittnite/internal/config"
 )
@@ -16,6 +17,26 @@ import (
 const (
 	ShutdownWaitingTimeSeconds = 10
 )
+
+var TimeLayouts = map[string]string{
+	"RFC3339":     time.RFC3339,
+	"RFC3339Nano": time.RFC3339Nano,
+	"RFC1123":     time.RFC1123,
+	"RFC1123Z":    time.RFC1123Z,
+	"RFC822":      time.RFC822,
+	"RFC822Z":     time.RFC822Z,
+	"ANSIC":       time.ANSIC,
+	"UnixDate":    time.UnixDate,
+	"RubyDate":    time.RubyDate,
+	"Kitchen":     time.Kitchen,
+	"Stamp":       time.Stamp,
+	"StampMilli":  time.StampMilli,
+	"StampMicro":  time.StampMicro,
+	"StampNano":   time.StampNano,
+	"DateTime":    time.DateTime,
+	"DateOnly":    time.DateOnly,
+	"TimeOnly":    time.TimeOnly,
+}
 
 type Runner struct {
 	jobs        []Job
