@@ -66,7 +66,7 @@ func renderFile(cfg *config.File) error {
 		return err
 	}
 
-	tpl, err := template.New(cfg.Target).Parse(string(tplContents))
+	tpl, err := newTemplate(cfg.Target).Parse(string(tplContents))
 	if err != nil {
 		return err
 	}
