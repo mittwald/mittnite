@@ -31,7 +31,7 @@ func (job *baseJob) SignalAll(sig syscall.Signal) {
 		}
 	}
 
-	if job.Cmd == nil || job.Cmd.Process == nil {
+	if job.cmd == nil || job.cmd.Process == nil {
 		errFunc(
 			fmt.Errorf("job is not running"),
 		)
@@ -43,10 +43,10 @@ func (job *baseJob) SignalAll(sig syscall.Signal) {
 }
 
 func (job *baseJob) signalAll(sig syscall.Signal) error {
-	if job.Cmd.Process.Pid <= 0 { // Ensure PID is positive before negating
+	if job.cmd.Process.Pid <= 0 { // Ensure PID is positive before negating
 		return syscall.Errno(syscall.ESRCH) // No such process or invalid PID
 	}
-	return syscall.Kill(-job.Cmd.Process.Pid, sig)
+	return syscall.Kill(-job.cmd.Process.Pid, sig)
 }
 
 func (job *baseJob) Signal(sig os.Signal) {
@@ -56,7 +56,7 @@ func (job *baseJob) Signal(sig os.Signal) {
 		}
 	}
 
-	if job.Cmd == nil || job.Cmd.Process == nil {
+	if job.cmd == nil || job.cmd.Process == nil {
 		errFunc(
 			fmt.Errorf("job is not running"),
 		)
@@ -70,7 +70,7 @@ func (job *baseJob) Signal(sig os.Signal) {
 }
 
 func (job *baseJob) signal(sig os.Signal) error {
-	process, err := os.FindProcess(job.Cmd.Process.Pid)
+	process, err := os.FindProcess(job.cmd.Process.Pid)
 	if err != nil {
 		return err
 	}
@@ -167,23 +167,23 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 	}
 
 	// Only set job.Cmd if cmd.Start() was successful
-	job.Cmd = cmd
+	job.cmd = cmd
 
 	if process != nil {
-		process <- job.Cmd.Process
+		process <- job.cmd.Process
 	}
 
 	errChan := make(chan error, 1)
 	defer close(errChan)
 
 	go func() {
-		errChan <- job.Cmd.Wait()
+		errChan <- job.cmd.Wait()
 	}()
 
 	select {
 	// job errChan or failed
 	case err := <-errChan:
-		if job.Cmd != nil && job.Cmd.Process != nil { // Check if process actually started
+		if job.cmd != nil && job.cmd.Process != nil { // Check if process actually started
 			if termErr := job.signalAll(syscall.SIGTERM); termErr != nil {
 				if e, ok := termErr.(syscall.Errno); ok && e == syscall.ESRCH {
 					// ESRCH (Error No Such Process) is fine, means process group already gone
@@ -209,7 +209,7 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 		}
 		return err
 	case <-ctx.Done():
-		if job.Cmd != nil && job.Cmd.Process != nil { // Check if process actually started
+		if job.cmd != nil && job.cmd.Process != nil { // Check if process actually started
 			// ctx canceled, try to terminate job
 			_ = job.signalAll(syscall.SIGTERM)
 			l.WithField("job.name", job.Config.Name).Info("sent SIGTERM to job's process group on ctx.Done")

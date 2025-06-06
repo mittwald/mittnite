@@ -76,7 +76,7 @@ type baseJob struct {
 	stdErrWg  sync.WaitGroup
 	stdOutWg  sync.WaitGroup
 
-	Cmd       *exec.Cmd // Exported for testability and internal use
+	cmd       *exec.Cmd
 	restart   bool
 	stop      bool
 	stdout    *os.File
@@ -132,7 +132,7 @@ type Job interface {
 func newBaseJob(jobConfig *config.BaseJobConfig) (*baseJob, error) {
 	job := &baseJob{
 		Config:  jobConfig,
-		Cmd:     nil, // Use exported field name
+		cmd:     nil,
 		restart: false,
 		stop:    false,
 		stdout:  os.Stdout,
