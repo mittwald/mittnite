@@ -125,9 +125,9 @@ func (job *LazyJob) startProcessReaper(ctx context.Context) {
 					continue
 				}
 
-				// Ensure Cmd and Cmd.Process are not nil before accessing PID
+				// Ensure job.cmd and job.cmd.Process are not nil before accessing PID
 				if job.cmd == nil || job.cmd.Process == nil {
-					l.Warn("job.process is not nil, but job.Cmd or job.Cmd.Process is nil; skipping reap cycle")
+					l.Warn("job.process is not nil, but job.cmd or job.cmd.Process is nil; skipping reap cycle")
 					job.lazyStartLock.Unlock()
 					continue
 				}

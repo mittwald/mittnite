@@ -186,7 +186,7 @@ func (job *CommonJob) IsRunning() bool {
 
 func (job *CommonJob) Restart() {
 	job.restart = true
-	// Ensure Cmd and Process are not nil before trying to signal
+	// Ensure job.cmd and job.cmd.Process are not nil before trying to signal
 	if job.cmd != nil && job.cmd.Process != nil {
 		job.SignalAll(syscall.SIGTERM)
 	}
@@ -197,7 +197,7 @@ func (job *CommonJob) Restart() {
 
 func (job *CommonJob) Stop() {
 	job.stop = true
-	// Ensure Cmd and Process are not nil before trying to signal
+	// Ensure job.cmd and job.cmd.Process are not nil before trying to signal
 	if job.cmd != nil && job.cmd.Process != nil {
 		job.SignalAll(syscall.SIGTERM)
 	}
@@ -209,7 +209,7 @@ func (job *CommonJob) Stop() {
 func (job *CommonJob) Status() *CommonJobStatus {
 	running := job.IsRunning()
 	var pid int
-	// Ensure Cmd and Process are not nil before trying to access Pid
+	// Ensure job.cmd and job.cmd.Process are not nil before trying to access Pid
 	if running && job.cmd != nil && job.cmd.Process != nil {
 		pid = job.cmd.Process.Pid
 	}

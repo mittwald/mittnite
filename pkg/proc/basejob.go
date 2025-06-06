@@ -166,7 +166,7 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 		return fmt.Errorf("failed to start job %s: %s", job.Config.Name, err.Error())
 	}
 
-	// Only set job.Cmd if cmd.Start() was successful
+	// Only set job.cmd if cmd.Start() was successful
 	job.cmd = cmd
 
 	if process != nil {
@@ -226,7 +226,7 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 				return err
 			}
 		}
-		// If job.Cmd or job.Cmd.Process is nil, it means the process didn't start or already cleaned up.
+		// If job.cmd or job.cmd.Process is nil, it means the process didn't start or already cleaned up.
 		l.WithField("job.name", job.Config.Name).Info("context done, but process was not running or already cleaned up.")
 		return ctx.Err() // Return context error
 	}
