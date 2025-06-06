@@ -71,12 +71,14 @@ func NewApi(listenAddress string) *Api {
 type baseJob struct {
 	Config *config.BaseJobConfig
 
-	ctx       context.Context
-	interrupt context.CancelFunc
-	stdErrWg  sync.WaitGroup
-	stdOutWg  sync.WaitGroup
+	ctx           context.Context
+	interrupt     context.CancelFunc
+	stdErrWg      sync.WaitGroup
+	stdOutWg      sync.WaitGroup
+	SignalFunc    func(pid int, sig os.Signal) error           // For mocking
+	SignalAllFunc func(pgid int, sig syscall.Signal) error // For mocking (takes PID, will be negated for group)
 
-	cmd       *exec.Cmd
+	Cmd       *exec.Cmd // Exported for testability and internal use
 	restart   bool
 	stop      bool
 	stdout    *os.File
@@ -132,11 +134,27 @@ type Job interface {
 func newBaseJob(jobConfig *config.BaseJobConfig) (*baseJob, error) {
 	job := &baseJob{
 		Config:  jobConfig,
-		cmd:     nil,
+		Cmd:     nil, // Use exported field name
 		restart: false,
 		stop:    false,
 		stdout:  os.Stdout,
 		stderr:  os.Stderr,
+		// Initialize SignalFunc and SignalAllFunc to defaults
+		SignalFunc: func(pid int, sig os.Signal) error {
+			process, err := os.FindProcess(pid)
+			if err != nil {
+				return err
+			}
+			return process.Signal(sig)
+		},
+		SignalAllFunc: func(pid int, sig syscall.Signal) error { // pid here is the process pid
+			// Negative PID for group signal. SignalAllFunc expects the caller (baseJob.SignalAll)
+			// to pass the actual PID, and this default implementation will negate it.
+			if pid <= 0 { // Ensure PID is positive before negating
+				return syscall.Errno(syscall.ESRCH) // No such process or invalid PID
+			}
+			return syscall.Kill(-pid, sig)
+		},
 	}
 	job.phase.Set(JobPhaseReasonAwaitingReadiness)
 	if len(jobConfig.Stdout) == 0 {

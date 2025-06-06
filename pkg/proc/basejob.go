@@ -31,7 +31,7 @@ func (job *baseJob) SignalAll(sig syscall.Signal) {
 		}
 	}
 
-	if job.cmd == nil || job.cmd.Process == nil {
+	if job.Cmd == nil || job.Cmd.Process == nil {
 		errFunc(
 			fmt.Errorf("job is not running"),
 		)
@@ -39,7 +39,8 @@ func (job *baseJob) SignalAll(sig syscall.Signal) {
 	}
 
 	log.WithField("job.name", job.Config.Name).Infof("sending signal %d to process group", sig)
-	errFunc(syscall.Kill(-job.cmd.Process.Pid, sig))
+	// job.Cmd.Process.Pid is passed; SignalAllFunc is expected to negate it for group signaling if needed.
+	errFunc(job.SignalAllFunc(job.Cmd.Process.Pid, sig))
 }
 
 func (job *baseJob) Signal(sig os.Signal) {
@@ -49,7 +50,7 @@ func (job *baseJob) Signal(sig os.Signal) {
 		}
 	}
 
-	if job.cmd == nil || job.cmd.Process == nil {
+	if job.Cmd == nil || job.Cmd.Process == nil {
 		errFunc(
 			fmt.Errorf("job is not running"),
 		)
@@ -58,7 +59,7 @@ func (job *baseJob) Signal(sig os.Signal) {
 
 	log.WithField("job.name", job.Config.Name).Infof("sending signal %d to process", sig)
 	errFunc(
-		job.cmd.Process.Signal(sig),
+		job.SignalFunc(job.Cmd.Process.Pid, sig),
 	)
 }
 
@@ -151,28 +152,31 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 		return fmt.Errorf("failed to start job %s: %s", job.Config.Name, err.Error())
 	}
 
-	// Only set job.cmd if cmd.Start() was successful
-	job.cmd = cmd
+	// Only set job.Cmd if cmd.Start() was successful
+	job.Cmd = cmd
 
 	if process != nil {
-		process <- job.cmd.Process
+		process <- job.Cmd.Process
 	}
 
 	errChan := make(chan error, 1)
 	defer close(errChan)
 
 	go func() {
-		errChan <- job.cmd.Wait()
+		errChan <- job.Cmd.Wait()
 	}()
 
 	select {
 	// job errChan or failed
 	case err := <-errChan:
-		if err := syscall.Kill(-job.cmd.Process.Pid, syscall.SIGTERM); err != nil {
-			if e, ok := err.(syscall.Errno); ok && e == 3 {
-				// this is fine; error 3 means that the process group does not exist anymore
-			} else {
-				l.WithError(err).Error("failed to send SIGTERM to job's process group")
+		if job.Cmd != nil && job.Cmd.Process != nil { // Check if process actually started
+			// Use SignalAllFunc for consistency. It expects PID and will negate for group.
+			if termErr := job.SignalAllFunc(job.Cmd.Process.Pid, syscall.SIGTERM); termErr != nil {
+				if e, ok := termErr.(syscall.Errno); ok && e == syscall.ESRCH {
+					// ESRCH (Error No Such Process) is fine, means process group already gone
+				} else {
+					l.WithError(termErr).Error("failed to send SIGTERM to job's process group via SignalAllFunc")
+				}
 			}
 		}
 
@@ -192,18 +196,29 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 		}
 		return err
 	case <-ctx.Done():
-		// ctx canceled, try to terminate job
-		_ = syscall.Kill(-job.cmd.Process.Pid, syscall.SIGTERM)
-		l.WithField("job.name", job.Config.Name).Info("sent SIGTERM to job's process group")
+		if job.Cmd != nil && job.Cmd.Process != nil { // Check if process actually started
+			// ctx canceled, try to terminate job
+			// Use SignalAllFunc for consistency. It expects PID and will negate for group.
+			_ = job.SignalAllFunc(job.Cmd.Process.Pid, syscall.SIGTERM)
+			l.WithField("job.name", job.Config.Name).Info("sent SIGTERM to job's process group via SignalAllFunc on ctx.Done")
 
-		select {
-		case <-time.After(time.Second * ShutdownWaitingTimeSeconds):
-			// process seems to hang, kill process
-			_ = syscall.Kill(-job.cmd.Process.Pid, syscall.SIGKILL)
-			l.WithField("job.name", job.Config.Name).Error("forcefully killed job")
-			return nil
+			select {
+			case <-time.After(time.Second * ShutdownWaitingTimeSeconds):
+				// process seems to hang, kill process
+				_ = job.SignalAllFunc(job.Cmd.Process.Pid, syscall.SIGKILL) // Use func for consistency
+				l.WithField("job.name", job.Config.Name).Error("forcefully killed job via SignalAllFunc")
+				return nil
 
-		case err := <-errChan:
+			case err := <-errChan:
+				// all good
+				return err
+			}
+		}
+		// If job.Cmd or job.Cmd.Process is nil, it means the process didn't start or already cleaned up.
+		l.WithField("job.name", job.Config.Name).Info("context done, but process was not running or already cleaned up.")
+		return ctx.Err() // Return context error
+	}
+}
 			// all good
 			return err
 		}

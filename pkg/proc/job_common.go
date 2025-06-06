@@ -177,39 +177,47 @@ func (job *CommonJob) Watch() {
 }
 
 func (job *CommonJob) IsRunning() bool {
-	if job.cmd == nil {
+	if job.Cmd == nil || job.Cmd.Process == nil || job.Cmd.Process.Pid <= 0 {
 		return false
 	}
-	if job.cmd.Process == nil {
-		return false
-	}
-	if job.cmd.Process.Pid > 0 {
-		return syscall.Kill(job.cmd.Process.Pid, syscall.Signal(0)) == nil
-	}
-	return true
+	// Use job.SignalFunc with syscall.Signal(0) for process existence check.
+	// This respects the mockable function. A nil signal (0) is conventional for checking existence.
+	err := job.SignalFunc(job.Cmd.Process.Pid, syscall.Signal(0))
+	return err == nil
 }
 
 func (job *CommonJob) Restart() {
 	job.restart = true
-	job.SignalAll(syscall.SIGTERM)
-	job.interrupt()
+	// Ensure Cmd and Process are not nil before trying to signal
+	if job.Cmd != nil && job.Cmd.Process != nil {
+		job.SignalAll(syscall.SIGTERM)
+	}
+	if job.interrupt != nil { // Check if interrupt function is set
+		job.interrupt()
+	}
 }
 
 func (job *CommonJob) Stop() {
 	job.stop = true
-	job.SignalAll(syscall.SIGTERM)
-	job.interrupt()
+	// Ensure Cmd and Process are not nil before trying to signal
+	if job.Cmd != nil && job.Cmd.Process != nil {
+		job.SignalAll(syscall.SIGTERM)
+	}
+	if job.interrupt != nil { // Check if interrupt function is set
+		job.interrupt()
+	}
 }
 
 func (job *CommonJob) Status() *CommonJobStatus {
 	running := job.IsRunning()
 	var pid int
-	if running {
-		pid = job.cmd.Process.Pid
+	// Ensure Cmd and Process are not nil before trying to access Pid
+	if running && job.Cmd != nil && job.Cmd.Process != nil {
+		pid = job.Cmd.Process.Pid
 	}
 	return &CommonJobStatus{
 		Pid:     pid,
-		Running: job.IsRunning(),
+		Running: running, // Use the 'running' variable determined above
 		Phase:   job.phase,
 		Config:  job.Config,
 	}
