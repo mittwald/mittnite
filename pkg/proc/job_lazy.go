@@ -10,46 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// LazyJobReapGracePeriod defines the time to wait after SIGTERM before sending SIGKILL.
-// It's a variable to allow modification for testing.
-var LazyJobReapGracePeriod = 10 * time.Second
-
-// GetLazyJobReapGracePeriodForTest returns the current grace period. Used by tests.
-func GetLazyJobReapGracePeriodForTest() time.Duration {
-	return LazyJobReapGracePeriod
-}
-
-// SetCoolDownTimeout allows tests to set a custom coolDownTimeout.
-func (job *LazyJob) SetCoolDownTimeout(d time.Duration) {
-	job.coolDownTimeout = d
-}
-
-// SetActiveConnections allows tests to set activeConnections.
-func (job *LazyJob) SetActiveConnections(n uint32) {
-	job.activeConnections = n
-}
-
-// SetLastConnectionClosed allows tests to set lastConnectionClosed.
-func (job *LazyJob) SetLastConnectionClosed(t time.Time) {
-	job.lastConnectionClosed = t
-}
-
-// SetProcess allows tests to set the job's process.
-// This is primarily for simulating a running process.
-// It sets both job.process (used by LazyJob specific logic)
-// and job.Cmd.Process (used by BaseJob signal methods via job.Cmd).
-func (job *LazyJob) SetProcess(p *os.Process) {
-	job.process = p
-	if job.Cmd != nil { // Ensure Cmd is initialized
-		job.Cmd.Process = p
-	} else if p != nil { // If Cmd is nil, but we have a process, create a dummy Cmd
-		// This case is tricky; ideally Cmd should be fully set up by a Start-like method.
-		// For testing reaper logic which relies on job.Cmd.Process.Pid, we need it.
-		// This might need refinement depending on how tests set up job.Cmd.
-		// log.Warn("SetProcess called on LazyJob with nil Cmd; creating a minimal Cmd. May need attention.")
-		// job.Cmd = &exec.Cmd{} // This alone is not enough, Path and SysProcAttr are needed by reaper's callers
-	}
-}
+const lazyJobReapGracePeriod = 10 * time.Second
 
 func (job *LazyJob) AssertStarted(ctx context.Context) error {
 	l := log.WithField("job.name", job.Config.Name)
@@ -118,15 +79,13 @@ func (job *LazyJob) Run(ctx context.Context, errors chan<- error) error {
 		}()
 	}
 
-	job.StartProcessReaper(ctx) // Renamed to be exported
+	job.startProcessReaper(ctx)
 
 	log.Infof("holding off starting job %s until first request", job.Config.Name)
 	return nil
 }
 
-// StartProcessReaper starts the goroutine that monitors the lazy job's process
-// and terminates it if it's idle for too long.
-func (job *LazyJob) StartProcessReaper(ctx context.Context) {
+func (job *LazyJob) startProcessReaper(ctx context.Context) {
 	reaperInterval := job.coolDownTimeout / 2
 	if reaperInterval < 1*time.Second {
 		reaperInterval = 1 * time.Second
@@ -174,7 +133,7 @@ func (job *LazyJob) StartProcessReaper(ctx context.Context) {
 				}
 				pidToReap := job.Cmd.Process.Pid
 				l.Infof("sending SIGTERM to idle process PID %d", pidToReap)
-				if err := job.Signal(syscall.SIGTERM); err != nil {
+				if err := job.signal(syscall.SIGTERM); err != nil {
 					l.WithError(err).Warnf("failed to send SIGTERM to PID %d", pidToReap)
 					job.lazyStartLock.Unlock()
 					continue
@@ -182,7 +141,7 @@ func (job *LazyJob) StartProcessReaper(ctx context.Context) {
 
 				job.lazyStartLock.Unlock()
 
-				graceTimer := time.NewTimer(LazyJobReapGracePeriod) // Use the variable
+				graceTimer := time.NewTimer(lazyJobReapGracePeriod)
 				defer graceTimer.Stop()
 
 				select {
@@ -191,7 +150,7 @@ func (job *LazyJob) StartProcessReaper(ctx context.Context) {
 					// Check if the process we sent SIGTERM to is still running
 					if job.process != nil && job.Cmd != nil && job.Cmd.Process != nil && job.Cmd.Process.Pid == pidToReap {
 						l.Warnf("process PID %d did not exit after SIGTERM and grace period; sending SIGKILL", pidToReap)
-						if err := job.SignalAll(syscall.SIGKILL); err != nil {
+						if err := job.signalAll(syscall.SIGKILL); err != nil {
 							l.WithError(err).Errorf("failed to send SIGKILL to PID %d", pidToReap)
 						}
 					} else if job.process != nil {

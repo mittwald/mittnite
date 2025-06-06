@@ -180,9 +180,7 @@ func (job *CommonJob) IsRunning() bool {
 	if job.Cmd == nil || job.Cmd.Process == nil || job.Cmd.Process.Pid <= 0 {
 		return false
 	}
-	// Use job.SignalFunc with syscall.Signal(0) for process existence check.
-	// This respects the mockable function. A nil signal (0) is conventional for checking existence.
-	err := job.SignalFunc(job.Cmd.Process.Pid, syscall.Signal(0))
+	err := job.signal(syscall.Signal(0))
 	return err == nil
 }
 
