@@ -2,6 +2,7 @@ package proc
 
 import (
 	"bufio"
+	"bytes"
 	"container/list"
 	"context"
 	"errors"
@@ -243,11 +244,29 @@ func (job *baseJob) logWithTimestamp(r io.Reader, w io.Writer) {
 	}
 
 	scanner := bufio.NewScanner(r)
+	prefix := []byte{'['}
+	suffix := []byte{']', ' '}
+	newline := []byte{'\n'}
+
+	var timeBuffer []byte
+	var lineBuffer bytes.Buffer
+
 	for scanner.Scan() {
-		timestamp := time.Now().Format(layout)
-		line := fmt.Sprintf("[%s] %s\n", timestamp, scanner.Text())
-		if _, err := w.Write([]byte(line)); err != nil {
-			l.Errorf("error writing log for process: %v\n", err)
+		// Reuse time buffer, completly avoiding allocations
+		timeBuffer = timeBuffer[:0]
+		timeBuffer = time.Now().AppendFormat(timeBuffer, layout)
+
+		// Reset line buffer
+		lineBuffer.Reset()
+		lineBuffer.Write(timeBuffer)
+		lineBuffer.Write(prefix)
+		lineBuffer.Write(suffix)
+		lineBuffer.Write(scanner.Bytes())
+		lineBuffer.Write(newline)
+
+		if _, err := w.Write(lineBuffer.Bytes()); err != nil {
+			l.Errorf("error writing log line for process: %v\n", err)
+			continue
 		}
 	}
 
