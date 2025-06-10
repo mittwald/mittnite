@@ -85,6 +85,74 @@ func (job *LazyJob) Run(ctx context.Context, errors chan<- error) error {
 	return nil
 }
 
+func (job *LazyJob) startProcessGracePeriod(ctx context.Context, pid int) {
+	l := log.WithField("job.name", job.Config.Name)
+	graceTimer := time.NewTimer(lazyJobReapGracePeriod)
+	defer graceTimer.Stop()
+
+	select {
+	case <-ctx.Done():
+		l.Infof("context done during SIGTERM grace period for PID %d", pid)
+		return
+	case <-graceTimer.C:
+		job.lazyStartLock.Lock()
+		defer job.lazyStartLock.Unlock()
+
+		// Check if the process we sent SIGTERM to is still running
+		if job.process != nil && job.HasStarted() && job.cmd.Process.Pid == pid {
+			l.Warnf("process PID %d did not exit after SIGTERM and grace period; sending SIGKILL", pid)
+			if err := job.signalAll(syscall.SIGKILL); err != nil {
+				l.WithError(err).Errorf("failed to send1 SIGKILL to PID %d", pid)
+			}
+		} else if job.process != nil {
+			// Process is not nil, but it's not the one we targeted.
+			// This could happen if the job was quickly restarted.
+			currentPid := -1
+			if job.HasStarted() {
+				currentPid = job.cmd.Process.Pid
+			}
+			l.Warnf("original process PID %d seems to have exited or changed; current PID is %d. Skipping SIGKILL.", pidToReap, currentPid)
+		} else {
+			// job.process is nil, so it was cleaned up.
+			l.Infof("process PID %d exited gracefully after SIGTERM", pid)
+		}
+	}
+}
+
+func (job *LazyJob) reapProcess() int {
+	l := log.WithField("job.name", job.Config.Name)
+	if job.activeConnections > 0 {
+		return 0
+	}
+	if diff := time.Since(job.lastConnectionClosed); diff < job.coolDownTimeout {
+		return 0
+	}
+	if job.process == nil {
+		return 0
+	}
+
+	job.lazyStartLock.Lock()
+	defer job.lazyStartLock.Unlock()
+
+	// Verify all conditions again inside the lock
+	if job.process == nil || job.activeConnections != 0 || job.lastConnectionClosed.IsZero() || time.Since(job.lastConnectionClosed) < job.coolDownTimeout {
+		return 0
+	}
+	if !job.HasStarted() {
+		l.Warn("job.process is not nil, but job.cmd or job.cmd.Process is nil; skipping reap cycle")
+		return 0
+	}
+
+	pidToReap := job.cmd.Process.Pid
+	l.Infof("sending SIGTERM to idle process PID %d", pidToReap)
+	if err := job.signal(syscall.SIGTERM); err != nil {
+		l.WithError(err).Warnf("failed to send SIGTERM to PID %d", pidToReap)
+		return 0
+	}
+
+	return pidToReap
+}
+
 func (job *LazyJob) startProcessReaper(ctx context.Context) {
 	reaperInterval := job.coolDownTimeout / 2
 	if reaperInterval < 1*time.Second {
@@ -103,72 +171,11 @@ func (job *LazyJob) startProcessReaper(ctx context.Context) {
 				l.Info("context done, stopping lazy job process reaper")
 				return
 			case <-ticker.C:
-				if job.activeConnections > 0 {
+				pidToReap := job.reapProcess()
+				if pidToReap == 0 {
 					continue
 				}
-
-				diff := time.Since(job.lastConnectionClosed)
-				if diff < job.coolDownTimeout {
-					continue
-				}
-
-				if job.process == nil {
-					continue
-				}
-
-				// All conditions met to reap the process
-				job.lazyStartLock.Lock()
-
-				// Verify all conditions again inside the lock
-				if job.process == nil || job.activeConnections != 0 || job.lastConnectionClosed.IsZero() || time.Since(job.lastConnectionClosed) < job.coolDownTimeout {
-					job.lazyStartLock.Unlock()
-					continue
-				}
-
-				if !job.HasStarted() {
-					l.Warn("job.process is not nil, but job.cmd or job.cmd.Process is nil; skipping reap cycle")
-					job.lazyStartLock.Unlock()
-					continue
-				}
-				pidToReap := job.cmd.Process.Pid
-				l.Infof("sending SIGTERM to idle process PID %d", pidToReap)
-				if err := job.signal(syscall.SIGTERM); err != nil {
-					l.WithError(err).Warnf("failed to send SIGTERM to PID %d", pidToReap)
-					job.lazyStartLock.Unlock()
-					continue
-				}
-
-				job.lazyStartLock.Unlock()
-
-				graceTimer := time.NewTimer(lazyJobReapGracePeriod)
-				defer graceTimer.Stop()
-
-				select {
-				case <-graceTimer.C:
-					job.lazyStartLock.Lock()
-					// Check if the process we sent SIGTERM to is still running
-					if job.process != nil && job.HasStarted() && job.cmd.Process.Pid == pidToReap {
-						l.Warnf("process PID %d did not exit after SIGTERM and grace period; sending SIGKILL", pidToReap)
-						if err := job.signalAll(syscall.SIGKILL); err != nil {
-							l.WithError(err).Errorf("failed to send1 SIGKILL to PID %d", pidToReap)
-						}
-					} else if job.process != nil {
-						// Process is not nil, but it's not the one we targeted.
-						// This could happen if the job was quickly restarted.
-						currentPid := -1
-						if job.HasStarted() {
-							currentPid = job.cmd.Process.Pid
-						}
-						l.Warnf("original process PID %d seems to have exited or changed; current PID is %d. Skipping SIGKILL.", pidToReap, currentPid)
-					} else {
-						// job.process is nil, so it was cleaned up.
-						l.Infof("process PID %d exited gracefully after SIGTERM", pidToReap)
-					}
-					job.lazyStartLock.Unlock()
-				case <-ctx.Done():
-					l.Infof("context done during SIGTERM grace period for PID %d", pidToReap)
-					return // Exit the reaper goroutine
-				}
+				job.startProcessGracePeriod(ctx, pidToReap)
 			}
 		}
 	}()
