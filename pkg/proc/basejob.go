@@ -217,7 +217,7 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 			select {
 			case <-time.After(time.Second * ShutdownWaitingTimeSeconds):
 				// process seems to hang, kill process
-				_ = job.signalAll(syscall.SIGKILL) // Use func for consistency
+				_ = job.signalAll(syscall.SIGKILL)
 				l.WithField("job.name", job.Config.Name).Error("forcefully killed job")
 				return nil
 

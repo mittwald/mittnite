@@ -215,7 +215,7 @@ func (job *CommonJob) Status() *CommonJobStatus {
 	}
 	return &CommonJobStatus{
 		Pid:     pid,
-		Running: running, // Use the 'running' variable determined above
+		Running: running,
 		Phase:   job.phase,
 		Config:  job.Config,
 	}
