@@ -111,7 +111,7 @@ func (job *LazyJob) startProcessGracePeriod(ctx context.Context, pid int) {
 			if job.HasStarted() {
 				currentPid = job.cmd.Process.Pid
 			}
-			l.Warnf("original process PID %d seems to have exited or changed; current PID is %d. Skipping SIGKILL.", pidToReap, currentPid)
+			l.Warnf("original process PID %d seems to have exited or changed; current PID is %d. Skipping SIGKILL.", pid, currentPid)
 		} else {
 			// job.process is nil, so it was cleaned up.
 			l.Infof("process PID %d exited gracefully after SIGTERM", pid)
