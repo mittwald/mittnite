@@ -167,7 +167,7 @@ func (job *LazyJob) startProcessReaper(ctx context.Context) {
 					}
 					job.lazyStartLock.Unlock()
 				case <-ctx.Done():
-					l.Info("context done during SIGTERM grace period for PID %d", pidToReap)
+					l.Infof("context done during SIGTERM grace period for PID %d", pidToReap)
 					return // Exit the reaper goroutine
 				}
 			}
