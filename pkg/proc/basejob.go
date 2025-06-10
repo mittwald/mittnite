@@ -73,6 +73,9 @@ func (job *baseJob) Signal(sig os.Signal) {
 }
 
 func (job *baseJob) signal(sig os.Signal) error {
+	if !job.HasStarted() {
+		return nil
+	}
 	process, err := os.FindProcess(job.cmd.Process.Pid)
 	if err != nil {
 		return err
