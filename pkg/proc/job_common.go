@@ -177,7 +177,7 @@ func (job *CommonJob) Watch() {
 }
 
 func (job *CommonJob) IsRunning() bool {
-	if job.cmd == nil || job.cmd.Process == nil || job.cmd.Process.Pid <= 0 {
+	if !job.HasStarted() || job.cmd.Process.Pid <= 0 {
 		return false
 	}
 	err := job.signal(syscall.Signal(0))
@@ -186,31 +186,24 @@ func (job *CommonJob) IsRunning() bool {
 
 func (job *CommonJob) Restart() {
 	job.restart = true
-	// Ensure job.cmd and job.cmd.Process are not nil before trying to signal
-	if job.cmd != nil && job.cmd.Process != nil {
-		job.SignalAll(syscall.SIGTERM)
-	}
-	if job.interrupt != nil { // Check if interrupt function is set
+	job.SignalAll(syscall.SIGTERM)
+	if job.interrupt != nil {
 		job.interrupt()
 	}
 }
 
 func (job *CommonJob) Stop() {
 	job.stop = true
-	// Ensure job.cmd and job.cmd.Process are not nil before trying to signal
-	if job.cmd != nil && job.cmd.Process != nil {
-		job.SignalAll(syscall.SIGTERM)
-	}
-	if job.interrupt != nil { // Check if interrupt function is set
+	job.SignalAll(syscall.SIGTERM)
+	if job.interrupt != nil {
 		job.interrupt()
 	}
 }
 
 func (job *CommonJob) Status() *CommonJobStatus {
-	running := job.IsRunning()
+	running := job.HasStarted() && job.IsRunning()
 	var pid int
-	// Ensure job.cmd and job.cmd.Process are not nil before trying to access Pid
-	if running && job.cmd != nil && job.cmd.Process != nil {
+	if running {
 		pid = job.cmd.Process.Pid
 	}
 	return &CommonJobStatus{

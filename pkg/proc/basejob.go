@@ -31,7 +31,7 @@ func (job *baseJob) SignalAll(sig syscall.Signal) {
 		}
 	}
 
-	if job.cmd == nil || job.cmd.Process == nil {
+	if !job.HasStarted() {
 		errFunc(
 			fmt.Errorf("job is not running"),
 		)
@@ -43,6 +43,9 @@ func (job *baseJob) SignalAll(sig syscall.Signal) {
 }
 
 func (job *baseJob) signalAll(sig syscall.Signal) error {
+	if !job.HasStarted() {
+		return nil
+	}
 	if job.cmd.Process.Pid <= 0 { // Ensure PID is positive before negating
 		return syscall.Errno(syscall.ESRCH) // No such process or invalid PID
 	}
@@ -56,7 +59,7 @@ func (job *baseJob) Signal(sig os.Signal) {
 		}
 	}
 
-	if job.cmd == nil || job.cmd.Process == nil {
+	if !job.HasStarted() {
 		errFunc(
 			fmt.Errorf("job is not running"),
 		)
@@ -87,6 +90,10 @@ func (job *baseJob) MarkForRestart() {
 
 func (job *baseJob) IsControllable() bool {
 	return job.Config.Controllable
+}
+
+func (job *baseJob) HasStarted() bool {
+	return job.cmd != nil && job.cmd.Process != nil
 }
 
 func (job *baseJob) GetPhase() *JobPhase {
@@ -183,13 +190,11 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 	select {
 	// job errChan or failed
 	case err := <-errChan:
-		if job.cmd != nil && job.cmd.Process != nil { // Check if process actually started
-			if termErr := job.signalAll(syscall.SIGTERM); termErr != nil {
-				if e, ok := termErr.(syscall.Errno); ok && e == syscall.ESRCH {
-					// ESRCH (Error No Such Process) is fine, means process group already gone
-				} else {
-					l.WithError(termErr).Error("failed to send SIGTERM to job's process group")
-				}
+		if termErr := job.signalAll(syscall.SIGTERM); termErr != nil {
+			if e, ok := termErr.(syscall.Errno); ok && e == syscall.ESRCH {
+				// ESRCH (Error No Such Process) is fine, means process group already gone
+			} else {
+				l.WithError(termErr).Error("failed to send SIGTERM to job's process group")
 			}
 		}
 
@@ -209,7 +214,7 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 		}
 		return err
 	case <-ctx.Done():
-		if job.cmd != nil && job.cmd.Process != nil { // Check if process actually started
+		if job.HasStarted() {
 			// ctx canceled, try to terminate job
 			_ = job.signalAll(syscall.SIGTERM)
 			l.WithField("job.name", job.Config.Name).Info("sent SIGTERM to job's process group on ctx.Done")
@@ -226,9 +231,8 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 				return err
 			}
 		}
-		// If job.cmd or job.cmd.Process is nil, it means the process didn't start or already cleaned up.
 		l.WithField("job.name", job.Config.Name).Info("context done, but process was not running or already cleaned up.")
-		return ctx.Err() // Return context error
+		return ctx.Err()
 	}
 }
 
