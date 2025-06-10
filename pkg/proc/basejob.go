@@ -243,11 +243,37 @@ func (job *baseJob) logWithTimestamp(r io.Reader, w io.Writer) {
 	}
 
 	scanner := bufio.NewScanner(r)
+	prefix := []byte{'['}
+	suffix := []byte{']', ' '}
+	newline := []byte{'\n'}
+
+	// Create a reusable buffer for the timestamp
+	var timeBuffer []byte
+
 	for scanner.Scan() {
-		timestamp := time.Now().Format(layout)
-		line := fmt.Sprintf("[%s] %s\n", timestamp, scanner.Text())
-		if _, err := w.Write([]byte(line)); err != nil {
-			l.Errorf("error writing log for process: %v\n", err)
+		// Reset the buffer for reuse, keeping allocated capacity
+		timeBuffer = timeBuffer[:0]
+		timeBuffer = time.Now().AppendFormat(timeBuffer, layout)
+
+		if _, err := w.Write(prefix); err != nil {
+			l.Errorf("error writing timestamp prefix for process: %v\n", err)
+			continue
+		}
+		if _, err := w.Write(timeBuffer); err != nil {
+			l.Errorf("error writing timestamp for process: %v\n", err)
+			continue
+		}
+		if _, err := w.Write(suffix); err != nil {
+			l.Errorf("error writing timestamp suffix for process: %v\n", err)
+			continue
+		}
+		if _, err := w.Write(scanner.Bytes()); err != nil {
+			l.Errorf("error writing log line for process: %v\n", err)
+			continue
+		}
+		if _, err := w.Write(newline); err != nil {
+			l.Errorf("error writing newline for process: %v\n", err)
+			continue
 		}
 	}
 
