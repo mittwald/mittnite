@@ -22,3 +22,5 @@ jobs:
         with:
           version: v1.26.2
           args: release --clean --snapshot --skip=publish
+        env:
+          GOFLAGS: ${{ (github.ref_type == 'tag' && contains(github.ref_name, '-')) && '-gcflags="all=-N -l"' || '' }}
