@@ -3,7 +3,7 @@ package cmd
 import (
 	"net"
 	"net/http"
-	"net/http/pprof"
+	_ "net/http/pprof"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -25,21 +25,14 @@ var rootCmd = &cobra.Command{
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if enableProfile {
 			go func() {
-				mux := http.NewServeMux()
-				mux.HandleFunc("/debug/pprof/", pprof.Index)
-				mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-				mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-				mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-				mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-
-				listener, err := net.Listen("tcp", ":0")
+				// pprof handlers are auto-registered on the default ServeMux when imported.
+				listener, err := net.Listen("tcp", "127.0.0.1:")
 				if err != nil {
 					log.Errorf("pprof server failed to listen: %v", err)
 					return
 				}
-				log.Infof("Starting pprof server on http://localhost%s/debug/pprof/", listener.Addr().String())
-				err = http.Serve(listener, mux)
-				if err != nil {
+				log.Infof("Starting pprof server on http://%s/debug/pprof/", listener.Addr().String())
+				if err = http.Serve(listener, nil); err != nil {
 					log.Errorf("pprof server error: %v", err)
 				}
 			}()

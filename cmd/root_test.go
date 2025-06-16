@@ -41,7 +41,7 @@ func TestProfileFlag(t *testing.T) {
 	hclContent := `
 job "dummy" {
   command = "/bin/sh"
-  args    = ["-c", "echo dummy job running; sleep 30"] // Increased sleep to 30s
+  args    = ["-c", "echo dummy job running; sleep 10"]
 }
 `
 	if err := os.WriteFile(filepath.Join(jobsDir, "dummy.hcl"), []byte(hclContent), 0644); err != nil {
@@ -105,7 +105,7 @@ job "dummy" {
 	go func() {
 		defer wg.Done()
 		reader := bufio.NewReader(stderrPipe) // Read from stderrPipe
-		pprofLogRegex := regexp.MustCompile(`Starting pprof server on http://localhost(?:[^:]+)?:(\d+)/debug/pprof/`)
+		pprofLogRegex := regexp.MustCompile(`Starting pprof server on http://127.0.0.1:(\d+)/debug/pprof/`)
 		for {
 			line, err := reader.ReadString('\n')
 			if len(line) > 0 {
@@ -141,11 +141,11 @@ job "dummy" {
 		t.Logf("[%s] Successfully found pprof server URL: %s", time.Since(startTime), pprofURL)
 	case <-ctx.Done(): // This is the main test context
 		t.Logf("[%s] Main context done while waiting for pprof URL.", time.Since(startTime))
-		cmd.Process.Kill() // Ensure process is killed if context times out
-		wg.Wait()          // Wait for goroutine to finish
+		cmd.Process.Kill()            // Ensure process is killed if context times out
+		wg.Wait()                     // Wait for goroutine to finish
 		logContent := errBuf.String() // Use the full stderr buffer for logging
 		t.Fatalf("Test timed out waiting for pprof server log. Stderr:\n%s", logContent)
-	case <-time.After(15 * time.Second): // Specific timeout for finding the log line, increased slightly
+	case <-time.After(5 * time.Second): // Specific timeout for finding the log line
 		t.Logf("[%s] Timed out waiting for pprof log line via channel.", time.Since(startTime))
 		cmd.Process.Kill() // Ensure process is killed
 		wg.Wait()          // Wait for goroutine to finish
@@ -217,7 +217,7 @@ job "dummy" {
 
 	if !success {
 		finalErrorDescriptive := "No successful HTTP GET." // Renamed to avoid conflict if needed, or ensure proper scope
-		if httpErr != nil { // httpErr should hold the error from the last attempt
+		if httpErr != nil {                                // httpErr should hold the error from the last attempt
 			finalErrorDescriptive = httpErr.Error()
 		}
 		statusCode := 0
@@ -244,7 +244,7 @@ job "dummy" {
 	// HTTP Check related variables (resp, httpErr, success) are already defined before this block.
 	// The defer func above will handle cmd.Wait() and final process state logging.
 	// We only need to kill the process here if the HTTP checks complete *successfully*
-	// and the process hasn't naturally exited due to its own short lifecycle (unlikely with sleep 30).
+	// and the process hasn't naturally exited due to its own short lifecycle (unlikely with sleep 10).
 	if success { // If HTTP check was successful
 		if cmd.Process != nil && (cmd.ProcessState == nil || !cmd.ProcessState.Exited()) {
 			t.Logf("[%s] HTTP check successful, ensuring mittnite process (PID: %d) is terminated.", time.Since(startTime), cmd.Process.Pid)
