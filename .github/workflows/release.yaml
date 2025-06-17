@@ -24,5 +24,4 @@ jobs:
           version: v1.26.2
           args: release --clean
         env:
-          GOFLAGS: ${{ (github.ref_type == 'tag' && contains(github.ref_name, '-')) && '-gcflags="all=-N -l"' || '' }}
           GITHUB_TOKEN: ${{ secrets.RELEASE_USER_TOKEN }}
