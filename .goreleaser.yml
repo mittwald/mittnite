@@ -11,6 +11,8 @@ builds:
     main: main.go
     env:
       - CGO_ENABLED=0
+    gcflags:
+      - '{{- if (contains .Tag "-") -}}all=-N -l{{- end -}}'
     ldflags:
       - -s -w -X github.com/mittwald/mittnite/cmd.Version={{ .Version }} -X github.com/mittwald/mittnite/cmd.Commit={{ .Commit }} -X github.com/mittwald/mittnite/cmd.BuiltAt={{ .Date }}
     goos:
