@@ -141,23 +141,36 @@ func (l *Listener) run(ctx context.Context) <-chan error {
 				fromUpstreamErrors := make(chan error)
 
 				go func() {
+					defer func() {
+						// this sends an EOF to the other io.Copy-Command
+						if tcpUpstream, ok := upstream.(*net.TCPConn); ok {
+							tcpUpstream.CloseWrite()
+						}
+						close(toUpstreamErrors)
+					}()
+
 					if _, err := io.Copy(upstream, conn); err != nil && !errors.Is(err, io.EOF) {
 						toUpstreamErrors <- err
 					}
-					close(toUpstreamErrors)
 				}()
 
 				go func() {
+					// this sends an EOF to the other io.Copy-Command
+					defer func() {
+						if tcpConn, ok := conn.(*net.TCPConn); ok {
+							tcpConn.CloseWrite()
+						}
+						close(fromUpstreamErrors)
+					}()
+
 					if _, err := io.Copy(conn, upstream); err != nil && !errors.Is(err, io.EOF) {
 						fromUpstreamErrors <- err
 					}
-					close(fromUpstreamErrors)
 				}()
 
-				select {
-				case <-toUpstreamErrors:
-				case <-fromUpstreamErrors:
-				}
+				// wait for both channels (do not use `select-case`)
+				<-toUpstreamErrors
+				<-fromUpstreamErrors
 			}()
 		}
 	}()
