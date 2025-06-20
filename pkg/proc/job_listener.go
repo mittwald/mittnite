@@ -142,7 +142,6 @@ func (l *Listener) run(ctx context.Context) <-chan error {
 
 				go func() {
 					defer func() {
-						// this sends an EOF to the other io.Copy-Command
 						if tcpUpstream, ok := upstream.(*net.TCPConn); ok {
 							tcpUpstream.CloseWrite()
 						}
@@ -155,7 +154,6 @@ func (l *Listener) run(ctx context.Context) <-chan error {
 				}()
 
 				go func() {
-					// this sends an EOF to the other io.Copy-Command
 					defer func() {
 						if tcpConn, ok := conn.(*net.TCPConn); ok {
 							tcpConn.CloseWrite()
