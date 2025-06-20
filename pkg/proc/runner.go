@@ -3,6 +3,7 @@ package proc
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"sync"
 	"time"
 
@@ -104,6 +105,7 @@ func (r *Runner) Run() error {
 
 		// watch files
 		case <-ticker.C:
+			log.Debugf("active goroutines: %d", runtime.NumGoroutine())
 			for _, job := range r.jobs {
 				job.Watch()
 				if r.keepRunning {
