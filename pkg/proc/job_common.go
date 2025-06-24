@@ -177,39 +177,38 @@ func (job *CommonJob) Watch() {
 }
 
 func (job *CommonJob) IsRunning() bool {
-	if job.cmd == nil {
+	if !job.HasStarted() || job.cmd.Process.Pid <= 0 {
 		return false
 	}
-	if job.cmd.Process == nil {
-		return false
-	}
-	if job.cmd.Process.Pid > 0 {
-		return syscall.Kill(job.cmd.Process.Pid, syscall.Signal(0)) == nil
-	}
-	return true
+	err := job.signal(syscall.Signal(0))
+	return err == nil
 }
 
 func (job *CommonJob) Restart() {
 	job.restart = true
 	job.SignalAll(syscall.SIGTERM)
-	job.interrupt()
+	if job.interrupt != nil {
+		job.interrupt()
+	}
 }
 
 func (job *CommonJob) Stop() {
 	job.stop = true
 	job.SignalAll(syscall.SIGTERM)
-	job.interrupt()
+	if job.interrupt != nil {
+		job.interrupt()
+	}
 }
 
 func (job *CommonJob) Status() *CommonJobStatus {
-	running := job.IsRunning()
+	running := job.HasStarted() && job.IsRunning()
 	var pid int
 	if running {
 		pid = job.cmd.Process.Pid
 	}
 	return &CommonJobStatus{
 		Pid:     pid,
-		Running: job.IsRunning(),
+		Running: running,
 		Phase:   job.phase,
 		Config:  job.Config,
 	}
