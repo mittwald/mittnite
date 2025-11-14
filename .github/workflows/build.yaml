@@ -17,6 +17,14 @@ jobs:
         with:
           go-version: "1.23"
 
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: fs
+          format: json
+          exit-code: "1"
+          severity: CRITICAL,HIGH
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
