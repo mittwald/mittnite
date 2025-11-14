@@ -21,7 +21,6 @@ jobs:
         uses: aquasecurity/trivy-action@0.33.1
         with:
           scan-type: fs
-          ignore-unfixed: true
           format: json
           exit-code: "1"
           severity: CRITICAL,HIGH
