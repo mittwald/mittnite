@@ -258,8 +258,8 @@ func (job *baseJob) logWithTimestamp(r io.Reader, w io.Writer) {
 
 		// Reset line buffer
 		lineBuffer.Reset()
-		lineBuffer.Write(timeBuffer)
 		lineBuffer.Write(prefix)
+		lineBuffer.Write(timeBuffer)
 		lineBuffer.Write(suffix)
 		lineBuffer.Write(scanner.Bytes())
 		lineBuffer.Write(newline)
