@@ -105,24 +105,28 @@ func (r *Runner) Run() error {
 
 		// watch files
 		case <-ticker.C:
-			log.Debugf("active goroutines: %d", runtime.NumGoroutine())
-			for _, job := range r.jobs {
-				job.Watch()
-				if r.keepRunning {
-					if commonJob, ok := job.(*CommonJob); ok {
-						phase := commonJob.GetPhase()
-						if phase.Is(JobPhaseReasonFailed) || phase.Is(JobPhaseReasonStopped) || phase.Is(JobPhaseReasonCompleted) {
-							r.removeJob(job)
-							r.addAndStartJob(job)
-						}
-					}
-				}
-			}
+			r.tick()
 
 		// handle errors
 		case err := <-r.errChan:
 			log.Error(err)
 			return err
+		}
+	}
+}
+
+func (r *Runner) tick() {
+	log.Debugf("active goroutines: %d", runtime.NumGoroutine())
+	for _, job := range r.jobs {
+		job.Watch()
+		if r.keepRunning {
+			if commonJob, ok := job.(*CommonJob); ok {
+				phase := commonJob.GetPhase()
+				if phase.Is(JobPhaseReasonFailed) || phase.Is(JobPhaseReasonStopped) || phase.Is(JobPhaseReasonCompleted) {
+					r.removeJob(job)
+					r.addAndStartJob(job)
+				}
+			}
 		}
 	}
 }
