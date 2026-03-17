@@ -31,10 +31,16 @@ func TestKeepRunningDoesNotDuplicateCrashLoopingJob(t *testing.T) {
 	runner := NewRunner(ctx, nil, true, ignitionConfig)
 	require.NoError(t, runner.Init())
 
-	runner.errChan = make(chan error, 1)
+	runner.errChan = make(chan error, 16)
 	runner.waitGroup = &sync.WaitGroup{}
 	runner.waitGroup.Add(1) // keepRunning hold
 	runner.exec()
+
+	// Drain errors so goroutines don't block
+	go func() {
+		for range runner.errChan {
+		}
+	}()
 
 	// Wait for the job to crash and enter CrashLooping phase
 	require.Eventually(t, func() bool {
