@@ -109,10 +109,12 @@ func (r *Runner) Run() error {
 			for _, job := range r.jobs {
 				job.Watch()
 				if r.keepRunning {
-					commonJob, ok := job.(*CommonJob)
-					if ok && !commonJob.IsRunning() {
-						r.removeJob(job)
-						r.addAndStartJob(job)
+					if commonJob, ok := job.(*CommonJob); ok {
+						phase := commonJob.GetPhase()
+						if phase.Is(JobPhaseReasonFailed) || phase.Is(JobPhaseReasonStopped) || phase.Is(JobPhaseReasonCompleted) {
+							r.removeJob(job)
+							r.addAndStartJob(job)
+						}
 					}
 				}
 			}
