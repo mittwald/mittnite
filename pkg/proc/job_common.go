@@ -69,6 +69,7 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 		}
 
 		job.ctx, job.interrupt = context.WithCancel(context.Background())
+		startedAt := time.Now()
 		err := job.startOnce(ctx, p)
 		switch err {
 		case nil:
@@ -85,6 +86,11 @@ func (job *CommonJob) Run(ctx context.Context, _ chan<- error) error {
 			l.Info("stop process")
 			job.phase.Set(JobPhaseReasonStopped)
 			return nil
+		}
+
+		if time.Since(startedAt) > backOff {
+			backOff = 1 * time.Second
+			attempts = 0
 		}
 
 		attempts++
