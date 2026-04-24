@@ -127,11 +127,16 @@ func (r *Runner) tick() {
 
 	var toRestart []Job
 	for _, job := range r.jobs {
-		if commonJob, ok := job.(*CommonJob); ok {
-			phase := commonJob.GetPhase()
-			if phase.Is(JobPhaseReasonFailed) || phase.Is(JobPhaseReasonStopped) || phase.Is(JobPhaseReasonCompleted) {
-				toRestart = append(toRestart, job)
-			}
+		commonJob, ok := job.(*CommonJob)
+		if !ok {
+			continue
+		}
+		phase := commonJob.GetPhase()
+		switch {
+		case phase.Is(JobPhaseReasonFailed):
+			toRestart = append(toRestart, job)
+		case phase.Is(JobPhaseReasonCompleted) && !commonJob.Config.OneTime:
+			toRestart = append(toRestart, job)
 		}
 	}
 
