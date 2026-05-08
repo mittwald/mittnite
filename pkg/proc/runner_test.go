@@ -55,3 +55,61 @@ func TestKeepRunningDoesNotDuplicateCrashLoopingJob(t *testing.T) {
 	assert.Equal(t, jobCountBefore, len(runner.jobs), "job count should not change for a CrashLooping job")
 	assert.True(t, runner.jobs[0].GetPhase().Is(JobPhaseReasonCrashLooping), "phase should still be CrashLooping")
 }
+
+func TestTickDoesNotRestartStoppedJob(t *testing.T) {
+	jobConfig := config.JobConfig{
+		BaseJobConfig: config.BaseJobConfig{
+			Name:    "test-stopped-job",
+			Command: "true",
+		},
+	}
+
+	ignitionConfig := &config.Ignition{
+		Jobs: []config.JobConfig{jobConfig},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	runner := NewRunner(ctx, nil, true, ignitionConfig)
+	require.NoError(t, runner.Init())
+
+	runner.errChan = make(chan error, 16)
+	runner.waitGroup = &sync.WaitGroup{}
+
+	// Simulate a job that was explicitly stopped via `mittnitectl job stop`.
+	runner.jobs[0].GetPhase().Set(JobPhaseReasonStopped)
+
+	runner.tick()
+
+	assert.True(t, runner.jobs[0].GetPhase().Is(JobPhaseReasonStopped), "explicitly stopped job must remain stopped")
+}
+
+func TestTickDoesNotRestartCompletedOneTimeJob(t *testing.T) {
+	jobConfig := config.JobConfig{
+		BaseJobConfig: config.BaseJobConfig{
+			Name:    "test-onetime-job",
+			Command: "true",
+		},
+		OneTime: true,
+	}
+
+	ignitionConfig := &config.Ignition{
+		Jobs: []config.JobConfig{jobConfig},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	runner := NewRunner(ctx, nil, true, ignitionConfig)
+	require.NoError(t, runner.Init())
+
+	runner.errChan = make(chan error, 16)
+	runner.waitGroup = &sync.WaitGroup{}
+
+	runner.jobs[0].GetPhase().Set(JobPhaseReasonCompleted)
+
+	runner.tick()
+
+	assert.True(t, runner.jobs[0].GetPhase().Is(JobPhaseReasonCompleted), "completed one-time job must stay completed")
+}
