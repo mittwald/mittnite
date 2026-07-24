@@ -51,8 +51,9 @@ func TestStartOnceKeepsLoggingOutputOfLingeringChildren(t *testing.T) {
 	logHook := logtest.NewGlobal()
 	defer logHook.Reset()
 
-	job, err := newBaseJob(&config.BaseJobConfig{
-		Name:             "lingering-job",
+	job := &baseJob{}
+	err := job.init(&config.BaseJobConfig{
+		Name: "lingering-job",
 		// the child traps TERM because startOnce signals the job's process
 		// group once the main process has exited
 		Command:          "sh",
