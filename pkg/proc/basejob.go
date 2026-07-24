@@ -313,9 +313,11 @@ func (job *baseJob) logWithTimestamp(r io.ReadCloser, w io.Writer, layout string
 		if _, err := w.Write(lineBuffer.Bytes()); err != nil {
 			if errors.Is(err, os.ErrClosed) {
 				// the file-backed log target is closed once the job stops;
-				// drop remaining output of children that outlived the job
-				l.Debug("log target closed, stopping log forwarding")
-				return
+				// keep draining the pipe so children that outlived the job
+				// are not killed by SIGPIPE, but discard their output
+				l.Debug("log target closed, discarding further output")
+				w = io.Discard
+				continue
 			}
 			l.WithError(err).Error("error writing log line for process")
 			continue

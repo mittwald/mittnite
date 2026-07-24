@@ -141,10 +141,9 @@ func (job *baseJob) init(jobConfig *config.BaseJobConfig) error {
 	job.stdout = os.Stdout
 	job.stderr = os.Stderr
 	job.SetPhase(JobPhaseReasonAwaitingReadiness)
-	if len(jobConfig.Stdout) == 0 {
-		return nil
-	}
 
+	// no-ops for unset stdout/stderr, so it is safe to call unconditionally;
+	// stderr may be configured without stdout
 	return job.CreateAndOpenStdFile(jobConfig)
 }
 

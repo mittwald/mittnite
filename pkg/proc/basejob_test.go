@@ -2,6 +2,7 @@ package proc
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -55,9 +56,10 @@ func TestStartOnceKeepsLoggingOutputOfLingeringChildren(t *testing.T) {
 	err := job.init(&config.BaseJobConfig{
 		Name: "lingering-job",
 		// the child traps TERM because startOnce signals the job's process
-		// group once the main process has exited
+		// group once the main process has exited; the main process sleeps
+		// briefly so the trap is installed before the signal arrives
 		Command:          "sh",
-		Args:             []string{"-c", "(trap '' TERM; sleep 0.3; echo lingering) & echo main"},
+		Args:             []string{"-c", "(trap '' TERM; sleep 0.3; echo lingering) & echo main; sleep 0.2"},
 		EnableTimestamps: true,
 	})
 	require.NoError(t, err)
@@ -85,6 +87,39 @@ func TestStartOnceKeepsLoggingOutputOfLingeringChildren(t *testing.T) {
 	for _, entry := range logHook.AllEntries() {
 		require.NotEqual(t, "error reading from process", entry.Message)
 	}
+}
+
+// When the job's log target is file-backed, closeStdFiles closes it as soon as
+// the job stops. A child that outlived the job and keeps writing must not be
+// killed by SIGPIPE: the reader keeps draining the pipe and discards the
+// output instead of closing its read end.
+func TestStartOnceDrainsPipeAfterLogTargetCloses(t *testing.T) {
+	dir := t.TempDir()
+	marker := filepath.Join(dir, "marker")
+
+	job := &baseJob{}
+	err := job.init(&config.BaseJobConfig{
+		Name:    "draining-job",
+		Command: "sh",
+		// the second write happens well after the reader saw the closed log
+		// target; if the read end were closed by then, the write would raise
+		// SIGPIPE and the marker file would never be created. The main process
+		// sleeps briefly so the child has installed its TERM trap before
+		// startOnce signals the process group.
+		Args: []string{"-c", fmt.Sprintf(
+			"(trap '' TERM; sleep 0.3; echo lingering; sleep 0.3; echo again; : > %q) & echo main; sleep 0.2", marker,
+		)},
+		EnableTimestamps: true,
+		Stdout:           filepath.Join(dir, "stdout.log"),
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, job.startOnce(context.Background(), nil))
+
+	require.Eventually(t, func() bool {
+		_, err := os.Stat(marker)
+		return err == nil
+	}, 5*time.Second, 50*time.Millisecond, "lingering child should survive writing after the log target closed")
 }
 
 func TestStartOnceReportsExpectedStopAsIntentional(t *testing.T) {
