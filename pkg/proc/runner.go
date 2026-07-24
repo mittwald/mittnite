@@ -76,7 +76,7 @@ func (r *Runner) Boot() error {
 		return r.ctx.Err()
 
 	case err := <-bootErrs:
-		log.Error("boot job error occurred: ", err)
+		log.WithError(err).Error("boot job failed")
 		return err
 	}
 }
@@ -109,7 +109,7 @@ func (r *Runner) Run() error {
 
 		// handle errors
 		case err := <-r.errChan:
-			log.Error(err)
+			log.WithError(err).Error("job failed")
 			return err
 		}
 	}

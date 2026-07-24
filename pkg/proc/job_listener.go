@@ -26,15 +26,16 @@ type acceptResult struct {
 }
 
 func NewListener(j *LazyJob, c *config.Listener) (*Listener, error) {
-	log.WithField("address", c.Address).Info("starting TCP listener")
+	l := log.WithField("job.name", j.Config.Name)
+	l.WithField("address", c.Address).Info("starting TCP listener")
 
 	// deprecation check
 	if c.Protocol != "" {
 		if c.ForwardProtocol == "" {
-			log.Warnf("field protocol in job %s is deprecated in favor of forwardProtocol", j.Config.Name)
+			l.Warn("field protocol is deprecated in favor of forwardProtocol")
 			c.ForwardProtocol = c.Protocol
 		} else {
-			log.Warnf("field protocol in job %s is ignored because it is deprecated and forwardProtocol is already set", j.Config.Name)
+			l.Warn("field protocol is ignored because it is deprecated and forwardProtocol is already set")
 		}
 	}
 
@@ -102,7 +103,9 @@ func (l *Listener) run(ctx context.Context) <-chan error {
 				// received sigterm before new connection could have been established,
 				// we are about to shut down, close socket and listener and return
 				if err := l.socket.Close(); err != nil {
-					log.WithField("reason", err.Error()).Warn("cannot reliably close socket")
+					log.WithField("job.name", l.job.Config.Name).
+						WithError(err).
+						Warn("cannot reliably close socket")
 				}
 				return
 			case ar := <-connChan:
@@ -113,7 +116,9 @@ func (l *Listener) run(ctx context.Context) <-chan error {
 				conn = ar.conn
 			}
 
-			log.WithField("client.addr", conn.RemoteAddr()).Info("accepted connection")
+			log.WithField("job.name", l.job.Config.Name).
+				WithField("client.addr", conn.RemoteAddr()).
+				Info("accepted connection")
 
 			if err := l.job.AssertStarted(ctx); err != nil {
 				errChan <- err
@@ -132,7 +137,9 @@ func (l *Listener) run(ctx context.Context) <-chan error {
 
 				upstream, err := l.provideUpstreamConnection()
 				if err != nil {
-					log.WithError(err).Error("error while dialling upstream")
+					log.WithField("job.name", l.job.Config.Name).
+						WithError(err).
+						Error("error while dialling upstream")
 					return
 				}
 				defer upstream.Close()

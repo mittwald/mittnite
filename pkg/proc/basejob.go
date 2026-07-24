@@ -27,41 +27,31 @@ var (
 )
 
 func (job *baseJob) SignalAll(sig syscall.Signal) {
-	errFunc := func(err error) {
-		if err != nil {
-			log.Warnf("failed to send signal %d to job %s: %s", sig, job.Config.Name, err.Error())
-		}
-	}
+	l := log.WithField("job.name", job.Config.Name).WithField("signal", sig)
 
 	if job.cmd == nil || job.cmd.Process == nil {
-		errFunc(
-			fmt.Errorf("job is not running"),
-		)
+		l.Warn("failed to send signal to process group: job is not running")
 		return
 	}
 
-	log.WithField("job.name", job.Config.Name).Infof("sending signal %d to process group", sig)
-	errFunc(syscall.Kill(-job.cmd.Process.Pid, sig))
+	l.Info("sending signal to process group")
+	if err := syscall.Kill(-job.cmd.Process.Pid, sig); err != nil {
+		l.WithError(err).Warn("failed to send signal to process group")
+	}
 }
 
 func (job *baseJob) Signal(sig os.Signal) {
-	errFunc := func(err error) {
-		if err != nil {
-			log.Warnf("failed to send signal %d to job %s: %s", sig, job.Config.Name, err.Error())
-		}
-	}
+	l := log.WithField("job.name", job.Config.Name).WithField("signal", sig)
 
 	if job.cmd == nil || job.cmd.Process == nil {
-		errFunc(
-			fmt.Errorf("job is not running"),
-		)
+		l.Warn("failed to send signal to process: job is not running")
 		return
 	}
 
-	log.WithField("job.name", job.Config.Name).Infof("sending signal %d to process", sig)
-	errFunc(
-		job.cmd.Process.Signal(sig),
-	)
+	l.Info("sending signal to process")
+	if err := job.cmd.Process.Signal(sig); err != nil {
+		l.WithError(err).Warn("failed to send signal to process")
+	}
 }
 
 func (job *baseJob) Reset() {
@@ -133,8 +123,9 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 		}
 		defer stderrPipe.Close()
 
-		go job.logWithTimestamp(stdoutPipe, job.stdout)
-		go job.logWithTimestamp(stderrPipe, job.stderr)
+		layout := job.resolveTimestampLayout(l)
+		go job.logWithTimestamp(stdoutPipe, job.stdout, layout)
+		go job.logWithTimestamp(stderrPipe, job.stderr, layout)
 	} else {
 		cmd.Stdout = job.stdout
 		cmd.Stderr = job.stderr
@@ -206,13 +197,13 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 	case <-ctx.Done():
 		// ctx canceled, try to terminate job
 		_ = syscall.Kill(-job.cmd.Process.Pid, syscall.SIGTERM)
-		l.WithField("job.name", job.Config.Name).Info("sent SIGTERM to job's process group")
+		l.Info("sent SIGTERM to job's process group")
 
 		select {
 		case <-time.After(time.Second * ShutdownWaitingTimeSeconds):
 			// process seems to hang, kill process
 			_ = syscall.Kill(-job.cmd.Process.Pid, syscall.SIGKILL)
-			l.WithField("job.name", job.Config.Name).Error("forcefully killed job")
+			l.Error("forcefully killed job")
 			return nil
 
 		case err := <-errChan:
@@ -234,25 +225,32 @@ func (job *baseJob) closeStdFiles() {
 	}
 }
 
-func (job *baseJob) logWithTimestamp(r io.Reader, w io.Writer) {
-	l := log.WithField("job.name", job.Config.Name)
-
-	var layout string
-
-	// has custom timestamp layout?
+// resolveTimestampLayout determines the timestamp layout for the job's log
+// output and logs the choice once per process start. timestamp.layout always
+// carries the effective Go time layout; timestamp.format the configured key.
+func (job *baseJob) resolveTimestampLayout(l *log.Entry) string {
 	if job.Config.CustomTimestampFormat != "" {
-		layout = job.Config.CustomTimestampFormat
-		l.Infof("using custom timestamp layout '%s'", layout)
-	} else {
-		existingLayout, exists := TimeLayouts[job.Config.TimestampFormat]
-		if !exists {
-			layout = time.RFC3339
-			l.Warningf("unknown timestamp layout '%s', defaulting to RFC3339", job.Config.TimestampFormat)
-		} else {
-			layout = existingLayout
-			l.Infof("logging with timestamp layout '%s'", job.Config.TimestampFormat)
-		}
+		l.WithField("timestamp.layout", job.Config.CustomTimestampFormat).
+			Info("logging with custom timestamp layout")
+		return job.Config.CustomTimestampFormat
 	}
+
+	layout, exists := TimeLayouts[job.Config.TimestampFormat]
+	if !exists {
+		l.WithField("timestamp.format", job.Config.TimestampFormat).
+			WithField("timestamp.layout", time.RFC3339).
+			Warn("unknown timestamp format, defaulting to RFC3339")
+		return time.RFC3339
+	}
+
+	l.WithField("timestamp.format", job.Config.TimestampFormat).
+		WithField("timestamp.layout", layout).
+		Info("logging with timestamp layout")
+	return layout
+}
+
+func (job *baseJob) logWithTimestamp(r io.Reader, w io.Writer, layout string) {
+	l := log.WithField("job.name", job.Config.Name)
 
 	scanner := bufio.NewScanner(r)
 	prefix := []byte{'['}
@@ -276,13 +274,13 @@ func (job *baseJob) logWithTimestamp(r io.Reader, w io.Writer) {
 		lineBuffer.Write(newline)
 
 		if _, err := w.Write(lineBuffer.Bytes()); err != nil {
-			l.Errorf("error writing log line for process: %v\n", err)
+			l.WithError(err).Error("error writing log line for process")
 			continue
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		l.Errorf("error reading from process: %v\n", err)
+		l.WithError(err).Error("error reading from process")
 	}
 }
 

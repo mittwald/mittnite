@@ -33,7 +33,7 @@ func (api *Api) Start() error {
 		Handler: api.router,
 	}
 
-	log.Infof("remote api listens on %s", api.srv.Addr)
+	log.WithField("api.addr", api.srv.Addr).Info("remote api listening")
 	if err := api.listen(); err != nil && err != http.ErrServerClosed {
 		return err
 	}

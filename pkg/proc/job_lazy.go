@@ -83,7 +83,7 @@ func (job *LazyJob) Run(ctx context.Context, errors chan<- error) error {
 
 	job.startCoolDownWatcher(ctx)
 
-	log.Infof("holding off starting job %s until first request", job.Config.Name)
+	log.WithField("job.name", job.Config.Name).Info("holding off starting job until first request")
 	return nil
 }
 

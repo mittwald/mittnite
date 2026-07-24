@@ -126,7 +126,10 @@ func (job *CommonJob) Watch() {
 		signal := false
 		paths, err := filepath.Glob(watch.Filename)
 		if err != nil {
-			log.Warnf("failed to watch %s: %s", watch.Filename, err.Error())
+			log.WithField("job.name", job.Config.Name).
+				WithField("watch.path", watch.Filename).
+				WithError(err).
+				Warn("failed to watch files")
 			continue
 		}
 
@@ -142,7 +145,9 @@ func (job *CommonJob) Watch() {
 				continue
 			}
 
-			log.Infof("file %s changed, signalling process %s", p, job.Config.Name)
+			log.WithField("job.name", job.Config.Name).
+				WithField("watch.path", p).
+				Info("watched file changed, signaling process")
 			job.watchingFiles[p] = mtime
 			signal = true
 		}
@@ -151,7 +156,9 @@ func (job *CommonJob) Watch() {
 		for p := range job.watchingFiles {
 			_, err := os.Stat(p)
 			if os.IsNotExist(err) {
-				log.Infof("file %s not found, signalling process %s", p, job.Config.Name)
+				log.WithField("job.name", job.Config.Name).
+					WithField("watch.path", p).
+					Info("watched file removed, signaling process")
 				delete(job.watchingFiles, p)
 				signal = true
 			}
