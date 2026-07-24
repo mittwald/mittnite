@@ -15,26 +15,14 @@ const (
 	JobPhaseReasonCrashLooping       JobPhaseReason = "crashLooping"
 )
 
+// JobPhase is a plain value describing a job's current phase. Jobs hand out
+// snapshots of it (see baseJob.GetPhase); mutation happens exclusively through
+// baseJob.SetPhase, which synchronizes concurrent access.
 type JobPhase struct {
 	Reason     JobPhaseReason `json:"reason"`
 	LastChange time.Time      `json:"lastChange"`
 }
 
-func (p *JobPhase) Set(reason JobPhaseReason) {
-	if p == nil {
-		p = &JobPhase{}
-	}
-	if p.Reason == reason {
-		return
-	}
-
-	p.LastChange = time.Now()
-	p.Reason = reason
-}
-
-func (p *JobPhase) Is(reason JobPhaseReason) bool {
-	if p == nil {
-		return false
-	}
+func (p JobPhase) Is(reason JobPhaseReason) bool {
 	return p.Reason == reason
 }

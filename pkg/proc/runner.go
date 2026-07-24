@@ -72,8 +72,22 @@ func (r *Runner) Boot() error {
 		return nil
 
 	case <-r.ctx.Done():
-		log.Warn("context cancelled")
-		return r.ctx.Err()
+		log.Info("context cancelled, waiting for boot jobs to shut down")
+		done := waitGroupToChannel(&wg)
+		timeout := time.After((ShutdownWaitingTimeSeconds + 5) * time.Second)
+		for {
+			select {
+			case <-done:
+				return r.ctx.Err()
+
+			case err := <-bootErrs:
+				log.WithError(err).Warn("boot job failed during shutdown")
+
+			case <-timeout:
+				log.Warn("timed out waiting for boot jobs to shut down")
+				return r.ctx.Err()
+			}
+		}
 
 	case err := <-bootErrs:
 		log.WithError(err).Error("boot job failed")
@@ -84,20 +98,23 @@ func (r *Runner) Boot() error {
 func (r *Runner) Run() error {
 	r.errChan = make(chan error)
 	r.waitGroup = &sync.WaitGroup{}
-	if r.keepRunning {
-		r.waitGroup.Add(1)
-		defer r.waitGroup.Done()
-	}
 	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
 
 	r.exec()
 
-	wgChan := waitGroupToChannel(r.waitGroup)
+	// with keepRunning, wgChan stays nil and never fires, so the runner only
+	// exits via context cancellation or a job error
+	var wgChan <-chan struct{}
+	if !r.keepRunning {
+		wgChan = waitGroupToChannel(r.waitGroup)
+	}
+
 	for {
 		select {
 		case <-r.ctx.Done():
-			log.Warn("context cancelled")
-			return r.ctx.Err()
+			log.Info("context cancelled, waiting for jobs to shut down")
+			return r.waitForJobsToShutDown()
 
 		// wait for them all to finish, or one to fail
 		case <-wgChan:
@@ -111,6 +128,29 @@ func (r *Runner) Run() error {
 		case err := <-r.errChan:
 			log.WithError(err).Error("job failed")
 			return err
+		}
+	}
+}
+
+// waitForJobsToShutDown lets the job goroutines finish their SIGTERM →
+// SIGKILL escalation (see startOnce) before the runner returns and mittnite
+// exits; errChan keeps being drained so no job goroutine blocks on a final
+// send. The timeout is a safety net in case a job goroutine hangs anyway.
+func (r *Runner) waitForJobsToShutDown() error {
+	done := waitGroupToChannel(r.waitGroup)
+	timeout := time.After((ShutdownWaitingTimeSeconds + 5) * time.Second)
+
+	for {
+		select {
+		case <-done:
+			return r.ctx.Err()
+
+		case err := <-r.errChan:
+			log.WithError(err).Warn("job failed during shutdown")
+
+		case <-timeout:
+			log.Warn("timed out waiting for jobs to shut down")
+			return r.ctx.Err()
 		}
 	}
 }
@@ -192,7 +232,7 @@ func (r *Runner) addJobIfNotExists(job Job) {
 }
 
 func (r *Runner) startJob(job Job, initialPhase JobPhaseReason) {
-	job.GetPhase().Set(initialPhase)
+	job.SetPhase(initialPhase)
 	phase := job.GetPhase()
 	if phase.Is(JobPhaseReasonStopped) || phase.Is(JobPhaseReasonFailed) || phase.Is(JobPhaseReasonCrashLooping) {
 		return

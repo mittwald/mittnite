@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -74,7 +75,7 @@ var up = &cobra.Command{
 			return fmt.Errorf("failed while rendering files from ignition config, err: %w", err)
 		}
 
-		signals := make(chan os.Signal)
+		signals := make(chan os.Signal, 1)
 		signal.Notify(signals,
 			syscall.SIGTERM,
 			syscall.SIGINT,
@@ -141,15 +142,25 @@ var up = &cobra.Command{
 		}()
 
 		if err := runner.Boot(); err != nil {
+			if errors.Is(err, context.Canceled) {
+				log.Info("shutdown requested during boot")
+				return nil
+			}
 			log.WithError(err).Fatal("runner error'ed during initialization")
 		} else {
 			log.Info("initialization complete")
 		}
 
-		if err := runner.Run(); err != nil {
-			log.WithError(err).Fatal("service runner stopped with error")
-		} else {
+		// a canceled context is the normal SIGTERM/SIGINT shutdown path; the
+		// runner has already waited for the jobs' SIGTERM → SIGKILL escalation
+		err := runner.Run()
+		switch {
+		case err == nil:
 			log.Print("service runner stopped without error")
+		case errors.Is(err, context.Canceled):
+			log.Info("service runner shut down gracefully")
+		default:
+			log.WithError(err).Fatal("service runner stopped with error")
 		}
 
 		return nil

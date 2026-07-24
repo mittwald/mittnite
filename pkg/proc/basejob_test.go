@@ -14,7 +14,8 @@ import (
 func startTestJob(t *testing.T) (*baseJob, chan error) {
 	t.Helper()
 
-	job, err := newBaseJob(&config.BaseJobConfig{
+	job := &baseJob{}
+	err := job.init(&config.BaseJobConfig{
 		Name:    "test-job",
 		Command: "sleep",
 		Args:    []string{"30"},

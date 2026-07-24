@@ -59,7 +59,7 @@ func (l *Listener) Run(ctx context.Context) error {
 	case err := <-runErrors:
 		return err
 	case <-ctx.Done():
-		return errors.New("context closed")
+		return ctx.Err()
 	}
 }
 

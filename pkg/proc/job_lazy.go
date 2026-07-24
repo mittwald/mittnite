@@ -59,7 +59,7 @@ func (job *LazyJob) AssertStarted(ctx context.Context) error {
 	}
 }
 
-func (job *LazyJob) Run(ctx context.Context, errors chan<- error) error {
+func (job *LazyJob) Run(ctx context.Context, errChan chan<- error) error {
 	listenerWaitGroup := sync.WaitGroup{}
 	defer listenerWaitGroup.Wait()
 
@@ -72,9 +72,9 @@ func (job *LazyJob) Run(ctx context.Context, errors chan<- error) error {
 		listenerWaitGroup.Add(1)
 
 		go func() {
-			if err := listener.Run(ctx); err != nil {
+			if err := listener.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 				log.WithError(err).Error("listener stopped with error")
-				errors <- err
+				errChan <- err
 			}
 
 			listenerWaitGroup.Done()

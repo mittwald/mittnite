@@ -55,19 +55,33 @@ func (job *baseJob) Signal(sig os.Signal) {
 }
 
 func (job *baseJob) Reset() {
+	job.phaseMu.Lock()
+	defer job.phaseMu.Unlock()
 	job.phase = JobPhase{}
 }
 
 func (job *baseJob) MarkForRestart() {
-	job.restart = true
+	job.restart.Store(true)
 }
 
 func (job *baseJob) IsControllable() bool {
 	return job.Config.Controllable
 }
 
-func (job *baseJob) GetPhase() *JobPhase {
-	return &job.phase
+// GetPhase returns a snapshot of the job's current phase.
+func (job *baseJob) GetPhase() JobPhase {
+	job.phaseMu.Lock()
+	defer job.phaseMu.Unlock()
+	return job.phase
+}
+
+func (job *baseJob) SetPhase(reason JobPhaseReason) {
+	job.phaseMu.Lock()
+	defer job.phaseMu.Unlock()
+	if job.phase.Reason == reason {
+		return
+	}
+	job.phase = JobPhase{Reason: reason, LastChange: time.Now()}
 }
 
 func (job *baseJob) GetName() string {
@@ -174,13 +188,13 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 			}
 		}
 
-		if job.restart {
+		if job.restart.Load() {
 			l.Info("job stopped for restart")
-			job.restart = false
+			job.restart.Store(false)
 			return ProcessWillBeRestartedError
 		}
 
-		if job.stop {
+		if job.stop.Load() {
 			l.Info("job stopped")
 			return ProcessWillBeStoppedError
 		}

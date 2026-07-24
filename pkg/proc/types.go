@@ -78,13 +78,15 @@ type baseJob struct {
 	stdOutWg  sync.WaitGroup
 
 	cmd          *exec.Cmd
-	restart      bool
-	stop         bool
+	restart      atomic.Bool
+	stop         atomic.Bool
 	stopExpected atomic.Bool
 	stdout       *os.File
 	stderr       *os.File
 	lastError    error
-	phase        JobPhase
+
+	phaseMu sync.Mutex
+	phase   JobPhase
 }
 
 type BootJob struct {
@@ -127,25 +129,23 @@ type Job interface {
 	Watch()
 	Reset()
 
-	GetPhase() *JobPhase
+	GetPhase() JobPhase
+	SetPhase(JobPhaseReason)
 	GetName() string
 }
 
-func newBaseJob(jobConfig *config.BaseJobConfig) (*baseJob, error) {
-	job := &baseJob{
-		Config:  jobConfig,
-		cmd:     nil,
-		restart: false,
-		stop:    false,
-		stdout:  os.Stdout,
-		stderr:  os.Stderr,
-	}
-	job.phase.Set(JobPhaseReasonAwaitingReadiness)
+// init initializes the baseJob in place; baseJob must not be copied once
+// initialized, since it contains sync.WaitGroup and atomic.Bool fields.
+func (job *baseJob) init(jobConfig *config.BaseJobConfig) error {
+	job.Config = jobConfig
+	job.stdout = os.Stdout
+	job.stderr = os.Stderr
+	job.SetPhase(JobPhaseReasonAwaitingReadiness)
 	if len(jobConfig.Stdout) == 0 {
-		return job, nil
+		return nil
 	}
 
-	return job, job.CreateAndOpenStdFile(jobConfig)
+	return job.CreateAndOpenStdFile(jobConfig)
 }
 
 func (job *baseJob) CreateAndOpenStdFile(jobConfig *config.BaseJobConfig) error {
@@ -174,29 +174,26 @@ func (job *baseJob) CreateAndOpenStdFile(jobConfig *config.BaseJobConfig) error 
 }
 
 func NewCommonJob(c *config.JobConfig) (*CommonJob, error) {
-	job, err := newBaseJob(&c.BaseJobConfig)
-	if err != nil {
-		return nil, err
+	j := CommonJob{
+		Config: c,
 	}
 
-	j := CommonJob{
-		baseJob: *job,
-		Config:  c,
+	if err := j.baseJob.init(&c.BaseJobConfig); err != nil {
+		return nil, err
 	}
 
 	return &j, nil
 }
 
 func NewLazyJob(c *config.JobConfig) (*LazyJob, error) {
-	commonJob, err := NewCommonJob(c)
-	if err != nil {
-		return nil, err
+	j := LazyJob{
+		CommonJob: CommonJob{
+			Config: c,
+		},
 	}
 
-	commonJob.phase.Set(JobPhaseReasonAwaitingReadiness)
-
-	j := LazyJob{
-		CommonJob: *commonJob,
+	if err := j.baseJob.init(&c.BaseJobConfig); err != nil {
+		return nil, err
 	}
 
 	if c.Laziness.SpinUpTimeout != "" {
