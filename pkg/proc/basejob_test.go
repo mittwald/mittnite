@@ -3,11 +3,14 @@ package proc
 import (
 	"context"
 	"os"
+	"path/filepath"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
 
 	"github.com/mittwald/mittnite/internal/config"
+	logtest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/require"
 )
 
@@ -38,6 +41,49 @@ func startTestJob(t *testing.T) (*baseJob, chan error) {
 	}
 
 	return job, errChan
+}
+
+// A job's forked children inherit the stdout/stderr pipes. Output they write
+// after the main process exited must still be forwarded, and the readers must
+// not report an error just because the job exited (cmd.StdoutPipe would be
+// closed by cmd.Wait mid-read, producing "read |0: file already closed").
+func TestStartOnceKeepsLoggingOutputOfLingeringChildren(t *testing.T) {
+	logHook := logtest.NewGlobal()
+	defer logHook.Reset()
+
+	job, err := newBaseJob(&config.BaseJobConfig{
+		Name:             "lingering-job",
+		// the child traps TERM because startOnce signals the job's process
+		// group once the main process has exited
+		Command:          "sh",
+		Args:             []string{"-c", "(trap '' TERM; sleep 0.3; echo lingering) & echo main"},
+		EnableTimestamps: true,
+	})
+	require.NoError(t, err)
+
+	// stand-in for the passthrough case (job.stdout = os.Stdout), which
+	// closeStdFiles leaves open when startOnce returns
+	logFile := filepath.Join(t.TempDir(), "stdout.log")
+	out, err := os.Create(logFile)
+	require.NoError(t, err)
+	defer out.Close()
+	job.stdout = out
+	job.stderr = out
+
+	// returns as soon as the main sh process exits, well before the forked
+	// child writes its line
+	require.NoError(t, job.startOnce(context.Background(), nil))
+
+	require.Eventually(t, func() bool {
+		content, err := os.ReadFile(logFile)
+		return err == nil &&
+			strings.Contains(string(content), "main") &&
+			strings.Contains(string(content), "lingering")
+	}, 5*time.Second, 50*time.Millisecond, "output of the lingering child should still be forwarded")
+
+	for _, entry := range logHook.AllEntries() {
+		require.NotEqual(t, "error reading from process", entry.Message)
+	}
 }
 
 func TestStartOnceReportsExpectedStopAsIntentional(t *testing.T) {

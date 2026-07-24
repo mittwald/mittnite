@@ -124,22 +124,34 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 
 	// pipe command's stdout and stderr through timestamp function if timestamps are enabled
 	// otherwise just redirect stdout and err to job.stdout and job.stderr
+	//
+	// the pipes are created manually instead of via cmd.StdoutPipe, because
+	// cmd.Wait closes those as soon as the main process exits, racing the
+	// readers' final reads ("read |0: file already closed") and cutting off
+	// output of forked child processes that outlive the main process. The
+	// reader goroutines own the read ends and close them on EOF, which arrives
+	// once all child-side writers are gone.
+	var pipeWriteEnds []*os.File
 	if job.Config.EnableTimestamps {
-		stdoutPipe, err := cmd.StdoutPipe()
+		stdoutReader, stdoutWriter, err := os.Pipe()
 		if err != nil {
 			return fmt.Errorf("failed to create stdout pipe for process: %s", err.Error())
 		}
-		defer stdoutPipe.Close()
 
-		stderrPipe, err := cmd.StderrPipe()
+		stderrReader, stderrWriter, err := os.Pipe()
 		if err != nil {
+			stdoutReader.Close()
+			stdoutWriter.Close()
 			return fmt.Errorf("failed to create stderr pipe for process: %s", err.Error())
 		}
-		defer stderrPipe.Close()
+
+		cmd.Stdout = stdoutWriter
+		cmd.Stderr = stderrWriter
+		pipeWriteEnds = []*os.File{stdoutWriter, stderrWriter}
 
 		layout := job.resolveTimestampLayout(l)
-		go job.logWithTimestamp(stdoutPipe, job.stdout, layout)
-		go job.logWithTimestamp(stderrPipe, job.stderr, layout)
+		go job.logWithTimestamp(stdoutReader, job.stdout, layout)
+		go job.logWithTimestamp(stderrReader, job.stderr, layout)
 	} else {
 		cmd.Stdout = job.stdout
 		cmd.Stderr = job.stderr
@@ -155,8 +167,17 @@ func (job *baseJob) startOnce(ctx context.Context, process chan<- *os.Process) e
 
 	l.Info("starting job")
 
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start job %s: %s", job.Config.Name, err.Error())
+	startErr := cmd.Start()
+
+	// a started child holds duplicates of the pipe write ends; close ours so
+	// the readers see EOF once all child-side writers are gone (immediately,
+	// if the start failed)
+	for _, w := range pipeWriteEnds {
+		w.Close()
+	}
+
+	if startErr != nil {
+		return fmt.Errorf("failed to start job %s: %s", job.Config.Name, startErr.Error())
 	}
 
 	// Only set job.cmd if cmd.Start() was successful
@@ -263,7 +284,9 @@ func (job *baseJob) resolveTimestampLayout(l *log.Entry) string {
 	return layout
 }
 
-func (job *baseJob) logWithTimestamp(r io.Reader, w io.Writer, layout string) {
+func (job *baseJob) logWithTimestamp(r io.ReadCloser, w io.Writer, layout string) {
+	defer r.Close()
+
 	l := log.WithField("job.name", job.Config.Name)
 
 	scanner := bufio.NewScanner(r)
@@ -288,6 +311,12 @@ func (job *baseJob) logWithTimestamp(r io.Reader, w io.Writer, layout string) {
 		lineBuffer.Write(newline)
 
 		if _, err := w.Write(lineBuffer.Bytes()); err != nil {
+			if errors.Is(err, os.ErrClosed) {
+				// the file-backed log target is closed once the job stops;
+				// drop remaining output of children that outlived the job
+				l.Debug("log target closed, stopping log forwarding")
+				return
+			}
 			l.WithError(err).Error("error writing log line for process")
 			continue
 		}
